@@ -1,7 +1,12 @@
 import * as XLSX from 'xlsx';
 
 const SHEET_NAME = 'Drugs (2)';
+const FILE_PATH = '/Doh_Drugs_January_2026.xlsx';
 
+// Strip all whitespace from a header string for safe comparison
+const normalizeHeader = (h) => String(h ?? '').replace(/\s+/g, ' ').trim();
+
+// Map normalized header → camelCase key
 const COLUMN_MAP = {
   'Generic Name': 'genericName',
   'Package Name': 'packageName',
@@ -14,29 +19,81 @@ const COLUMN_MAP = {
   'Included in Thiqa/ ABM - other than 1&7- Drug Formulary': 'thiqaFormulary',
 };
 
-export async function parseFormularyExcel(file) {
-  const arrayBuffer = await file.arrayBuffer();
+function safe(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
+export async function loadFormularyFromPublic() {
+  const response = await fetch(FILE_PATH);
+  if (!response.ok) {
+    throw new Error(
+      `Excel file not found at ${FILE_PATH}. ` +
+      'Place Doh_Drugs_January_2026.xlsx in the public/ folder and restart.'
+    );
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return parseBuffer(arrayBuffer);
+}
+
+export function parseFormularyExcel(file) {
+  return file.arrayBuffer().then(parseBuffer);
+}
+
+async function parseBuffer(arrayBuffer) {
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
   const sheet = workbook.Sheets[SHEET_NAME];
   if (!sheet) {
     const available = workbook.SheetNames.join(', ');
     throw new Error(
-      `Sheet "${SHEET_NAME}" not found. Available sheets: ${available}`
+      `Sheet "${SHEET_NAME}" not found. Available: ${available}`
     );
   }
 
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  // Read raw rows with raw headers
+  const raw = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 
-  return rows.map((row, index) => {
-    const drug = { _rowIndex: index };
-    for (const [excelCol, key] of Object.entries(COLUMN_MAP)) {
-      drug[key] = row[excelCol] !== undefined ? String(row[excelCol]).trim() : '';
-    }
-    // Normalize price to number when possible
-    const rawPrice = row['Package Price to Public'];
-    drug.packagePrice =
-      rawPrice !== undefined && rawPrice !== '' ? Number(rawPrice) : null;
-    return drug;
-  });
+  if (raw.length === 0) return [];
+
+  // Build a normalized header → original header lookup from the first row
+  const firstRow = raw[0];
+  const headerMap = {}; // normalizedHeader → originalKey
+  for (const key of Object.keys(firstRow)) {
+    headerMap[normalizeHeader(key)] = key;
+  }
+
+  // Build accessor: camelKey → originalKey in the row objects
+  const accessors = {};
+  for (const [colHeader, camelKey] of Object.entries(COLUMN_MAP)) {
+    const originalKey = headerMap[normalizeHeader(colHeader)];
+    if (originalKey) accessors[camelKey] = originalKey;
+  }
+
+  const drugs = [];
+  for (let i = 0; i < raw.length; i++) {
+    const row = raw[i];
+    const status = safe(row[accessors.status]);
+    if (status.toLowerCase() !== 'active') continue;
+
+    const rawPrice = row[accessors.packagePrice];
+    const price = rawPrice !== '' && rawPrice !== undefined
+      ? parseFloat(String(rawPrice).replace(/[^0-9.]/g, ''))
+      : null;
+
+    drugs.push({
+      _id: i,
+      genericName:      safe(row[accessors.genericName]),
+      packageName:      safe(row[accessors.packageName]),
+      strength:         safe(row[accessors.strength]),
+      dosageForm:       safe(row[accessors.dosageForm]),
+      dispenseMode:     safe(row[accessors.dispenseMode]),
+      packagePrice:     isNaN(price) ? null : price,
+      manufacturerName: safe(row[accessors.manufacturerName]),
+      status,
+      thiqaFormulary:   safe(row[accessors.thiqaFormulary]).toLowerCase() === 'yes' ? 'Yes' : 'No',
+    });
+  }
+
+  return drugs;
 }

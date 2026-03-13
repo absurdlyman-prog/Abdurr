@@ -1,37 +1,52 @@
-:root {
-  --brand:        #006994;
-  --brand-dark:   #004f72;
-  --brand-light:  #e6f4f9;
-  --accent:       #d4a017;
-  --success:      #1a7f4b;
-  --success-bg:   #e6f4ed;
-  --warning:      #b45309;
-  --warning-bg:   #fef3c7;
-  --danger:       #b91c1c;
-  --danger-bg:    #fee2e2;
-  --text:         #1e293b;
-  --text-muted:   #64748b;
-  --bg:           #f8fafc;
-  --surface:      #ffffff;
-  --border:       #e2e8f0;
-  --border-dark:  #cbd5e1;
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md:    0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
-  --radius:       8px;
-  --sans:         'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
-  font-family: var(--sans);
-  font-size: 14px;
+:root {
+  --navy:         #0a1628;
+  --navy-mid:     #132040;
+  --blue:         #1a56db;
+  --blue-hover:   #1447c0;
+  --blue-light:   #e8f0fe;
+  --blue-mid:     #dbeafe;
+  --green:        #065f46;
+  --green-bg:     #d1fae5;
+  --orange:       #92400e;
+  --orange-bg:    #fef3c7;
+  --red:          #991b1b;
+  --red-bg:       #fee2e2;
+  --thiqa-blue:   #1e40af;
+  --thiqa-bg:     #dbeafe;
+  --best-green:   #065f46;
+  --best-bg:      #d1fae5;
+  --text:         #111827;
+  --text-mid:     #374151;
+  --text-muted:   #6b7280;
+  --text-light:   #9ca3af;
+  --bg:           #f9fafb;
+  --surface:      #ffffff;
+  --border:       #e5e7eb;
+  --border-mid:   #d1d5db;
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05);
+  --shadow:       0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md:    0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-lg:    0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --radius:       10px;
+  --radius-lg:    14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; }
 #root { min-height: 100svh; display: flex; flex-direction: column; }
-h1, h2, h3 { margin: 0; font-weight: 600; }
+h1, h2, h3, h4 { margin: 0; }
 p { margin: 0; }
 button { cursor: pointer; font-family: inherit; }
+code { font-family: ui-monospace, monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
