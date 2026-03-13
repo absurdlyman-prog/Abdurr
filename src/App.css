@@ -220,9 +220,10 @@
   transition: background 0.2s;
   flex-shrink: 0;
 }
-.thiqa-toggle input:checked + .thiqa-toggle-track {
-  background: var(--blue);
-}
+/* Activated state — toggle input is first child so we use :has() or a data attr approach.
+   We manage the active class via JS instead of pure CSS sibling trick. */
+.thiqa-toggle-track.is-on { background: var(--blue); }
+
 .thiqa-toggle-thumb {
   position: absolute;
   top: 2px;
@@ -234,8 +235,7 @@
   transition: transform 0.2s;
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
-.thiqa-toggle input:checked ~ .thiqa-toggle-track .thiqa-toggle-thumb,
-.thiqa-toggle input:checked + .thiqa-toggle-track .thiqa-toggle-thumb {
+.thiqa-toggle-track.is-on .thiqa-toggle-thumb {
   transform: translateX(16px);
 }
 
@@ -291,11 +291,34 @@
   grid-column: 1 / -1;
 }
 
-.grid-hint {
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
-  padding: 8px;
+.load-more-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 16px;
+}
+
+.scroll-sentinel {
+  height: 1px;
+  width: 100%;
+}
+
+.btn-load-more {
+  height: 44px;
+  padding: 0 24px;
+  border: 1.5px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--blue);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-load-more:hover {
+  background: var(--blue-light);
+  border-color: var(--blue);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -411,17 +434,78 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
+.alt-panel-title-group { flex: 1; min-width: 0; }
 .alt-panel-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--navy);
+  line-height: 1.3;
+}
+.alt-panel-generic {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 .alt-panel-sub {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 3px;
+}
+
+/* Drug detail section */
+.drug-detail-section {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.drug-detail-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.drug-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+}
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.detail-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Alternatives section header */
+.alt-section-header { margin-bottom: 10px; }
+.alt-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.alt-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: #f3f4f6;
+  padding: 1px 8px;
+  border-radius: 20px;
 }
 .alt-close-btn {
   width: 32px;
@@ -801,6 +885,8 @@
   .result-count { margin-left: 0; width: 100%; }
 
   .drug-grid { grid-template-columns: 1fr; }
+
+  .drug-detail-grid { grid-template-columns: 1fr; }
 
   .alt-row { flex-wrap: wrap; }
   .alt-row-price { text-align: left; flex-direction: row; align-items: center; gap: 8px; }

@@ -1,7 +1,11 @@
 import * as XLSX from 'xlsx';
 
 const SHEET_NAME = 'Drugs (2)';
-const FILE_PATH = '/Doh_Drugs_January_2026.xlsx';
+// Try both the single-extension and double-extension variants that may exist in public/
+const FILE_CANDIDATES = [
+  '/Doh_Drugs_January_2026.xlsx',
+  '/Doh_Drugs_January_2026.xlsx.xlsx',
+];
 
 // Strip all whitespace from a header string for safe comparison
 const normalizeHeader = (h) => String(h ?? '').replace(/\s+/g, ' ').trim();
@@ -25,15 +29,23 @@ function safe(value) {
 }
 
 export async function loadFormularyFromPublic() {
-  const response = await fetch(FILE_PATH);
-  if (!response.ok) {
-    throw new Error(
-      `Excel file not found at ${FILE_PATH}. ` +
-      'Place Doh_Drugs_January_2026.xlsx in the public/ folder and restart.'
-    );
+  let lastError;
+  for (const candidate of FILE_CANDIDATES) {
+    try {
+      const response = await fetch(candidate);
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        return parseBuffer(arrayBuffer);
+      }
+      lastError = `HTTP ${response.status} for ${candidate}`;
+    } catch (err) {
+      lastError = err.message;
+    }
   }
-  const arrayBuffer = await response.arrayBuffer();
-  return parseBuffer(arrayBuffer);
+  throw new Error(
+    `Excel file not found. Tried: ${FILE_CANDIDATES.join(', ')}. ` +
+    'Place Doh_Drugs_January_2026.xlsx in the public/ folder and restart.'
+  );
 }
 
 export function parseFormularyExcel(file) {

@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { useDrugData } from '../contexts/DrugDataContext';
 import DrugCard from './DrugCard';
 import AlternativesPanel from './AlternativesPanel';
@@ -5,9 +6,32 @@ import AlternativesPanel from './AlternativesPanel';
 const PAGE_SIZE = 48;
 
 export default function DrugGrid() {
-  const { results, selectedDrug, loading } = useDrugData();
+  const { results, selectedDrug, loading, query, modeFilter, thiqaOnly } = useDrugData();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef(null);
 
-  if (loading) return null; // loading handled by parent
+  // Reset visible count when filters/search change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [query, modeFilter, thiqaOnly]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && visibleCount < results.length) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, results.length));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visibleCount, results.length]);
+
+  if (loading) return null;
 
   if (results.length === 0) {
     return (
@@ -19,16 +43,11 @@ export default function DrugGrid() {
     );
   }
 
-  // Show first PAGE_SIZE results (performance guard for no-query state)
-  const visible = results.slice(0, PAGE_SIZE);
-  const hidden = results.length - visible.length;
-
-  // Find position of selected card to insert panel right after its row
+  const visible = results.slice(0, visibleCount);
   const selectedIndex = selectedDrug
     ? visible.findIndex((d) => d._id === selectedDrug._id)
     : -1;
 
-  // Insert AlternativesPanel after the selected card
   const items = [];
   for (let i = 0; i < visible.length; i++) {
     items.push(<DrugCard key={visible[i]._id} drug={visible[i]} />);
@@ -41,14 +60,21 @@ export default function DrugGrid() {
     }
   }
 
+  const remaining = results.length - visibleCount;
+
   return (
     <div className="drug-grid-wrapper">
       <div className="drug-grid">{items}</div>
-      {hidden > 0 && (
-        <p className="grid-hint">
-          Showing first {PAGE_SIZE.toLocaleString()} of {results.length.toLocaleString()} results.{' '}
-          Refine your search to narrow down.
-        </p>
+      {remaining > 0 && (
+        <div className="load-more-area">
+          <div ref={sentinelRef} className="scroll-sentinel" aria-hidden="true" />
+          <button
+            className="btn-load-more"
+            onClick={() => setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, results.length))}
+          >
+            Load more ({remaining.toLocaleString()} remaining)
+          </button>
+        </div>
       )}
     </div>
   );

@@ -29,7 +29,7 @@ export default function FilterBar() {
           checked={thiqaOnly}
           onChange={(e) => setThiqaOnly(e.target.checked)}
         />
-        <span className="thiqa-toggle-track">
+        <span className={`thiqa-toggle-track${thiqaOnly ? ' is-on' : ''}`}>
           <span className="thiqa-toggle-thumb" />
         </span>
         <span className="thiqa-toggle-label">Thiqa covered only</span>
