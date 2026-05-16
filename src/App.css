@@ -785,6 +785,290 @@
 }
 
 /* ═══════════════════════════════════════════════════
+   TAB BAR
+═══════════════════════════════════════════════════ */
+.tab-bar {
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  padding: 0 24px;
+  gap: 4px;
+}
+
+.tab-btn {
+  height: 44px;
+  padding: 0 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: rgba(255,255,255,0.55);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: rgba(255,255,255,0.85); }
+.tab-btn--active {
+  color: #fff;
+  border-bottom-color: var(--blue);
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════
+   SYMPTOM LOOKUP
+═══════════════════════════════════════════════════ */
+.sl-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Input section */
+.sl-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sl-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sl-search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.sl-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 46px 0 44px;
+  border: 2px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.sl-input::placeholder { color: var(--text-light); }
+.sl-input:focus { border-color: var(--blue); }
+
+.sl-clear-btn {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-mid);
+  background: #f3f4f6;
+  color: var(--text-muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.sl-clear-btn:hover { background: #e5e7eb; }
+
+.sl-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-left: 2px;
+}
+
+/* Chips */
+.sl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sl-chip {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-mid);
+  background: var(--surface);
+  color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.sl-chip:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-light);
+}
+.sl-chip--active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Ingredient pills */
+.sl-ingredients-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--blue-light);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+}
+
+.sl-ingredients-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.sl-ingredient-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sl-ingredient-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: rgba(26,86,219,0.12);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Results */
+.sl-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sl-results-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sl-results-count {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.sl-results-count strong { color: var(--text); }
+
+.sl-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+/* Result card */
+.sl-result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.sl-result-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--green);
+}
+
+.sl-result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sl-result-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sl-result-trade {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.sl-result-generic {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.sl-result-meta {
+  font-size: 12px;
+  color: var(--text-mid);
+  font-weight: 500;
+}
+.sl-result-mfr { color: var(--text-light); }
+
+.sl-result-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.sl-result-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+/* Idle / empty states */
+.sl-idle,
+.sl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 24px;
+  text-align: center;
+}
+.sl-idle-icon,
+.sl-empty-icon { font-size: 44px; }
+.sl-idle-title,
+.sl-empty-title { font-size: 18px; font-weight: 600; color: var(--text); }
+.sl-idle-sub,
+.sl-empty-sub { font-size: 14px; color: var(--text-muted); max-width: 420px; }
+
+/* ═══════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════ */
 @media (max-width: 640px) {
@@ -806,6 +1090,12 @@
   .alt-row-price { text-align: left; flex-direction: row; align-items: center; gap: 8px; }
 
   .modal { max-height: 95svh; }
+
+  .tab-bar { padding: 0 16px; }
+  .tab-btn { font-size: 13px; padding: 0 12px; }
+
+  .sl-results-grid { grid-template-columns: 1fr; }
+  .sl-input { font-size: 15px; height: 48px; }
 }
 
 @media (max-width: 400px) {

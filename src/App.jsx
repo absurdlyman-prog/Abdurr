@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { DrugDataProvider, useDrugData } from './contexts/DrugDataContext';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
 import FilterBar from './components/FilterBar';
 import DrugGrid from './components/DrugGrid';
+import SymptomLookup from './components/SymptomLookup';
 import './App.css';
 
 function LoadingScreen() {
@@ -28,8 +30,14 @@ function ErrorScreen({ message }) {
   );
 }
 
+const TABS = [
+  { id: 'formulary', label: 'Formulary Search' },
+  { id: 'symptom',   label: 'Symptom → OTC Lookup' },
+];
+
 function AppContent() {
   const { loading, error } = useDrugData();
+  const [activeTab, setActiveTab] = useState('formulary');
 
   if (loading) return (
     <div className="app-layout">
@@ -48,13 +56,36 @@ function AppContent() {
   return (
     <div className="app-layout">
       <Header />
-      <div className="app-search-zone">
-        <SearchBar />
-        <FilterBar />
+
+      {/* Tab bar */}
+      <div className="tab-bar">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-btn ${activeTab === tab.id ? 'tab-btn--active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
-      <main className="app-main">
-        <DrugGrid />
-      </main>
+
+      {activeTab === 'formulary' ? (
+        <>
+          <div className="app-search-zone">
+            <SearchBar />
+            <FilterBar />
+          </div>
+          <main className="app-main">
+            <DrugGrid />
+          </main>
+        </>
+      ) : (
+        <main className="app-main">
+          <SymptomLookup />
+        </main>
+      )}
+
       <footer className="app-footer">
         Smart Drug Formulary · DOH Abu Dhabi · Data: January 2026
       </footer>
