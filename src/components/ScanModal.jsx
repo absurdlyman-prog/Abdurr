@@ -158,7 +158,7 @@ export default function ScanModal({ onClose }) {
 
   const handleScan = async () => {
     if (!imageFile) { setErrorMsg('Please select a prescription image first.'); return; }
-    if (!apiKey.trim()) { setErrorMsg('Please enter your OpenAI API key.'); return; }
+    if (!apiKey.trim()) { setErrorMsg('Please enter your Anthropic API key.'); return; }
 
     setStatus('loading');
     setErrorMsg('');
@@ -169,23 +169,27 @@ export default function ScanModal({ onClose }) {
       const mimeType = imageFile.type || 'image/jpeg';
 
       const body = {
-        model: 'gpt-4o',
+        model: 'claude-opus-4-8',
         max_tokens: 800,
-        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'user',
             content: [
               { type: 'text', text: EXTRACT_PROMPT },
-              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
+              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
             ],
           },
         ],
       };
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey.trim()}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey.trim(),
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
         body: JSON.stringify(body),
       });
 
@@ -195,7 +199,7 @@ export default function ScanModal({ onClose }) {
       }
 
       const data = await res.json();
-      const content = data.choices?.[0]?.message?.content?.trim();
+      const content = data.content?.[0]?.text?.trim();
       if (!content) throw new Error('Empty response from model');
 
       let parsed;
@@ -244,10 +248,10 @@ export default function ScanModal({ onClose }) {
         <div className="modal-body">
           {/* API Key */}
           <div className="field-group">
-            <label className="field-label" htmlFor="oai-key">
-              OpenAI API Key <span className="field-note">(kept in memory only)</span>
+            <label className="field-label" htmlFor="ant-key">
+              Anthropic API Key <span className="field-note">(kept in memory only)</span>
             </label>
-            <input id="oai-key" className="field-input" type="password" placeholder="sk-..."
+            <input id="ant-key" className="field-input" type="password" placeholder="sk-ant-..."
               value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
           </div>
 
