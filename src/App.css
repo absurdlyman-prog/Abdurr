@@ -839,23 +839,165 @@
 .export-menu-item:hover { background: var(--gray-100); }
 
 /* ═══════════════════════════════════════
-   RESPONSIVE
+   FILTER DRAWER (mobile)
+═══════════════════════════════════════ */
+.filter-drawer-overlay {
+  display: none;
+}
+
+/* ═══════════════════════════════════════
+   MOBILE TOOLBAR
+═══════════════════════════════════════ */
+.mobile-toolbar {
+  display: none;
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — tablet
 ═══════════════════════════════════════ */
 @media (max-width: 900px) {
   .filter-sidebar { display: none; }
   .detail-panel { width: 320px; }
 }
 
+/* ═══════════════════════════════════════
+   RESPONSIVE — mobile (iPhone)
+═══════════════════════════════════════ */
 @media (max-width: 640px) {
-  .header { padding: 0 14px; gap: 12px; height: 56px; }
+  /* Header */
+  .header {
+    padding: 0 12px;
+    gap: 10px;
+    height: 52px;
+    /* safe area for iPhone notch */
+    padding-top: env(safe-area-inset-top);
+  }
   .header-subtitle { display: none; }
   .header-search { max-width: none; }
-  .detail-panel { position: fixed; inset: 56px 0 0 0; width: 100%; z-index: 50; border-left: none; border-top: 1px solid var(--gray-200); }
-  .col-mfr { display: none; }
-  .col-thiqa { display: none; }
+  .header-search-input { font-size: 16px; /* prevents iOS zoom on focus */ }
+  .btn-primary span { display: none; }
+
+  /* Mobile toolbar row beneath header */
+  .mobile-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    flex-shrink: 0;
+  }
+  .mobile-toolbar-count {
+    font-size: 12px;
+    color: var(--gray-500);
+    flex: 1;
+  }
+  .mobile-toolbar-count strong { color: var(--gray-800); }
+  .btn-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--gray-700);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .btn-filter-toggle.has-filter {
+    background: var(--blue-50);
+    border-color: var(--blue-200);
+    color: var(--blue-700);
+  }
+
+  /* Filter drawer slides up from bottom */
+  .filter-sidebar { display: none !important; }
+
+  .filter-drawer-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.4);
+    z-index: 200;
+    backdrop-filter: blur(2px);
+  }
+  .filter-drawer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 0 20px calc(20px + env(safe-area-inset-bottom));
+    z-index: 201;
+    animation: slideUp 0.25s ease;
+    max-height: 75svh;
+    overflow-y: auto;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .filter-drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--gray-300);
+    border-radius: 2px;
+    margin: 12px auto 20px;
+  }
+  .filter-drawer-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 20px;
+  }
+  .filter-drawer .filter-sidebar {
+    display: flex !important;
+    flex-direction: column;
+    border: none;
+    padding: 0;
+    width: auto;
+  }
+
+  /* Table columns — keep only the most important on small screens */
+  .col-mfr    { display: none; }
+  .col-thiqa  { display: none; }
+  .col-type   { display: none; }
+  .col-trade  { width: 42%; }
+  .col-generic { width: 32%; }
+  .col-strength { width: 0; display: none; }
+  .col-price  { width: 26%; }
+
+  /* Detail panel as full-screen bottom sheet */
+  .detail-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    height: 75svh;
+    border-left: none;
+    border-top: 1px solid var(--gray-200);
+    border-radius: 20px 20px 0 0;
+    z-index: 100;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+    animation: slideUp 0.25s ease;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Modal fills screen on mobile */
+  .modal {
+    max-height: 95svh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    margin-top: auto;
+  }
+  .overlay { align-items: flex-end; padding: 0; }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 380px) {
   .header-icon { display: none; }
-  .col-strength { display: none; }
+  .col-price { display: none; }
 }

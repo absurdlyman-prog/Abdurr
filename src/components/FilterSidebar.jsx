@@ -7,8 +7,9 @@ const MODES = [
   { label: 'Controlled',   value: 'Controlled' },
 ];
 
-export default function FilterSidebar() {
+export default function FilterSidebar({ onClose }) {
   const { modeFilter, setModeFilter, thiqaOnly, setThiqaOnly, modeCounts, results, loading } = useDrugData();
+  const pick = (val) => { setModeFilter(val); onClose?.(); };
 
   return (
     <aside className="filter-sidebar">
@@ -19,7 +20,7 @@ export default function FilterSidebar() {
             <button
               key={value}
               className={`filter-option ${modeFilter === value ? 'active' : ''}`}
-              onClick={() => setModeFilter(value)}
+              onClick={() => pick(value)}
             >
               {label}
               <span className="filter-option-count">
