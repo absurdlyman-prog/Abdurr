@@ -119,13 +119,26 @@ function DispenseRow({ cand, recommended = false, onPick }) {
 export default function ScanModal({ onClose }) {
   const { setQuery } = useDrugData();
 
-  const [apiKey, setApiKey]       = useState('');
+  const [apiKey, setApiKey]       = useState(() => localStorage.getItem('anthropicApiKey') || '');
+  const [remember, setRemember]   = useState(() => !!localStorage.getItem('anthropicApiKey'));
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview]     = useState(null);
   const [status, setStatus]       = useState('idle'); // idle | loading | success | error
   const [errorMsg, setErrorMsg]   = useState('');
   const [medications, setMedications] = useState([]);
   const fileInputRef = useRef(null);
+
+  // Persist (or forget) the key on this device based on the "remember" toggle.
+  const updateApiKey = (value) => {
+    setApiKey(value);
+    if (remember) localStorage.setItem('anthropicApiKey', value);
+  };
+
+  const toggleRemember = (checked) => {
+    setRemember(checked);
+    if (checked) localStorage.setItem('anthropicApiKey', apiKey);
+    else localStorage.removeItem('anthropicApiKey');
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -249,10 +262,15 @@ export default function ScanModal({ onClose }) {
           {/* API Key */}
           <div className="field-group">
             <label className="field-label" htmlFor="ant-key">
-              Anthropic API Key <span className="field-note">(kept in memory only)</span>
+              Anthropic API Key
+              <span className="field-note">{remember ? '(saved on this device)' : '(kept in memory only)'}</span>
             </label>
             <input id="ant-key" className="field-input" type="password" placeholder="sk-ant-..."
-              value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
+              value={apiKey} onChange={(e) => updateApiKey(e.target.value)} autoComplete="off" />
+            <label className="field-remember">
+              <input type="checkbox" checked={remember} onChange={(e) => toggleRemember(e.target.checked)} />
+              <span>Remember key on this device</span>
+            </label>
           </div>
 
           {/* Image upload */}
