@@ -6,10 +6,11 @@ const DrugDataContext = createContext(null);
 
 const FUSE_OPTIONS = {
   keys: [
-    { name: 'genericName', weight: 0.6 },
-    { name: 'packageName', weight: 0.4 },
+    { name: 'genericName',  weight: 0.55 },
+    { name: 'packageName',  weight: 0.35 },
+    { name: 'manufacturerName', weight: 0.1 },
   ],
-  threshold: 0.35,      // tolerates ~2-3 char typos
+  threshold: 0.35,
   minMatchCharLength: 2,
   includeScore: true,
 };
@@ -19,23 +20,33 @@ export function DrugDataProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-  // Search / filter state
-  const [query, setQuery]             = useState('');
-  const [modeFilter, setModeFilter]   = useState('All');
-  const [thiqaOnly, setThiqaOnly]     = useState(false);
+  const [query, setQuery]           = useState('');
+  const [modeFilter, setModeFilter] = useState('All');
+  const [thiqaOnly, setThiqaOnly]   = useState(false);
+  const [sortKey, setSortKey]       = useState(null);
+  const [sortDir, setSortDir]       = useState('asc');
   const [selectedDrug, setSelectedDrug] = useState(null);
 
-  // Auto-load the Excel from public/ on mount
   useEffect(() => {
     loadFormularyFromPublic()
       .then((data) => { setDrugs(data); setLoading(false); })
       .catch((err) => { setError(err.message); setLoading(false); });
   }, []);
 
-  // Build Fuse index whenever drugs change
   const fuse = useMemo(() => new Fuse(drugs, FUSE_OPTIONS), [drugs]);
 
-  // Derive filtered results
+  // Mode counts for filter sidebar
+  const modeCounts = useMemo(() => {
+    const counts = { All: drugs.length, Prescription: 0, OTC: 0, Controlled: 0 };
+    for (const d of drugs) {
+      const m = (d.dispenseMode || '').toLowerCase();
+      if (m.includes('controlled') || m.includes('narcotic')) counts.Controlled++;
+      else if (m.includes('counter') || m.includes('otc')) counts.OTC++;
+      else if (m.includes('prescription')) counts.Prescription++;
+    }
+    return counts;
+  }, [drugs]);
+
   const results = useMemo(() => {
     let list;
     if (query.trim().length < 2) {
@@ -52,10 +63,27 @@ export function DrugDataProvider({ children }) {
     if (thiqaOnly) {
       list = list.filter((d) => d.thiqaFormulary === 'Yes');
     }
-    return list;
-  }, [drugs, fuse, query, modeFilter, thiqaOnly]);
 
-  // Cheapest alternatives for a selected drug (same generic, sorted by price)
+    if (sortKey) {
+      list = [...list].sort((a, b) => {
+        let va = a[sortKey];
+        let vb = b[sortKey];
+        if (sortKey === 'packagePrice') {
+          va = va ?? Infinity;
+          vb = vb ?? Infinity;
+          return sortDir === 'asc' ? va - vb : vb - va;
+        }
+        va = (va || '').toLowerCase();
+        vb = (vb || '').toLowerCase();
+        return sortDir === 'asc'
+          ? va.localeCompare(vb)
+          : vb.localeCompare(va);
+      });
+    }
+
+    return list;
+  }, [drugs, fuse, query, modeFilter, thiqaOnly, sortKey, sortDir]);
+
   const alternatives = useMemo(() => {
     if (!selectedDrug) return [];
     return drugs
@@ -71,27 +99,30 @@ export function DrugDataProvider({ children }) {
       });
   }, [drugs, selectedDrug]);
 
+  const toggleSort = useCallback((key) => {
+    setSortKey((prev) => {
+      if (prev === key) {
+        setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
+        return key;
+      }
+      setSortDir('asc');
+      return key;
+    });
+  }, []);
+
   const clearSelection = useCallback(() => setSelectedDrug(null), []);
 
   return (
-    <DrugDataContext.Provider
-      value={{
-        drugs,
-        loading,
-        error,
-        query,
-        setQuery,
-        modeFilter,
-        setModeFilter,
-        thiqaOnly,
-        setThiqaOnly,
-        results,
-        selectedDrug,
-        setSelectedDrug,
-        clearSelection,
-        alternatives,
-      }}
-    >
+    <DrugDataContext.Provider value={{
+      drugs, loading, error,
+      query, setQuery,
+      modeFilter, setModeFilter,
+      thiqaOnly, setThiqaOnly,
+      sortKey, sortDir, toggleSort,
+      results, modeCounts,
+      selectedDrug, setSelectedDrug, clearSelection,
+      alternatives,
+    }}>
       {children}
     </DrugDataContext.Provider>
   );
