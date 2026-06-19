@@ -265,7 +265,7 @@ export default function ScanModal({ onClose }) {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
           >
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment"
+            <input ref={fileInputRef} type="file" accept="image/*"
               style={{ display: 'none' }} onChange={handleFileChange} />
             {preview ? (
               <img src={preview} alt="Prescription preview" className="image-preview" />
