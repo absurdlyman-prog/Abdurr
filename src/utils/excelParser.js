@@ -1,50 +1,61 @@
 import * as XLSX from 'xlsx';
 
-const SHEET_NAME = 'Drugs (2)';
-// Try both the single-extension and double-extension variants that may exist in public/
+const SHEET_NAME = 'Drugs';
 const FILE_CANDIDATES = [
   '/Doh_Drugs_January_2026.xlsx',
   '/Doh_Drugs_January_2026.xlsx.xlsx',
 ];
 
-// Strip all whitespace from a header string for safe comparison
-const normalizeHeader = (h) => String(h ?? '').replace(/\s+/g, ' ').trim();
-
-// Map normalized header → camelCase key
 const COLUMN_MAP = {
-  'Generic Name': 'genericName',
-  'Package Name': 'packageName',
-  'Strength': 'strength',
-  'Dosage Form': 'dosageForm',
-  'Dispense Mode': 'dispenseMode',
-  'Package Price to Public': 'packagePrice',
-  'Manufacturer Name': 'manufacturerName',
-  'Status': 'status',
+  'Generic Name':              'genericName',
+  'Package Name':              'packageName',
+  'Strength':                  'strength',
+  'Dosage Form':               'dosageForm',
+  'Dispense Mode':             'dispenseMode',
+  'Package Price to Public':   'packagePrice',
+  'Manufacturer Name':         'manufacturerName',
+  'Status':                    'status',
+  // present in some versions of the sheet
   'Included in Thiqa/ ABM - other than 1&7- Drug Formulary': 'thiqaFormulary',
 };
+
+const normalizeHeader = (h) => String(h ?? '').replace(/\s+/g, ' ').trim();
 
 function safe(value) {
   if (value === undefined || value === null) return '';
   return String(value).trim();
 }
 
+function isHtmlBuffer(buffer) {
+  const bytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 16));
+  const text = String.fromCharCode(...bytes).toLowerCase();
+  return text.startsWith('<!doctype') || text.startsWith('<html');
+}
+
 export async function loadFormularyFromPublic() {
-  let lastError;
+  let lastError = 'Excel file not found.';
+
   for (const candidate of FILE_CANDIDATES) {
     try {
       const response = await fetch(candidate);
-      if (response.ok) {
-        const arrayBuffer = await response.arrayBuffer();
-        return parseBuffer(arrayBuffer);
+      if (!response.ok) {
+        lastError = `HTTP ${response.status} for ${candidate}`;
+        continue;
       }
-      lastError = `HTTP ${response.status} for ${candidate}`;
+      const arrayBuffer = await response.arrayBuffer();
+      if (isHtmlBuffer(arrayBuffer)) {
+        // Vite SPA fallback returned index.html — file doesn't exist
+        lastError = `File not found: ${candidate}`;
+        continue;
+      }
+      return parseBuffer(arrayBuffer);
     } catch (err) {
       lastError = err.message;
     }
   }
+
   throw new Error(
-    `Excel file not found. Tried: ${FILE_CANDIDATES.join(', ')}. ` +
-    'Place Doh_Drugs_January_2026.xlsx in the public/ folder and restart.'
+    `${lastError} — Place Doh_Drugs_January_2026.xlsx in the public/ folder and restart.`
   );
 }
 
@@ -55,27 +66,25 @@ export function parseFormularyExcel(file) {
 async function parseBuffer(arrayBuffer) {
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-  const sheet = workbook.Sheets[SHEET_NAME];
+  // Try the known sheet name; fall back to the largest sheet
+  let sheet = workbook.Sheets[SHEET_NAME];
   if (!sheet) {
-    const available = workbook.SheetNames.join(', ');
-    throw new Error(
-      `Sheet "${SHEET_NAME}" not found. Available: ${available}`
-    );
+    const fallback = workbook.SheetNames.find((n) => n !== 'Version') ?? workbook.SheetNames[0];
+    sheet = workbook.Sheets[fallback];
+    if (!sheet) {
+      throw new Error(`No usable sheet found. Available: ${workbook.SheetNames.join(', ')}`);
+    }
   }
 
-  // Read raw rows with raw headers
   const raw = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-
   if (raw.length === 0) return [];
 
-  // Build a normalized header → original header lookup from the first row
   const firstRow = raw[0];
-  const headerMap = {}; // normalizedHeader → originalKey
+  const headerMap = {};
   for (const key of Object.keys(firstRow)) {
     headerMap[normalizeHeader(key)] = key;
   }
 
-  // Build accessor: camelKey → originalKey in the row objects
   const accessors = {};
   for (const [colHeader, camelKey] of Object.entries(COLUMN_MAP)) {
     const originalKey = headerMap[normalizeHeader(colHeader)];
