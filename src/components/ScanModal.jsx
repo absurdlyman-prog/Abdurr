@@ -119,8 +119,8 @@ function DispenseRow({ cand, recommended = false, onPick }) {
 export default function ScanModal({ onClose }) {
   const { setQuery } = useDrugData();
 
-  const [apiKey, setApiKey]       = useState(() => localStorage.getItem('anthropicApiKey') || '');
-  const [remember, setRemember]   = useState(() => !!localStorage.getItem('anthropicApiKey'));
+  const [apiKey, setApiKey]       = useState(() => localStorage.getItem('openaiApiKey') || '');
+  const [remember, setRemember]   = useState(() => !!localStorage.getItem('openaiApiKey'));
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview]     = useState(null);
   const [status, setStatus]       = useState('idle'); // idle | loading | success | error
@@ -131,13 +131,13 @@ export default function ScanModal({ onClose }) {
   // Persist (or forget) the key on this device based on the "remember" toggle.
   const updateApiKey = (value) => {
     setApiKey(value);
-    if (remember) localStorage.setItem('anthropicApiKey', value);
+    if (remember) localStorage.setItem('openaiApiKey', value);
   };
 
   const toggleRemember = (checked) => {
     setRemember(checked);
-    if (checked) localStorage.setItem('anthropicApiKey', apiKey);
-    else localStorage.removeItem('anthropicApiKey');
+    if (checked) localStorage.setItem('openaiApiKey', apiKey);
+    else localStorage.removeItem('openaiApiKey');
   };
 
   const handleFileChange = (e) => {
@@ -171,7 +171,7 @@ export default function ScanModal({ onClose }) {
 
   const handleScan = async () => {
     if (!imageFile) { setErrorMsg('Please select a prescription image first.'); return; }
-    if (!apiKey.trim()) { setErrorMsg('Please enter your Anthropic API key.'); return; }
+    if (!apiKey.trim()) { setErrorMsg('Please enter your OpenAI API key.'); return; }
 
     setStatus('loading');
     setErrorMsg('');
@@ -182,26 +182,25 @@ export default function ScanModal({ onClose }) {
       const mimeType = imageFile.type || 'image/jpeg';
 
       const body = {
-        model: 'claude-opus-4-8',
+        model: 'gpt-4o',
         max_tokens: 800,
+        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'user',
             content: [
               { type: 'text', text: EXTRACT_PROMPT },
-              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
             ],
           },
         ],
       };
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey.trim(),
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
+          Authorization: `Bearer ${apiKey.trim()}`,
         },
         body: JSON.stringify(body),
       });
@@ -212,7 +211,7 @@ export default function ScanModal({ onClose }) {
       }
 
       const data = await res.json();
-      const content = data.content?.[0]?.text?.trim();
+      const content = data.choices?.[0]?.message?.content?.trim();
       if (!content) throw new Error('Empty response from model');
 
       let parsed;
@@ -261,11 +260,11 @@ export default function ScanModal({ onClose }) {
         <div className="modal-body">
           {/* API Key */}
           <div className="field-group">
-            <label className="field-label" htmlFor="ant-key">
-              Anthropic API Key
+            <label className="field-label" htmlFor="oai-key">
+              OpenAI API Key
               <span className="field-note">{remember ? '(saved on this device)' : '(kept in memory only)'}</span>
             </label>
-            <input id="ant-key" className="field-input" type="password" placeholder="sk-ant-..."
+            <input id="oai-key" className="field-input" type="password" placeholder="sk-..."
               value={apiKey} onChange={(e) => updateApiKey(e.target.value)} autoComplete="off" />
             <label className="field-remember">
               <input type="checkbox" checked={remember} onChange={(e) => toggleRemember(e.target.checked)} />
