@@ -1,7 +1,17 @@
 import * as XLSX from 'xlsx';
 
-const SHEET_NAME = 'Drugs (2)';
+const SHEET_CANDIDATES = ['Drugs', 'Drugs (2)'];
 const FILE_PATH = '/Doh_Drugs_January_2026.xlsx';
+
+// Pick the data sheet: a known name if present, otherwise the first
+// sheet that isn't the metadata "Version" tab.
+function pickSheetName(workbook) {
+  for (const name of SHEET_CANDIDATES) {
+    if (workbook.SheetNames.includes(name)) return name;
+  }
+  return workbook.SheetNames.find((n) => n.toLowerCase() !== 'version')
+    || workbook.SheetNames[0];
+}
 
 // Strip all whitespace from a header string for safe comparison
 const normalizeHeader = (h) => String(h ?? '').replace(/\s+/g, ' ').trim();
@@ -43,11 +53,12 @@ export function parseFormularyExcel(file) {
 async function parseBuffer(arrayBuffer) {
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-  const sheet = workbook.Sheets[SHEET_NAME];
+  const sheetName = pickSheetName(workbook);
+  const sheet = workbook.Sheets[sheetName];
   if (!sheet) {
     const available = workbook.SheetNames.join(', ');
     throw new Error(
-      `Sheet "${SHEET_NAME}" not found. Available: ${available}`
+      `No drug data sheet found. Available: ${available}`
     );
   }
 
