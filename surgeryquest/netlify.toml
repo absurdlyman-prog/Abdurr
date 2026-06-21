@@ -1,0 +1,16 @@
+# SurgeryQuest is a self-contained static site (no build step).
+#
+# Deploy it as its own Netlify site in any of these ways:
+#
+#   1) Drag-and-drop:  zip or drag the *surgeryquest/* folder onto
+#      https://app.netlify.com/drop
+#
+#   2) Netlify CLI:    from inside this folder, run
+#      npx netlify deploy --prod --dir .
+#
+#   3) Connect the repo in the Netlify UI and set the
+#      "Base directory" to  surgeryquest  (this file does the rest).
+
+[build]
+  publish = "."
+  command = ""
