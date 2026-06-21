@@ -793,6 +793,7 @@
     root.appendChild(foot);
 
     show("#report");
+    if (r.stars === 3 || newBadges.length) setTimeout(celebrate, 220);
   }
 
   function labelsFor(ids, cat) {
@@ -870,6 +871,38 @@
       grid.appendChild(n);
     });
     show("#badges");
+  }
+
+  /* ---------------------------------------------------------------------- *
+   *  Confetti celebration (self-contained, removes itself)
+   * ---------------------------------------------------------------------- */
+  function celebrate() {
+    const cv = document.createElement("canvas");
+    cv.style.cssText = "position:fixed;inset:0;z-index:200;pointer-events:none";
+    cv.width = window.innerWidth; cv.height = window.innerHeight;
+    document.body.appendChild(cv);
+    const ctx = cv.getContext("2d");
+    const colors = ["#0d9488", "#14b8a6", "#f59e0b", "#fbbf24", "#34d399", "#60a5fa", "#f472b6"];
+    const P = [];
+    for (let i = 0; i < 150; i++) P.push({
+      x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * 0.6,
+      r: 4 + Math.random() * 6, c: colors[(Math.random() * colors.length) | 0],
+      vx: -2.2 + Math.random() * 4.4, vy: 2 + Math.random() * 4,
+      rot: Math.random() * Math.PI, vr: -0.22 + Math.random() * 0.44,
+    });
+    const start = performance.now();
+    (function frame(t) {
+      const elapsed = t - start;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      P.forEach((p) => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.06; p.rot += p.vr;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.max(0, 1 - elapsed / 2700); ctx.fillStyle = p.c;
+        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
+        ctx.restore();
+      });
+      if (elapsed < 2700) requestAnimationFrame(frame); else cv.remove();
+    })(start);
   }
 
   /* ---------------------------------------------------------------------- *
