@@ -43,6 +43,24 @@ That's it — no build step, no tooling.
 
 ---
 
+## 🗣️ Make the patients talk (live AI) — optional
+
+Out of the box the game is **scripted**: tap a question and the patient answers from
+the case script, read aloud by your browser's voice. To make it a true Medkit-style
+**talking AI simulator** (patients answer your *typed* questions in character, and an
+**AI attending** writes personalized feedback), add one secret on Netlify:
+
+1. Netlify → your site → **Site settings → Environment variables**
+2. Add `ANTHROPIC_API_KEY` = your Anthropic API key (from console.anthropic.com)
+3. **Redeploy** (Deploys → Trigger deploy). The badge in the app flips to **● Live AI**.
+
+It's **phased** — nothing breaks without a key; the key just switches the brain on.
+The key lives only on the server (a Netlify Function in `netlify/functions/ai.js`) and
+is never exposed to the browser. Patient voice = Claude Haiku 4.5; attending = Claude Opus 4.8.
+
+> 💡 On an iPhone, Safari can *speak* but can't do speech-to-text, so you **type** your
+> questions and the patient talks back — which is exactly how this is set up.
+
 ## 🎮 What's inside
 
 - **6 PGY-2 general-surgery cases:** acute appendicitis, small bowel obstruction, acute

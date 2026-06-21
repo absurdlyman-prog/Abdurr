@@ -14,3 +14,10 @@
 [build]
   publish = "."
   command = ""
+
+# Live-AI proxy (optional). The app runs scripted with no key; set
+# ANTHROPIC_API_KEY in Netlify (Site settings → Environment variables) to
+# enable the talking AI patient + AI attending feedback.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

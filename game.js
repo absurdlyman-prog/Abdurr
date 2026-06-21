@@ -88,6 +88,82 @@
   }
 
   /* ---------------------------------------------------------------------- *
+   *  Live AI (optional) — talks to the Netlify serverless proxy.
+   *  The game runs fully without it (scripted); it upgrades automatically
+   *  when an ANTHROPIC_API_KEY is configured on the deployed site.
+   * ---------------------------------------------------------------------- */
+  const AI = { available: false, checked: false, endpoint: "/.netlify/functions/ai" };
+  async function aiCall(payload) {
+    const r = await fetch(AI.endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error("net " + r.status);
+    return r.json();
+  }
+  async function aiDetect() {
+    try {
+      const d = await aiCall({ mode: "status" });
+      AI.available = !!(d && d.available);
+    } catch (e) { AI.available = false; }
+    AI.checked = true;
+    updateAiBadge();
+  }
+  function updateAiBadge() {
+    const b = $("#ai-badge"), t = $("#ai-badge-text");
+    if (!b) return;
+    if (AI.available) {
+      b.className = "ai-badge live";
+      b.title = "Live AI: talking patients + AI attending";
+      b.innerHTML = '<span class="pulse">●</span> <span id="ai-badge-text">Live AI</span>';
+    } else {
+      b.className = "ai-badge scripted";
+      b.title = "Scripted mode — add an Anthropic key in Netlify to enable live AI";
+      t.textContent = "Scripted";
+    }
+  }
+
+  /* ---- Text-to-speech (spoken patient & attending) ---- */
+  const TTS = { on: true, supported: false, voice: null };
+  function initTTS() {
+    TTS.on = save.tts !== false;
+    TTS.supported = "speechSynthesis" in window;
+    if (!TTS.supported) return;
+    const pick = () => {
+      const vs = window.speechSynthesis.getVoices() || [];
+      TTS.voice =
+        vs.find((v) => /en[-_]US/i.test(v.lang) && /(female|samantha|zira|aria|jenny|karen|moira)/i.test(v.name)) ||
+        vs.find((v) => /^en/i.test(v.lang)) || vs[0] || null;
+    };
+    pick();
+    try { window.speechSynthesis.onvoiceschanged = pick; } catch (e) { /* ignore */ }
+    updateMuteBtn();
+  }
+  function speak(text) {
+    if (!TTS.on || !TTS.supported || !text) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text).slice(0, 600));
+      if (TTS.voice) u.voice = TTS.voice;
+      u.rate = 1.0; u.pitch = 1.05;
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* ignore */ }
+  }
+  function stopSpeak() { try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+  function toggleVoice() {
+    TTS.on = !TTS.on; save.tts = TTS.on; persist();
+    if (!TTS.on) stopSpeak();
+    updateMuteBtn();
+  }
+  function updateMuteBtn() {
+    const btn = $("#voice-btn");
+    if (!btn) return;
+    btn.classList.toggle("muted", !TTS.on);
+    btn.innerHTML = (TTS.on ? "🔊" : "🔇") + " <span>Voice</span>";
+  }
+
+  /* ---------------------------------------------------------------------- *
    *  Three.js scene
    * ---------------------------------------------------------------------- */
   const T = {}; // scene refs
@@ -144,23 +220,23 @@
     const pillowM  = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 });
 
     const frame = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.28, 0.98), frameMat);
-    frame.position.y = 0.5; g.add(frame);
+    frame.position.y = 0.5; frame.castShadow = true; g.add(frame);
     // legs
     [[-0.95, -0.42], [0.95, -0.42], [-0.95, 0.42], [0.95, 0.42]].forEach((p) => {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.1), frameMat);
       leg.position.set(p[0], 0.2, p[1]); g.add(leg);
     });
     const matt = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.16, 0.9), mattMat);
-    matt.position.y = 0.72; g.add(matt);
+    matt.position.y = 0.72; matt.castShadow = true; matt.receiveShadow = true; g.add(matt);
     const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.13, 0.74), pillowM);
-    pillow.position.set(-0.72, 0.85, 0); g.add(pillow);
+    pillow.position.set(-0.72, 0.85, 0); pillow.castShadow = true; g.add(pillow);
     // patient: head + blanket lump
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 18, 14), skin);
-    head.position.set(-0.72, 0.98, 0); g.add(head);
+    head.position.set(-0.72, 0.98, 0); head.castShadow = true; g.add(head);
     const lump = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.26, 0.78), blanket);
-    lump.position.set(0.18, 0.86, 0); g.add(lump);
+    lump.position.set(0.18, 0.86, 0); lump.castShadow = true; g.add(lump);
     const knees = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 12), blanket);
-    knees.position.set(0.55, 0.95, 0); knees.scale.set(1.3, 0.8, 1); g.add(knees);
+    knees.position.set(0.55, 0.95, 0); knees.scale.set(1.3, 0.8, 1); knees.castShadow = true; g.add(knees);
 
     // bedside monitor
     const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.2, 10),
@@ -250,7 +326,9 @@
     T.renderer.setSize(window.innerWidth, window.innerHeight);
     if ("outputEncoding" in T.renderer) T.renderer.outputEncoding = THREE.sRGBEncoding;
     T.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    T.renderer.toneMappingExposure = 1.05;
+    T.renderer.toneMappingExposure = 1.08;
+    T.renderer.shadowMap.enabled = true;
+    T.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     T.scene = new THREE.Scene();
     T.scene.background = new THREE.Color(0xeaf0f4);
@@ -261,8 +339,15 @@
     // lights — soft & clinical
     T.scene.add(new THREE.HemisphereLight(0xffffff, 0xcfd8e0, 0.85));
     T.scene.add(new THREE.AmbientLight(0xffffff, 0.25));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.55);
-    dir.position.set(6, 12, 4); T.scene.add(dir);
+    const dir = new THREE.DirectionalLight(0xfff4e6, 0.6);
+    dir.position.set(7, 13, 5);
+    dir.castShadow = true;
+    dir.shadow.mapSize.set(1024, 1024);
+    dir.shadow.camera.near = 1; dir.shadow.camera.far = 44;
+    dir.shadow.camera.left = -13; dir.shadow.camera.right = 13;
+    dir.shadow.camera.top = 13; dir.shadow.camera.bottom = -13;
+    dir.shadow.bias = -0.0005;
+    T.scene.add(dir);
     [[-4, 4], [4, -4]].forEach((p) => {
       const pl = new THREE.PointLight(0xffffff, 0.25, 30); pl.position.set(p[0], 5, p[1]); T.scene.add(pl);
     });
@@ -270,7 +355,7 @@
     // room
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 16),
       new THREE.MeshStandardMaterial({ color: 0xdde5ec, roughness: 0.95 }));
-    floor.rotation.x = -Math.PI / 2; T.scene.add(floor);
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; T.scene.add(floor);
     // subtle aisle
     const aisle = new THREE.Mesh(new THREE.PlaneGeometry(3, 16),
       new THREE.MeshStandardMaterial({ color: 0xcdd8e2, roughness: 0.95 }));
@@ -293,6 +378,33 @@
       panel.rotation.x = Math.PI / 2; panel.position.set(x, 4.49, 0); T.scene.add(panel);
     });
 
+    // daylight windows on the two end walls
+    const winMat = new THREE.MeshBasicMaterial({ color: 0xd4e8ff });
+    const frameMat2 = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 });
+    [-5, 0, 5].forEach((x) => {
+      [[-7.92, 0], [7.92, Math.PI]].forEach((p) => {
+        const sill = new THREE.Mesh(new THREE.BoxGeometry(3.3, 2.1, 0.08), frameMat2);
+        sill.position.set(x, 2.5, p[0] + (p[1] ? 0.05 : -0.05)); sill.rotation.y = p[1]; T.scene.add(sill);
+        const w = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.8), winMat);
+        w.position.set(x, 2.5, p[0]); w.rotation.y = p[1]; T.scene.add(w);
+      });
+    });
+
+    // low-poly plants in the corners
+    const plant = (x, z) => {
+      const grp = new THREE.Group(); grp.position.set(x, 0, z);
+      const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.42, 12),
+        new THREE.MeshStandardMaterial({ color: 0xb08968, roughness: 0.9 }));
+      pot.position.y = 0.21; pot.castShadow = true; grp.add(pot);
+      const fo = new THREE.MeshStandardMaterial({ color: 0x6aa84f, roughness: 0.9 });
+      [[0, 0.78, 0, 0.44], [0.16, 1.02, 0.1, 0.3], [-0.13, 0.98, -0.09, 0.28]].forEach((p) => {
+        const s = new THREE.Mesh(new THREE.SphereGeometry(p[3], 10, 8), fo);
+        s.position.set(p[0], p[1], p[2]); s.castShadow = true; grp.add(s);
+      });
+      T.scene.add(grp);
+    };
+    plant(-8.7, -6.7); plant(8.7, 6.7); plant(8.7, -6.7); plant(-8.7, 6.7);
+
     buildECG();
     BED_POSITIONS.forEach((p, i) => makeBed(i, p));
     refreshBedLabels();
@@ -312,7 +424,9 @@
   /* ---- custom orbit / zoom controls ---- */
   const cam = {
     target: new THREE.Vector3(0, 1, 0),
-    theta: -0.45, phi: 1.02, radius: 15,
+    // current pose starts wide & high; desired (d*) is the resting view —
+    // the damping in animate() eases this into a gentle intro fly-in.
+    theta: -1.25, phi: 0.58, radius: 30,
     dTheta: -0.45, dPhi: 1.02, dRadius: 15,
     dragging: false, lastX: 0, lastY: 0, downX: 0, downY: 0, moved: 0,
     pinch: 0,
@@ -464,7 +578,8 @@
 
   function openEncounter(idx) {
     const caseObj = CASES[idx];
-    enc = { caseObj, ordered: new Set(), dxId: null, mgId: null, activeTab: "history", visited: new Set() };
+    enc = { caseObj, ordered: new Set(), dxId: null, mgId: null, activeTab: "history", visited: new Set(), chat: [], busy: false };
+    stopSpeak();
     buildEncounterUI();
     show("#encounter");
   }
@@ -484,7 +599,7 @@
     id.appendChild(el("div", "triage", "Triage: " + esc(c.triage)));
     row.appendChild(id);
     const close = el("button", "enc-close", "×");
-    close.onclick = () => hide("#encounter");
+    close.onclick = () => { stopSpeak(); hide("#encounter"); };
     row.appendChild(close);
     head.appendChild(row);
 
@@ -544,7 +659,8 @@
     const body = $("#enc-body");
     body.innerHTML = "";
     const tab = TAB_DEFS.find((t) => t.id === enc.activeTab);
-    if (tab.cat) renderOrderPanel(body, tab);
+    if (tab.id === "history") renderInterview(body);
+    else if (tab.cat) renderOrderPanel(body, tab);
     else if (tab.id === "diagnosis") renderChoicePanel(body, "diagnosis");
     else renderChoicePanel(body, "management");
     syncTabDoneFlags();
@@ -579,6 +695,173 @@
       grid.appendChild(row);
     });
     body.appendChild(grid);
+  }
+
+  /* ---- Conversational history-taking (Medkit-style) ---- */
+  const HISTORY_KEYWORDS = {
+    h_onset: ["start", "begin", "began", "when", "onset", "how long", "duration", "timing", "come on"],
+    h_location: ["where", "locat", "radiat", "point", "spread", "move", "side"],
+    h_character: ["sharp", "dull", "cramp", "describe", "constant", "comes and goes", "burning", "stab", "type of pain", "what kind"],
+    h_aggrav: ["worse", "better", "aggrav", "reliev", "movement", "position", "cough", "breathe", "lie", "trigger"],
+    h_nausea: ["nausea", "vomit", "sick", "appetite", "throw up", "eat", "keep food"],
+    h_bowel: ["bowel", "stool", "poop", "flatus", "gas", "constip", "diarrh", "pass wind", "last movement"],
+    h_urinary: ["urin", "pee", "dysuria", "bladder", "water"],
+    h_fevers: ["fever", "chill", "temperature", "hot", "sweat", "rigor"],
+    h_gyn: ["period", "menstru", "pregnan", "lmp", "gyn", "last period"],
+    h_diet: ["fatty", "meal", "food", "ate", "eaten", "greasy", "last ate", "after eating"],
+    h_prior: ["before", "previous", "similar", "happened", "episode", "prior", "first time", "ever had"],
+    h_pmh: ["medical history", "condition", "diabet", "past medical", "health problem", "illness", "hyperten"],
+    h_psh: ["surger", "operation", "surgical", "scar", "had surgery", "appendix out"],
+    h_meds: ["medicat", "drug", "nsaid", "ibuprofen", "pill", "blood thinner", "aspirin", "steroid", "taking any"],
+    h_social: ["alcohol", "smok", "drink", "tobacco", "cigarette"],
+  };
+  const GENERIC_REPLIES = [
+    "No, nothing like that, doctor.",
+    "Not that I've noticed.",
+    "No, I don't think so.",
+    "That's been fine, actually.",
+    "No, nothing unusual there.",
+  ];
+
+  function vitalsLine(v) {
+    return "T " + v.temp + ", HR " + v.hr + ", BP " + v.bp + ", RR " + v.rr + ", SpO₂ " + v.spo2;
+  }
+  function historyLabel(id) {
+    const it = ORDER_MENU.history.find((x) => x.id === id);
+    return it ? it.label : id;
+  }
+  function buildPatientContext(c) {
+    const bg = ORDER_MENU.history
+      .filter((it) => c.findings[it.id])
+      .map((it) => "- " + it.label + ": " + c.findings[it.id])
+      .join("\n");
+    return {
+      who: c.patient.age + "-year-old " + (c.patient.sex === "F" ? "woman" : "man") + " (" + c.patient.name + ")",
+      complaint: c.chiefComplaint,
+      vitals: vitalsLine(c.vitals),
+      background: bg + "\n(For your reference only — never say this aloud — the underlying problem is: " + c.title + ".)",
+    };
+  }
+  function mapHistory(text) {
+    const t = text.toLowerCase();
+    for (const id in HISTORY_KEYWORDS) {
+      if (HISTORY_KEYWORDS[id].some((k) => t.indexOf(k) !== -1)) return id;
+    }
+    return null;
+  }
+  function scriptedAnswer(id, c) {
+    if (id && c.findings[id]) return c.findings[id];
+    return GENERIC_REPLIES[Math.floor(Math.random() * GENERIC_REPLIES.length)];
+  }
+
+  function renderInterview(body) {
+    const c = enc.caseObj;
+    const wrap = el("div", "interview panel active");
+    wrap.appendChild(el("p", "panel-intro",
+      "Take a focused history — tap a question or type your own. " +
+      (AI.available ? "The patient is voiced by live AI." : "Add an AI key in Netlify to make the patient talk back freely.")));
+
+    const log = el("div", "chat-log"); log.id = "chat-log";
+    wrap.appendChild(log);
+
+    const chips = el("div", "ask-chips");
+    ORDER_MENU.history.forEach((it) => {
+      const asked = enc.ordered.has(it.id);
+      const b = el("button", "chip" + (asked ? " asked" : ""),
+        (asked ? '<span class="c-check">✓</span> ' : "") + esc(it.label));
+      b.onclick = () => askQuestion(it.label, it.id);
+      chips.appendChild(b);
+    });
+    wrap.appendChild(chips);
+
+    const row = el("div", "ask-row");
+    row.innerHTML =
+      '<input id="ask-input" type="text" placeholder="Ask the patient something…" autocomplete="off" />' +
+      '<button class="send" id="ask-send" title="Ask">↑</button>';
+    wrap.appendChild(row);
+    body.appendChild(wrap);
+
+    const input = $("#ask-input"), send = $("#ask-send");
+    const fire = () => { const v = input.value.trim(); if (v) { input.value = ""; askQuestion(v, null); } };
+    send.onclick = fire;
+    input.onkeydown = (e) => { if (e.key === "Enter") fire(); };
+
+    if (!enc.greeted) {
+      enc.greeted = true;
+      const greet = "Hi doctor… " + greetingFor(c);
+      enc.chat.push({ role: "patient", text: greet });
+      renderChat();
+      speak(greet);
+    } else {
+      renderChat();
+    }
+  }
+
+  function greetingFor(c) {
+    return "I'm here because of " + c.chiefComplaint.replace(/\.$/, "").toLowerCase() + ".";
+  }
+
+  function renderChat() {
+    const log = $("#chat-log");
+    if (!log) return;
+    log.innerHTML = "";
+    enc.chat.forEach((m) => {
+      if (m.role === "system") {
+        log.appendChild(el("div", "bubble system", '<div class="txt">' + esc(m.text) + "</div>"));
+        return;
+      }
+      const b = el("div", "bubble " + (m.role === "doctor" ? "doctor" : "patient"));
+      b.appendChild(el("div", "who-ic", m.role === "doctor" ? "🩺" : "🙋"));
+      const txt = el("div", "txt", esc(m.text));
+      if (m.role === "patient") {
+        const sp = el("button", "speaker-btn", "🔊");
+        sp.title = "Replay"; sp.onclick = () => speak(m.text);
+        txt.appendChild(document.createTextNode(" "));
+        txt.appendChild(sp);
+      }
+      b.appendChild(txt);
+      log.appendChild(b);
+    });
+    if (enc.busy) {
+      const t = el("div", "bubble patient typing",
+        '<div class="who-ic">🙋</div><div class="txt"><span class="typing-dots"><span></span><span></span><span></span></span></div>');
+      log.appendChild(t);
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function askQuestion(text, orderId) {
+    if (enc.busy) return;
+    text = String(text || "").trim();
+    if (!text) return;
+    const c = enc.caseObj;
+    const id = orderId || mapHistory(text);
+    if (id) { enc.ordered.add(id); enc.visited.add("history"); }
+
+    enc.chat.push({ role: "doctor", text });
+    renderChat();
+    updateFooter(); syncTabDoneFlags();
+
+    let reply;
+    if (AI.available) {
+      enc.busy = true; renderChat();
+      try {
+        const conv = enc.chat.slice(0, -1).map((m) => ({ role: m.role, text: m.text }));
+        const d = await aiCall({ mode: "patient", patient: buildPatientContext(c), conversation: conv, message: text });
+        reply = d && d.reply ? d.reply : null;
+        if (!reply) { AI.available = AI.available && !(d && d.error); reply = scriptedAnswer(id, c); }
+      } catch (e) {
+        reply = scriptedAnswer(id, c);
+      }
+      enc.busy = false;
+    } else {
+      reply = scriptedAnswer(id, c);
+    }
+    enc.chat.push({ role: "patient", text: reply });
+    // re-render the whole tab so chips update their "asked" check
+    if (enc.activeTab === "history") renderTab();
+    else renderChat();
+    speak(reply);
   }
 
   function renderChoicePanel(body, kind) {
@@ -774,9 +1057,21 @@
     });
     fbSec.appendChild(list); body.appendChild(fbSec);
 
-    // teaching summary
+    // live AI attending (if a key is configured)
+    if (AI.available) {
+      const aSec = el("div", "rep-section");
+      aSec.appendChild(el("h4", null, "Attending feedback"));
+      const live = el("div", "attending-live");
+      live.innerHTML =
+        '<div class="al-head">🧑‍⚕️ Dr. Attending</div>' +
+        '<div class="al-loading">Reviewing your encounter…</div>';
+      aSec.appendChild(live); body.appendChild(aSec);
+      fetchAttending(r, c, live);
+    }
+
+    // teaching summary (always shown — guideline-style notes)
     const tSec = el("div", "rep-section");
-    tSec.appendChild(el("h4", null, "Attending summary"));
+    tSec.appendChild(el("h4", null, AI.available ? "Guideline notes" : "Attending summary"));
     const box = el("div", "teaching-box", esc(c.teaching));
     box.innerHTML += '<div class="icd">Synthetic teaching code (educational): <code>' + esc(c.icd10) + "</code></div>";
     tSec.appendChild(box); body.appendChild(tSec);
@@ -785,15 +1080,42 @@
 
     const foot = el("div", "rep-foot");
     const retry = el("button", "btn-ghost", "↻ Retry case");
-    retry.onclick = () => { hide("#report"); openEncounter(CASES.indexOf(c)); };
+    retry.onclick = () => { stopSpeak(); hide("#report"); openEncounter(CASES.indexOf(c)); };
     const back = el("button", "btn-primary", "Return to ward");
     back.style.marginTop = "0";
-    back.onclick = () => hide("#report");
+    back.onclick = () => { stopSpeak(); hide("#report"); };
     foot.appendChild(retry); foot.appendChild(back);
     root.appendChild(foot);
 
     show("#report");
     if (r.stars === 3 || newBadges.length) setTimeout(celebrate, 220);
+  }
+
+  async function fetchAttending(r, c, container) {
+    const correctMg = c.managements.find((m) => m.tier === "correct");
+    const correctDx = c.diagnoses.find((d) => d.tier === "correct");
+    const missed = missing(c.keyHistory).concat(missing(c.keyExam)).slice(0, 6).join("; ");
+    const payload = {
+      title: c.title,
+      correctDx: correctDx ? correctDx.label : "",
+      residentDx: r.dx ? r.dx.label : "(none)",
+      residentMgmt: r.mg ? r.mg.label : "(none)",
+      mgmtTier: r.mg ? r.mg.tier : "none",
+      correctMgmt: correctMg ? correctMg.label : "",
+      history: r.history, exam: r.exam, workup: r.workup, diagnosis: r.diagnosis,
+      management: r.management, steward: r.steward, total: r.total, stars: r.stars,
+      missed: missed || "none",
+      wasteful: r.wasteful.length ? r.wasteful.map((w) => w.label).join("; ") : "none",
+    };
+    const fail = () => { container.innerHTML =
+      '<div class="al-head">🧑‍⚕️ Dr. Attending</div><div class="al-loading">(Live feedback unavailable right now — see the notes below.)</div>'; };
+    try {
+      const d = await aiCall({ mode: "attending", encounter: payload });
+      if (d && d.feedback) {
+        container.innerHTML = '<div class="al-head">🧑‍⚕️ Dr. Attending</div>' + esc(d.feedback);
+        speak(d.feedback);
+      } else { fail(); }
+    } catch (e) { fail(); }
   }
 
   function labelsFor(ids, cat) {
@@ -950,6 +1272,11 @@
     $("#open-badges").onclick = showBadges;
     $("#badges-close").onclick = () => hide("#badges");
     $("#reset-btn").onclick = resetProgress;
+    $("#voice-btn").onclick = toggleVoice;
+
+    initTTS();
+    updateAiBadge();
+    aiDetect(); // async — flips the badge to "Live AI" if a key is configured
 
     if (save.welcomed) hide("#welcome");
 
