@@ -1,0 +1,14 @@
+{
+  "name": "SurgeryQuest",
+  "short_name": "SurgeryQuest",
+  "description": "A gamified 3D clinical simulation — a birthday gift.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0d9488",
+  "icons": [
+    { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any maskable" }
+  ]
+}

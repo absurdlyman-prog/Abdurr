@@ -12,7 +12,7 @@
  */
 const SQ_CONFIG = {
   // Her name as it should appear on the welcome screen, e.g. "Dr. Sarah".
-  RECIPIENT_NAME: "[Her Name]",
+  RECIPIENT_NAME: "Noon",
 
   // Short birthday message shown under her name on the welcome screen.
   // (Tweak freely — this is just a starting draft.)
