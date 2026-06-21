@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SurgeryQuest — On Call</title>
+  <meta name="description" content="A gamified 3D clinical simulation. Educational / synthetic content only." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Loading -->
+  <div id="loader"><div><div class="spin"></div>Preparing the ward…</div></div>
+
+  <!-- 3D ward -->
+  <canvas id="scene"></canvas>
+  <div id="scene-hint">Drag to look around · scroll to zoom · click a bed to see the patient</div>
+
+  <!-- Top HUD -->
+  <header id="hud-top">
+    <div class="brand">
+      <div class="logo">🩺</div>
+      <div>
+        <h1>SurgeryQuest</h1>
+        <div class="sub">On-call · synthetic teaching cases</div>
+      </div>
+    </div>
+    <div class="hud-spacer"></div>
+
+    <div class="streak-chip cold" id="streak" title="Consecutive correct diagnoses">
+      🔥 <span id="streak-val">0</span><span class="label">&nbsp;streak</span>
+    </div>
+
+    <div class="level-chip">
+      <div class="lvl-badge" id="lvl-badge">1</div>
+      <div class="lvl-meta">
+        <div class="lvl-title" id="lvl-title">Medical Student</div>
+        <div class="lvl-xp" id="lvl-xp">0 / 200 XP</div>
+        <div class="xpbar"><span id="xpbar-fill" style="width:0%"></span></div>
+      </div>
+    </div>
+
+    <button class="icon-btn" id="open-badges">🏅 <span>Badges</span> <span class="count" id="badge-count">0/8</span></button>
+  </header>
+
+  <!-- Welcome -->
+  <div class="overlay" id="welcome">
+    <div class="card">
+      <div class="welcome-hero">
+        <div class="cake">🎂</div>
+        <div class="eyebrow">A birthday gift</div>
+        <h2 id="w-name">Happy Birthday</h2>
+      </div>
+      <div class="welcome-body">
+        <div class="msg" id="w-msg"></div>
+        <div class="signed" id="w-signed"></div>
+        <div class="disclaimer">
+          🧪 <b>Educational &amp; synthetic.</b> Every patient, lab, and image here is made up for
+          play and learning. Nothing in this game is real patient data or actual medical advice.
+        </div>
+        <button class="btn-primary" id="w-start">Start rounds →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Encounter (filled by JS) -->
+  <div class="overlay hidden" id="encounter"><div class="card"></div></div>
+
+  <!-- Report (filled by JS) -->
+  <div class="overlay hidden" id="report"><div class="card"></div></div>
+
+  <!-- Badges -->
+  <div class="overlay hidden" id="badges">
+    <div class="card">
+      <div class="modal-head">
+        <h3>🏅 Badges</h3>
+        <div class="grow"></div>
+        <button class="enc-close" id="badges-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="badge-grid" id="badge-grid"></div>
+        <div class="reset-row"><button id="reset-btn">Reset all progress</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-wrap"></div>
+
+  <!-- Three.js (global build) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
