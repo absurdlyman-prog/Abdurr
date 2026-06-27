@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurgeryQuest — Educator Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    html, body { overflow: auto; background: #eef2f6; }
+    .dash { max-width: 860px; margin: 0 auto; padding: 24px 18px 80px; }
+    .dash h1 { font-size: 22px; margin: 0; letter-spacing: -.3px; }
+    .head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .card2 { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .row input { flex: 1; min-width: 180px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; }
+    .row button { border: none; background: linear-gradient(135deg, var(--primary), var(--primary-d)); color: #fff; font-weight: 600; padding: 11px 18px; border-radius: 10px; font-size: 14px; cursor: pointer; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0; }
+    .stat { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: center; }
+    .stat .v { font-size: 22px; font-weight: 800; color: var(--primary-d); }
+    .stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    table.lb { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    table.lb th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--line); }
+    table.lb td { padding: 10px 8px; border-bottom: 1px solid var(--line-2); }
+    .muted { color: var(--muted); font-size: 13px; }
+    @media (max-width:620px){ .stats{ grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="dash">
+    <div class="head">
+      <div class="logo" style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--primary-d));display:grid;place-items:center;color:#fff;font-size:19px;">📊</div>
+      <div>
+        <h1>Educator Dashboard</h1>
+        <div class="muted">Cohort progress at a glance · <a href="index.html" style="color:var(--primary-d)">open the simulator</a></div>
+      </div>
+    </div>
+
+    <div class="card2">
+      <div class="row">
+        <input id="cohort" type="text" placeholder="Cohort code (leave blank for everyone)" />
+        <button id="load">Load cohort</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0">Residents enter the same cohort code under 🏆 Players in the game; their progress shows up here.</p>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="cloud.js"></script>
+  <script>
+  (function () {
+    const $ = (s) => document.querySelector(s);
+    const result = $("#result");
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    if (!window.CLOUD || !CLOUD.enabled()) {
+      result.innerHTML = '<div class="card2"><b>Cloud isn’t configured yet.</b><p class="muted" style="margin:8px 0 0">' +
+        'Add your Supabase URL + anon key in <code>cloud.js</code> and run the SQL in <code>SUPABASE_SETUP.md</code>, then refresh. ' +
+        'Until then, the game uses on-device profiles (no shared dashboard).</p></div>';
+      return;
+    }
+
+    async function load() {
+      const cohort = $("#cohort").value.trim();
+      result.innerHTML = '<div class="card2 muted">Loading…</div>';
+      const rows = await CLOUD.leaderboard(cohort || null);
+      if (!rows.length) {
+        result.innerHTML = '<div class="card2 muted">No players found' + (cohort ? ' for cohort “' + esc(cohort) + '”' : '') + ' yet.</div>';
+        return;
+      }
+      const n = rows.length;
+      const sum = (k) => rows.reduce((a, r) => a + (r[k] || 0), 0);
+      const avg = (k) => (sum(k) / n).toFixed(1);
+      let html = '<div class="card2"><div class="stats">' +
+        '<div class="stat"><div class="v">' + n + '</div><div class="k">Players</div></div>' +
+        '<div class="stat"><div class="v">' + avg("cases_done") + '</div><div class="k">Avg cases</div></div>' +
+        '<div class="stat"><div class="v">' + avg("stars") + '</div><div class="k">Avg stars</div></div>' +
+        '<div class="stat"><div class="v">' + avg("xp") + '</div><div class="k">Avg XP</div></div>' +
+        '</div>';
+      html += '<table class="lb"><thead><tr><th>#</th><th>Player</th><th>Cohort</th><th>XP</th><th>★</th><th>🏅</th><th>Cases</th></tr></thead><tbody>';
+      rows.forEach((r, i) => {
+        html += '<tr><td>' + (i + 1) + '</td><td><b>' + esc(r.display_name || "—") + '</b></td><td>' + esc(r.cohort || "—") +
+          '</td><td>' + (r.xp || 0) + '</td><td>' + (r.stars || 0) + '</td><td>' + (r.badges || 0) + '</td><td>' + (r.cases_done || 0) + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      result.innerHTML = html;
+    }
+    $("#load").onclick = load;
+    $("#cohort").addEventListener("keydown", (e) => { if (e.key === "Enter") load(); });
+    load(); // initial: everyone
+  })();
+  </script>
+</body>
+</html>

@@ -1026,6 +1026,7 @@
     const newBadges = checkBadges(r);
 
     persist();
+    cloudSyncUp();
     renderHUD();
     refreshBedLabels();
     hide("#encounter");
@@ -1279,6 +1280,84 @@
   }
 
   /* ---------------------------------------------------------------------- *
+   *  Cloud sync (optional, phased — dormant until cloud.js is configured)
+   * ---------------------------------------------------------------------- */
+  let cloudReady = false;
+  function cloudInit() {
+    if (!window.CLOUD || !CLOUD.enabled()) return;
+    CLOUD.onAuth = (u) => cloudOnAuth(u);
+    CLOUD.init().then((ok) => { cloudReady = ok; if (ok && CLOUD.currentUser()) cloudOnAuth(CLOUD.currentUser()); });
+  }
+  async function cloudOnAuth(u) {
+    if (u) {
+      try {
+        const row = await CLOUD.pull();
+        if (row && row.save && (row.save.xp || 0) > (save.xp || 0)) {
+          activeProfile().save = Object.assign(defaultSave(), row.save);
+          save = activeProfile().save; persist(); renderHUD(); refreshBedLabels();
+        }
+      } catch (e) { /* ignore */ }
+      cloudSyncUp();
+    }
+    const pm = $("#players");
+    if (pm && !pm.classList.contains("hidden")) renderPlayers();
+  }
+  function cloudRecord() {
+    const p = activeProfile();
+    return {
+      display_name: p.name, cohort: (save.cohort || "").trim() || null, save: save,
+      xp: save.xp || 0, stars: profileStars(p), cases_done: profileCasesDone(p), badges: (save.badges || []).length,
+    };
+  }
+  function cloudSyncUp() { if (cloudReady && window.CLOUD && CLOUD.currentUser()) CLOUD.push(cloudRecord()); }
+
+  function renderCloudSection(body) {
+    if (!window.CLOUD || !CLOUD.enabled()) return;
+    const u = CLOUD.currentUser();
+    const wrap = el("div", "scard-cloud");
+    if (!u) {
+      wrap.innerHTML =
+        '<div class="cloud-head">☁️ Cloud sync</div>' +
+        '<p class="mini2">Sign in to save progress across devices and join the cohort leaderboard.</p>' +
+        '<div class="cloud-row"><input id="cloud-email" type="email" placeholder="you@email.com" autocomplete="email" />' +
+        '<button class="btn-mini" id="cloud-signin">Email me a link</button></div>' +
+        '<div class="mini2" id="cloud-msg"></div>';
+    } else {
+      wrap.innerHTML =
+        '<div class="cloud-head">☁️ Synced as ' + esc(u.email || "you") + '</div>' +
+        '<div class="cloud-row"><input id="cloud-cohort" type="text" placeholder="cohort code (optional)" value="' + esc(save.cohort || "") + '" />' +
+        '<button class="btn-mini" id="cloud-savecohort">Save</button><button class="btn-mini danger" id="cloud-signout">Sign out</button></div>' +
+        '<div class="mini2" id="cloud-msg"></div>' +
+        '<div id="cloud-lb" class="mini2" style="margin-top:8px">Loading cohort leaderboard…</div>';
+    }
+    body.insertBefore(wrap, body.firstChild);
+    if (!u) {
+      const b = $("#cloud-signin");
+      if (b) b.onclick = async () => {
+        const email = ($("#cloud-email").value || "").trim();
+        if (!email) return;
+        $("#cloud-msg").textContent = "Sending…";
+        const r = await CLOUD.signIn(email);
+        $("#cloud-msg").textContent = (r && r.error) ? ("Error: " + (r.error.message || "")) : "Check your email for the sign-in link.";
+      };
+    } else {
+      $("#cloud-savecohort").onclick = () => { save.cohort = ($("#cloud-cohort").value || "").trim(); persist(); cloudSyncUp(); loadCloudLb(); toast("Cohort saved", "☁️"); };
+      $("#cloud-signout").onclick = async () => { await CLOUD.signOut(); renderPlayers(); };
+      loadCloudLb();
+    }
+  }
+  async function loadCloudLb() {
+    const box = $("#cloud-lb"); if (!box) return;
+    const cohort = (save.cohort || "").trim();
+    const rows = await CLOUD.leaderboard(cohort || null);
+    if (!rows.length) { box.textContent = "No cloud players yet — invite someone with your cohort code."; return; }
+    let h = '<div style="font-weight:700;margin:6px 0 4px">Cohort leaderboard · ' + (cohort ? esc(cohort) : "everyone") + "</div>";
+    h += '<table class="lb"><thead><tr><th>#</th><th>Player</th><th>XP</th><th>★</th></tr></thead><tbody>';
+    rows.slice(0, 10).forEach((r, i) => { h += "<tr><td>" + (i + 1) + '</td><td class="nm">' + esc(r.display_name || "—") + "</td><td>" + (r.xp || 0) + "</td><td>" + (r.stars || 0) + "</td></tr>"; });
+    box.innerHTML = h + "</tbody></table>";
+  }
+
+  /* ---------------------------------------------------------------------- *
    *  Players + on-device leaderboard
    * ---------------------------------------------------------------------- */
   function showPlayers() { renderPlayers(); show("#players"); }
@@ -1315,6 +1394,7 @@
         else if (act === "del") { if (confirm("Delete this player and their progress?")) { deleteProfile(id); renderPlayers(); } }
       };
     });
+    renderCloudSection(body);
   }
 
   /* ---------------------------------------------------------------------- *
@@ -1376,6 +1456,7 @@
     initTTS();
     updateAiBadge();
     aiDetect(); // async — flips the badge to "Live AI" if a key is configured
+    cloudInit(); // async — activates cloud sync if cloud.js is configured
 
     if (save.welcomed) hide("#welcome");
 
