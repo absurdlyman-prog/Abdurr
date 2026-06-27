@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SurgeryQuest — Case Studio</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    html, body { overflow: auto; background: #eef2f6; }
+    .studio { max-width: 880px; margin: 0 auto; padding: 22px 18px 80px; }
+    .studio-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    .studio-head h1 { font-size: 22px; margin: 0; letter-spacing: -0.3px; }
+    .studio-head .sub { font-size: 13px; color: var(--muted); }
+    .lead { font-size: 14px; color: var(--ink-2); line-height: 1.6; margin: 4px 0 18px; }
+    .scard { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+    .scard h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--primary-d); margin: 0 0 12px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+    .field .hint { font-weight: 400; color: var(--muted); }
+    input[type=text], textarea, select {
+      width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px;
+      font-size: 13.5px; font-family: inherit; background: #fff; outline: none; color: var(--ink);
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+    textarea { resize: vertical; min-height: 54px; }
+    .grid { display: grid; gap: 10px; }
+    .grid.c2 { grid-template-columns: 1fr 1fr; }
+    .grid.c3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid.c6 { grid-template-columns: repeat(6, 1fr); }
+    .item-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 8px 0; border-bottom: 1px dashed var(--line-2); }
+    .item-row:last-child { border-bottom: none; }
+    .item-row .tag { font-size: 13px; color: var(--ink); font-weight: 500; }
+    .item-row .ctrls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .mini { font-size: 11px; color: var(--muted); }
+    .pickrow { display: flex; gap: 12px; align-items: center; margin-bottom: 5px; flex-wrap: wrap; }
+    .pickrow select { width: auto; min-width: 130px; }
+    .pickrow .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); }
+    .opt-row { display: grid; grid-template-columns: 1fr 150px auto; gap: 8px; margin-bottom: 8px; align-items: start; }
+    .opt-row.mg { grid-template-columns: 1fr 150px; }
+    .opt-row .note { grid-column: 1 / -1; }
+    .btn { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 13px; font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+    .btn:hover { border-color: var(--primary); color: var(--primary-d); }
+    .btn.primary { border: none; background: linear-gradient(135deg, var(--primary), var(--primary-d)); color: #fff; }
+    .btn.danger { color: var(--bad); }
+    .rm { border: none; background: none; color: var(--bad); font-size: 18px; cursor: pointer; line-height: 1; padding: 6px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 16px; position: sticky; bottom: 0; }
+    .out-wrap { background: #0b1220; border-radius: 14px; padding: 14px; }
+    .out-wrap textarea { background: #0b1220; color: #cbd5e1; border: none; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; min-height: 240px; }
+    .valid { margin: 8px 0; display: grid; gap: 6px; }
+    .v { font-size: 12.5px; padding: 8px 11px; border-radius: 10px; }
+    .v.ok { background: var(--good-l); color: #166534; border: 1px solid #bbf7d0; }
+    .v.warn { background: var(--accent-l); color: var(--warn); border: 1px solid #fde68a; }
+    .toplinks { font-size: 12.5px; }
+    .toplinks a { color: var(--primary-d); }
+    @media (max-width: 620px) { .grid.c2, .grid.c3, .grid.c6 { grid-template-columns: 1fr 1fr; } .opt-row { grid-template-columns: 1fr; } .opt-row.mg { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="studio">
+    <div class="studio-head">
+      <div class="logo" style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--primary),var(--primary-d));display:grid;place-items:center;color:#fff;font-size:19px;">🧪</div>
+      <div>
+        <h1>Case Studio</h1>
+        <div class="sub">Author a SurgeryQuest case — no coding. <span class="toplinks">· <a href="index.html">← back to the ward</a></span></div>
+      </div>
+    </div>
+    <p class="lead">
+      Fill this in like a clinician, not a programmer. Mark the <b>high-yield</b> history/exam items, flag which
+      labs/imaging are <b>appropriate</b>, write what the patient/test reveals, then set the correct diagnosis and
+      management. Hit <b>Generate</b> and copy the result into <code>data.js</code> (or download it).
+      Everything is <b>synthetic / educational</b>.
+    </p>
+
+    <div class="scard">
+      <h2>Patient & case</h2>
+      <div class="grid c2">
+        <div class="field"><label>Case title</label><input type="text" id="f_title" placeholder="e.g. Acute Appendicitis" /></div>
+        <div class="field"><label>Bed label <span class="hint">(short, shown on the bed)</span></label><input type="text" id="f_bed" placeholder="e.g. RLQ pain" /></div>
+      </div>
+      <div class="grid c3">
+        <div class="field"><label>Patient name</label><input type="text" id="f_name" placeholder="e.g. Jordan A." /></div>
+        <div class="field"><label>Age</label><input type="text" id="f_age" placeholder="e.g. 24" /></div>
+        <div class="field"><label>Sex</label><select id="f_sex"><option value="F">F</option><option value="M">M</option></select></div>
+      </div>
+      <div class="field"><label>Chief complaint</label><input type="text" id="f_cc" placeholder="e.g. Right-lower-quadrant pain since this morning." /></div>
+      <div class="field"><label>Triage line <span class="hint">(one line)</span></label><input type="text" id="f_triage" placeholder="e.g. Walk-in, uncomfortable but stable." /></div>
+      <div class="field"><label>Synthetic ICD-10 (educational)</label><input type="text" id="f_icd" placeholder="e.g. K35.80 — Unspecified acute appendicitis" /></div>
+    </div>
+
+    <div class="scard">
+      <h2>Vitals</h2>
+      <div class="grid c6">
+        <div class="field"><label>Temp</label><input type="text" id="v_temp" placeholder="38.1 °C" /></div>
+        <div class="field"><label>HR</label><input type="text" id="v_hr" placeholder="98" /></div>
+        <div class="field"><label>BP</label><input type="text" id="v_bp" placeholder="124/78" /></div>
+        <div class="field"><label>RR</label><input type="text" id="v_rr" placeholder="16" /></div>
+        <div class="field"><label>SpO₂</label><input type="text" id="v_spo2" placeholder="99%" /></div>
+        <div class="field"><label>Pain</label><input type="text" id="v_pain" placeholder="7/10" /></div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <h2>History <span class="mini">— check the high-yield questions; write the patient's answer</span></h2>
+      <div id="hist-rows"></div>
+    </div>
+
+    <div class="scard">
+      <h2>Exam <span class="mini">— check the key maneuvers; write the finding</span></h2>
+      <div id="exam-rows"></div>
+    </div>
+
+    <div class="scard">
+      <h2>Labs <span class="mini">— mark appropriate (scored) vs acceptable (no penalty); write the result</span></h2>
+      <div id="lab-rows"></div>
+    </div>
+
+    <div class="scard">
+      <h2>Imaging <span class="mini">— mark appropriate / acceptable, flag the key confirmatory study, write the report</span></h2>
+      <div id="img-rows"></div>
+    </div>
+
+    <div class="scard">
+      <h2>Diagnosis options <span class="mini">— exactly one "correct"; "partial" = on the differential</span></h2>
+      <div id="dx-rows"></div>
+      <button class="btn" id="add-dx">+ Add diagnosis option</button>
+    </div>
+
+    <div class="scard">
+      <h2>Management options <span class="mini">— exactly one "correct"; add a teaching note to each</span></h2>
+      <div id="mg-rows"></div>
+      <button class="btn" id="add-mg">+ Add management option</button>
+    </div>
+
+    <div class="scard">
+      <h2>Attending teaching summary</h2>
+      <div class="field"><textarea id="f_teaching" placeholder="2-4 sentences of guideline-style teaching. Mark it educational/synthetic."></textarea></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="gen">⚙️ Generate case</button>
+      <button class="btn" id="copy">📋 Copy</button>
+      <button class="btn" id="dljson">⬇︎ Download JSON</button>
+      <button class="btn" id="load-example">↻ Load example</button>
+    </div>
+
+    <div class="valid" id="valid"></div>
+    <div class="out-wrap"><textarea id="out" readonly placeholder="Your generated case appears here…"></textarea></div>
+    <p class="lead" style="margin-top:12px;">
+      <b>How to add it:</b> open <code>data.js</code>, find <code>const CASES = [</code>, and paste this object as a new
+      entry (between the existing ones). Save, refresh — a new bed appears. (Later, the cloud version will let you do this
+      from the dashboard with no file editing.)
+    </p>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+  (function () {
+    const $ = (s) => document.querySelector(s);
+    const slug = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "case";
+
+    // ---- build history / exam rows ----
+    function itemRow(item, kind) {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML =
+        '<div class="ctrls"><label class="chk"><input type="checkbox" data-key="' + item.id + '" /> key</label></div>' +
+        '<div><div class="tag">' + item.label + '</div>' +
+        '<input type="text" data-find="' + item.id + '" placeholder="' +
+        (kind === "history" ? "patient's answer (optional)" : "finding (optional)") + '" /></div>';
+      return row;
+    }
+    ORDER_MENU.history.forEach((it) => $("#hist-rows").appendChild(itemRow(it, "history")));
+    ORDER_MENU.exam.forEach((it) => $("#exam-rows").appendChild(itemRow(it, "exam")));
+
+    // ---- labs ----
+    ORDER_MENU.labs.forEach((it) => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML =
+        '<div class="ctrls"><select data-pick="' + it.id + '"><option value="">—</option>' +
+        '<option value="appropriate">appropriate</option><option value="acceptable">acceptable</option></select></div>' +
+        '<div><div class="tag">' + it.label + ' <span class="mini">($' + (it.cost || 1) + ')</span></div>' +
+        '<input type="text" data-find="' + it.id + '" placeholder="result (optional)" /></div>';
+      $("#lab-rows").appendChild(row);
+    });
+
+    // ---- imaging ----
+    ORDER_MENU.imaging.forEach((it) => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML =
+        '<div class="ctrls"><select data-pick="' + it.id + '"><option value="">—</option>' +
+        '<option value="appropriate">appropriate</option><option value="acceptable">acceptable</option></select>' +
+        '<label class="chk"><input type="checkbox" data-crit="' + it.id + '" /> key study</label></div>' +
+        '<div><div class="tag">' + it.label + ' <span class="mini">($' + (it.cost || 1) + ')</span></div>' +
+        '<input type="text" data-find="' + it.id + '" placeholder="report (optional)" /></div>';
+      $("#img-rows").appendChild(row);
+    });
+
+    // ---- diagnosis / management option rows ----
+    function dxRow(label, tier) {
+      const d = document.createElement("div");
+      d.className = "opt-row";
+      d.innerHTML =
+        '<input type="text" class="dx-label" placeholder="diagnosis label" value="' + (label || "") + '" />' +
+        '<select class="dx-tier"><option value="correct">correct</option><option value="partial">partial</option><option value="wrong">wrong</option></select>' +
+        '<button class="rm" title="remove">×</button>';
+      if (tier) d.querySelector(".dx-tier").value = tier;
+      d.querySelector(".rm").onclick = () => d.remove();
+      return d;
+    }
+    function mgRow(label, tier, note) {
+      const d = document.createElement("div");
+      d.className = "opt-row mg";
+      d.innerHTML =
+        '<input type="text" class="mg-label" placeholder="management label" value="' + (label || "") + '" />' +
+        '<select class="mg-tier"><option value="correct">correct</option><option value="acceptable">acceptable</option><option value="suboptimal">suboptimal</option><option value="harmful">harmful</option></select>' +
+        '<textarea class="mg-note note" placeholder="teaching note (why this is right/wrong)">' + (note || "") + '</textarea>' +
+        '<button class="rm" title="remove" style="position:absolute">×</button>';
+      if (tier) d.querySelector(".mg-tier").value = tier;
+      d.querySelector(".rm").onclick = () => d.remove();
+      return d;
+    }
+    $("#add-dx").onclick = () => $("#dx-rows").appendChild(dxRow());
+    $("#add-mg").onclick = () => $("#mg-rows").appendChild(mgRow());
+    // seed a few rows
+    [["", "correct"], ["", "partial"], ["", "wrong"], ["", "wrong"]].forEach((r) => $("#dx-rows").appendChild(dxRow(r[0], r[1])));
+    [["", "correct"], ["", "acceptable"], ["", "harmful"], ["", "harmful"]].forEach((r) => $("#mg-rows").appendChild(mgRow(r[0], r[1])));
+
+    // ---- collect → case object ----
+    function collect() {
+      const c = {
+        id: slug($("#f_title").value),
+        title: $("#f_title").value.trim(),
+        bedLabel: $("#f_bed").value.trim(),
+        icd10: $("#f_icd").value.trim(),
+        patient: { name: $("#f_name").value.trim(), age: Number($("#f_age").value) || $("#f_age").value.trim(), sex: $("#f_sex").value },
+        chiefComplaint: $("#f_cc").value.trim(),
+        triage: $("#f_triage").value.trim(),
+        vitals: { temp: $("#v_temp").value.trim(), hr: $("#v_hr").value.trim(), bp: $("#v_bp").value.trim(), rr: $("#v_rr").value.trim(), spo2: $("#v_spo2").value.trim(), pain: $("#v_pain").value.trim() },
+        keyHistory: [], keyExam: [],
+        appropriateLabs: [], acceptableLabs: [], appropriateImaging: [], acceptableImaging: [], criticalImaging: [],
+        findings: {}, diagnoses: [], managements: [], teaching: $("#f_teaching").value.trim(),
+      };
+      document.querySelectorAll("[data-key]").forEach((el) => {
+        const id = el.getAttribute("data-key");
+        const isHist = ORDER_MENU.history.some((x) => x.id === id);
+        if (el.checked) (isHist ? c.keyHistory : c.keyExam).push(id);
+      });
+      document.querySelectorAll("[data-pick]").forEach((el) => {
+        const id = el.getAttribute("data-pick");
+        const isLab = ORDER_MENU.labs.some((x) => x.id === id);
+        if (el.value === "appropriate") (isLab ? c.appropriateLabs : c.appropriateImaging).push(id);
+        else if (el.value === "acceptable") (isLab ? c.acceptableLabs : c.acceptableImaging).push(id);
+      });
+      document.querySelectorAll("[data-crit]").forEach((el) => { if (el.checked) c.criticalImaging.push(el.getAttribute("data-crit")); });
+      document.querySelectorAll("[data-find]").forEach((el) => { const v = el.value.trim(); if (v) c.findings[el.getAttribute("data-find")] = v; });
+      document.querySelectorAll("#dx-rows .opt-row").forEach((r) => {
+        const label = r.querySelector(".dx-label").value.trim();
+        if (label) c.diagnoses.push({ id: "dx_" + slug(label), label: label, tier: r.querySelector(".dx-tier").value });
+      });
+      document.querySelectorAll("#mg-rows .opt-row").forEach((r) => {
+        const label = r.querySelector(".mg-label").value.trim();
+        if (label) c.managements.push({ id: "mg_" + slug(label), label: label, tier: r.querySelector(".mg-tier").value, note: r.querySelector(".mg-note").value.trim() });
+      });
+      return c;
+    }
+
+    function validate(c) {
+      const out = [];
+      const need = (cond, msg) => out.push({ ok: cond, msg });
+      need(!!c.title, "Has a case title");
+      need(!!c.chiefComplaint, "Has a chief complaint");
+      need(c.keyHistory.length >= 3, "At least 3 high-yield history items (" + c.keyHistory.length + ")");
+      need(c.keyExam.length >= 3, "At least 3 key exam items (" + c.keyExam.length + ")");
+      need(c.appropriateLabs.length + c.appropriateImaging.length >= 1, "At least one appropriate lab/imaging");
+      need(c.diagnoses.filter((d) => d.tier === "correct").length === 1, "Exactly one CORRECT diagnosis");
+      need(c.managements.filter((m) => m.tier === "correct").length === 1, "Exactly one CORRECT management");
+      need(c.managements.every((m) => m.note) || c.managements.length === 0, "Every management option has a note");
+      need(c.criticalImaging.every((id) => c.appropriateImaging.indexOf(id) !== -1 || c.acceptableImaging.indexOf(id) !== -1), "Key study is also marked appropriate/acceptable");
+      need(!!c.teaching, "Has a teaching summary");
+      return out;
+    }
+
+    function generate() {
+      const c = collect();
+      const v = validate(c);
+      $("#valid").innerHTML = v.map((x) => '<div class="v ' + (x.ok ? "ok" : "warn") + '">' + (x.ok ? "✓ " : "⚠ ") + x.msg + "</div>").join("");
+      $("#out").value = JSON.stringify(c, null, 2);
+      window._lastCase = c;
+    }
+    $("#gen").onclick = generate;
+    $("#copy").onclick = () => { generate(); $("#out").select(); try { document.execCommand("copy"); } catch (e) {} navigator.clipboard && navigator.clipboard.writeText($("#out").value); };
+    $("#dljson").onclick = () => {
+      generate();
+      const c = window._lastCase || collect();
+      const blob = new Blob([JSON.stringify(c, null, 2)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+      a.download = (c.id || "case") + ".json"; a.click();
+    };
+    $("#load-example").onclick = () => {
+      const ex = (window.CASES || [])[0];
+      if (!ex) return;
+      $("#f_title").value = ex.title; $("#f_bed").value = ex.bedLabel; $("#f_icd").value = ex.icd10;
+      $("#f_name").value = ex.patient.name; $("#f_age").value = ex.patient.age; $("#f_sex").value = ex.patient.sex;
+      $("#f_cc").value = ex.chiefComplaint; $("#f_triage").value = ex.triage; $("#f_teaching").value = ex.teaching;
+      ["temp", "hr", "bp", "rr", "spo2", "pain"].forEach((k) => { const e = $("#v_" + k); if (e) e.value = ex.vitals[k] || ""; });
+      document.querySelectorAll("[data-key]").forEach((el) => { const id = el.getAttribute("data-key"); el.checked = ex.keyHistory.indexOf(id) !== -1 || ex.keyExam.indexOf(id) !== -1; });
+      document.querySelectorAll("[data-pick]").forEach((el) => {
+        const id = el.getAttribute("data-pick");
+        el.value = (ex.appropriateLabs.indexOf(id) !== -1 || ex.appropriateImaging.indexOf(id) !== -1) ? "appropriate"
+          : ((ex.acceptableLabs || []).indexOf(id) !== -1 || (ex.acceptableImaging || []).indexOf(id) !== -1) ? "acceptable" : "";
+      });
+      document.querySelectorAll("[data-crit]").forEach((el) => { el.checked = (ex.criticalImaging || []).indexOf(el.getAttribute("data-crit")) !== -1; });
+      document.querySelectorAll("[data-find]").forEach((el) => { el.value = ex.findings[el.getAttribute("data-find")] || ""; });
+      $("#dx-rows").innerHTML = ""; ex.diagnoses.forEach((d) => $("#dx-rows").appendChild(dxRow(d.label, d.tier)));
+      $("#mg-rows").innerHTML = ""; ex.managements.forEach((m) => $("#mg-rows").appendChild(mgRow(m.label, m.tier, m.note)));
+      generate();
+    };
+  })();
+  </script>
+</body>
+</html>
