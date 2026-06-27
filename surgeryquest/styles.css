@@ -560,6 +560,20 @@ table.lb td.acts { white-space: nowrap; text-align: right; }
 .btn-mini.danger { color: var(--bad); }
 .btn-mini.danger:hover { border-color: var(--bad); }
 
+/* ---- Cloud sync panel --------------------------------------------------- */
+.scard-cloud {
+  border: 1px solid #bbf7d0; background: linear-gradient(180deg, #f0fdfa, #fff);
+  border-radius: 14px; padding: 14px; margin-bottom: 14px;
+}
+.scard-cloud .cloud-head { font-size: 13px; font-weight: 700; color: var(--primary-d); margin-bottom: 6px; }
+.scard-cloud .mini2 { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.scard-cloud .cloud-row { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.scard-cloud .cloud-row input {
+  flex: 1; min-width: 150px; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px;
+  font-size: 13px; font-family: inherit; background: #fff;
+}
+.scard-cloud .cloud-row input:focus { border-color: var(--primary); outline: none; }
+
 /* ---- Responsive --------------------------------------------------------- */
 @media (max-width: 640px) {
   #hud-top { gap: 10px; padding: 9px 12px; flex-wrap: wrap; }
