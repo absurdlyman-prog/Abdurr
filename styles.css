@@ -541,6 +541,25 @@ button { font-family: inherit; cursor: pointer; }
 }
 .attending-live .al-loading { color: var(--muted); font-style: italic; }
 
+/* ---- Players / leaderboard --------------------------------------------- */
+table.lb { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.lb th {
+  text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--line);
+}
+table.lb td { padding: 9px 8px; border-bottom: 1px solid var(--line-2); vertical-align: middle; }
+table.lb tr.me td { background: #f0fdfa; }
+table.lb td.nm { font-weight: 600; color: var(--ink); }
+table.lb .you { font-size: 10px; color: var(--primary-d); background: var(--primary-l); padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+table.lb td.acts { white-space: nowrap; text-align: right; }
+.btn-mini {
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  font-size: 11.5px; font-weight: 600; padding: 4px 8px; border-radius: 8px; margin-left: 4px;
+}
+.btn-mini:hover { border-color: var(--primary); color: var(--primary-d); }
+.btn-mini.danger { color: var(--bad); }
+.btn-mini.danger:hover { border-color: var(--bad); }
+
 /* ---- Responsive --------------------------------------------------------- */
 @media (max-width: 640px) {
   #hud-top { gap: 10px; padding: 9px 12px; flex-wrap: wrap; }

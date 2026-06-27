@@ -48,19 +48,65 @@
    *  Persistence
    * ---------------------------------------------------------------------- */
   function defaultSave() {
-    return { xp: 0, badges: [], streak: 0, bestStreak: 0, cases: {}, welcomed: false };
+    return { xp: 0, badges: [], streak: 0, bestStreak: 0, cases: {}, welcomed: false, tts: true };
   }
-  function loadSave() {
+
+  /* ---- Local multiplayer profiles + on-device leaderboard ----
+   * A backend-free preview of cohorts: several named players share the
+   * device, each with their own progress. Upgrades later to real cloud
+   * accounts (Supabase) without changing the game logic. */
+  const PROFILES_KEY = "surgeryquest_profiles_v1";
+  function uid() { return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function loadStore() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return defaultSave();
-      return Object.assign(defaultSave(), JSON.parse(raw));
-    } catch (e) { return defaultSave(); }
+      const raw = localStorage.getItem(PROFILES_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && s.profiles && s.profiles.length) {
+          s.profiles.forEach((p) => { p.save = Object.assign(defaultSave(), p.save || {}); });
+          if (!s.profiles.some((p) => p.id === s.activeId)) s.activeId = s.profiles[0].id;
+          return s;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    // migrate a legacy single-save into the first profile
+    let migrated = null;
+    try { const old = localStorage.getItem(SAVE_KEY); if (old) migrated = Object.assign(defaultSave(), JSON.parse(old)); } catch (e) { /* ignore */ }
+    const cfgName = (window.SQ_CONFIG && SQ_CONFIG.RECIPIENT_NAME) || "";
+    const name = cfgName && cfgName !== "[Her Name]" ? cfgName : "Player 1";
+    const p = { id: uid(), name: name, created: Date.now(), save: migrated || defaultSave() };
+    return { v: 1, activeId: p.id, profiles: [p] };
   }
-  function persist() {
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ }
+
+  let store = loadStore();
+  function activeProfile() { return store.profiles.find((p) => p.id === store.activeId) || store.profiles[0]; }
+  let save = activeProfile().save;
+  function persist() { try { localStorage.setItem(PROFILES_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ } }
+  persist(); // write store (saves any migration)
+
+  function applyProfileSwitch() {
+    save = activeProfile().save;
+    TTS.on = save.tts !== false;
+    updateMuteBtn(); renderHUD(); refreshBedLabels(); updatePlayerChip();
   }
-  let save = loadSave();
+  function addProfile(name) {
+    const p = { id: uid(), name: (name || "Player").slice(0, 24), created: Date.now(), save: defaultSave() };
+    p.save.welcomed = true; // don't re-pop the birthday screen for new players
+    store.profiles.push(p); store.activeId = p.id; persist(); applyProfileSwitch();
+  }
+  function setActiveProfile(id) { store.activeId = id; persist(); applyProfileSwitch(); }
+  function renameProfile(id, name) { const p = store.profiles.find((x) => x.id === id); if (p && name) { p.name = name.slice(0, 24); persist(); } }
+  function deleteProfile(id) {
+    if (store.profiles.length <= 1) return;
+    store.profiles = store.profiles.filter((p) => p.id !== id);
+    if (store.activeId === id) store.activeId = store.profiles[0].id;
+    persist(); applyProfileSwitch();
+  }
+  function levelOf(xp) { let lvl = 1, x = xp || 0; while (x >= xpForLevel(lvl)) { x -= xpForLevel(lvl); lvl++; } return lvl; }
+  function titleOf(xp) { return LEVEL_TITLES[Math.min(levelOf(xp) - 1, LEVEL_TITLES.length - 1)]; }
+  function profileStars(p) { return Object.values(p.save.cases || {}).reduce((a, c) => a + (c.bestStars || 0), 0); }
+  function profileCasesDone(p) { return Object.values(p.save.cases || {}).filter((c) => c.completed).length; }
 
   function levelInfo() {
     let level = 1, xp = save.xp;
@@ -558,6 +604,11 @@
     $("#streak-val").textContent = save.streak;
 
     $("#badge-count").textContent = save.badges.length + "/" + BADGES.length;
+  }
+
+  function updatePlayerChip() {
+    const c = $("#player-chip");
+    if (c) c.innerHTML = "👤 <span>" + esc(activeProfile().name) + "</span>";
   }
 
   /* ---------------------------------------------------------------------- *
@@ -1228,6 +1279,45 @@
   }
 
   /* ---------------------------------------------------------------------- *
+   *  Players + on-device leaderboard
+   * ---------------------------------------------------------------------- */
+  function showPlayers() { renderPlayers(); show("#players"); }
+  function renderPlayers() {
+    const body = $("#players-body");
+    if (!body) return;
+    const ranked = store.profiles.slice().sort((a, b) => (b.save.xp || 0) - (a.save.xp || 0));
+    const medal = ["🥇", "🥈", "🥉"];
+    let html = '<table class="lb"><thead><tr><th>#</th><th>Player</th><th>Title</th><th>XP</th><th>★</th><th>🏅</th><th>Cases</th><th></th></tr></thead><tbody>';
+    ranked.forEach((p, i) => {
+      const active = p.id === store.activeId;
+      html +=
+        '<tr class="' + (active ? "me" : "") + '">' +
+        "<td>" + (medal[i] || (i + 1)) + "</td>" +
+        '<td class="nm">' + esc(p.name) + (active ? ' <span class="you">you</span>' : "") + "</td>" +
+        "<td>" + esc(titleOf(p.save.xp)) + "</td>" +
+        "<td>" + (p.save.xp || 0) + "</td>" +
+        "<td>" + profileStars(p) + "</td>" +
+        "<td>" + (p.save.badges ? p.save.badges.length : 0) + "</td>" +
+        "<td>" + profileCasesDone(p) + "/" + CASES.length + "</td>" +
+        '<td class="acts">' +
+        (active ? "" : '<button class="btn-mini" data-act="switch" data-id="' + p.id + '">Play</button>') +
+        '<button class="btn-mini" data-act="rename" data-id="' + p.id + '" title="rename">✎</button>' +
+        (store.profiles.length > 1 ? '<button class="btn-mini danger" data-act="del" data-id="' + p.id + '" title="delete">🗑</button>' : "") +
+        "</td></tr>";
+    });
+    html += "</tbody></table>";
+    body.innerHTML = html;
+    body.querySelectorAll("[data-act]").forEach((btn) => {
+      const id = btn.getAttribute("data-id"), act = btn.getAttribute("data-act");
+      btn.onclick = () => {
+        if (act === "switch") { setActiveProfile(id); renderPlayers(); toast("Now playing as " + activeProfile().name, "👤"); }
+        else if (act === "rename") { const n = prompt("Rename player:", (store.profiles.find((p) => p.id === id) || {}).name || ""); if (n && n.trim()) { renameProfile(id, n.trim()); renderPlayers(); updatePlayerChip(); } }
+        else if (act === "del") { if (confirm("Delete this player and their progress?")) { deleteProfile(id); renderPlayers(); } }
+      };
+    });
+  }
+
+  /* ---------------------------------------------------------------------- *
    *  Toast
    * ---------------------------------------------------------------------- */
   function toast(text, icon) {
@@ -1247,8 +1337,10 @@
    *  Reset
    * ---------------------------------------------------------------------- */
   function resetProgress() {
-    if (!confirm("Reset all progress, XP, and badges? This cannot be undone.")) return;
-    save = defaultSave();
+    if (!confirm("Reset " + activeProfile().name + "'s progress, XP, and badges? This cannot be undone.")) return;
+    activeProfile().save = defaultSave();
+    activeProfile().save.welcomed = true;
+    save = activeProfile().save;
     persist(); renderHUD(); refreshBedLabels(); hide("#badges");
     toast("Progress reset.", "♻️");
   }
@@ -1273,6 +1365,13 @@
     $("#badges-close").onclick = () => hide("#badges");
     $("#reset-btn").onclick = resetProgress;
     $("#voice-btn").onclick = toggleVoice;
+    $("#open-players").onclick = showPlayers;
+    $("#players-close").onclick = () => hide("#players");
+    $("#add-player").onclick = () => {
+      const n = prompt("New player name:", "Player " + (store.profiles.length + 1));
+      if (n && n.trim()) { addProfile(n.trim()); renderPlayers(); toast("Added " + activeProfile().name, "👤"); }
+    };
+    updatePlayerChip();
 
     initTTS();
     updateAiBadge();

@@ -49,6 +49,8 @@
       </div>
     </div>
 
+    <button class="icon-btn" id="player-chip" title="Current player">👤 <span>Player</span></button>
+    <button class="icon-btn" id="open-players" title="Players & leaderboard">🏆 <span>Players</span></button>
     <button class="icon-btn" id="voice-btn" title="Toggle patient/attending voice">🔊 <span>Voice</span></button>
 
     <button class="icon-btn" id="open-badges">🏅 <span>Badges</span> <span class="count" id="badge-count">0/8</span></button>
@@ -93,6 +95,22 @@
       <div class="modal-body">
         <div class="badge-grid" id="badge-grid"></div>
         <div class="reset-row"><button id="reset-btn">Reset all progress</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Players & leaderboard -->
+  <div class="overlay hidden" id="players">
+    <div class="card">
+      <div class="modal-head">
+        <h3>🏆 Players &amp; leaderboard</h3>
+        <div class="grow"></div>
+        <button class="enc-close" id="players-close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="panel-intro" style="margin-top:0">Everyone on this device, ranked by XP. Add a friend or co-resident to compete. <span style="color:var(--muted)">(Cloud accounts &amp; cross-device leaderboards coming next.)</span></p>
+        <div id="players-body"></div>
+        <div class="reset-row" style="margin-top:16px"><button class="btn-ghost" id="add-player">+ Add player</button></div>
       </div>
     </div>
   </div>
