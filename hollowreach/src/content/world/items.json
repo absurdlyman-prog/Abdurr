@@ -1,0 +1,50 @@
+{
+  "items": [
+    {
+      "id": "watch_badge",
+      "name": "Tarnished Watch Badge",
+      "blurb": "Civil Watch, district seventeen. The enamel is chipped and the number's been half-scratched away. It still opens some doors and closes others.",
+      "kind": "key"
+    },
+    {
+      "id": "case_notebook",
+      "name": "Waterlogged Notebook",
+      "blurb": "Your own handwriting, except you don't remember writing most of it. The first dry page just says: FIND OUT WHO YOU WERE BEFORE YOU FIND OUT WHO DIED.",
+      "kind": "document"
+    },
+    {
+      "id": "ration_card",
+      "name": "Mutual Ration Card",
+      "blurb": "A punched card from the Drowned Quarter soup line. Whoever owned it was three meals from the bottom.",
+      "kind": "evidence",
+      "carryModifiers": [{ "attribute": "empathy", "value": 1, "reason": "It reminds you whose city this is." }]
+    },
+    {
+      "id": "harbour_chit",
+      "name": "Guild Cargo Chit",
+      "blurb": "A brass token stamped with a crane and a number. The Harbour Guild uses these to log who moved what off the night barges.",
+      "kind": "evidence"
+    },
+    {
+      "id": "amber_tincture",
+      "name": "Amber Tincture",
+      "blurb": "Dock-medicine. Cuts the shakes, sharpens the eye, and hollows you out an hour later. Everyone in the Quarter has a bottle they pretend they don't.",
+      "kind": "substance",
+      "consumable": true,
+      "carryModifiers": []
+    },
+    {
+      "id": "syndicate_ledger_page",
+      "name": "Torn Ledger Page",
+      "blurb": "A single page from a Lantern Syndicate connection ledger. One address in the Drowned Quarter is marked PAID — in a district that's supposed to be dark.",
+      "kind": "document"
+    },
+    {
+      "id": "brass_lighter",
+      "name": "Brass Lighter",
+      "blurb": "Engraved with initials that aren't yours: 'V.K.' It still sparks. Holding it, your hands seem to know the motion.",
+      "kind": "curio",
+      "carryModifiers": [{ "attribute": "intuition", "value": 1, "reason": "Muscle memory you can't account for." }]
+    }
+  ]
+}

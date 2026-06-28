@@ -1,0 +1,144 @@
+{
+  "id": "teller",
+  "speaker": "teller",
+  "start": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "onEnter": [{ "op": "setFlag", "key": "met_teller", "value": true }],
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Maren Teller. I bail for the Quarter — debts, favours, the occasional drowned man. You're new. Or you're old and lost your face in the water. Which is it?", "emotion": "wary" }
+      ],
+      "responses": [
+        { "id": "r_watch", "text": "I'm the Watch. There's been a death and I'm here to investigate it.", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "claimed_watch", "value": true }], "goto": "watch_claim" },
+        { "id": "r_truth", "text": "I don't know. I woke up next to him with no memory and a badge I don't remember earning.", "tone": "kind", "effects": [{ "op": "setFlag", "key": "told_teller_truth", "value": true }, { "op": "remember", "who": "teller", "memory": { "id": "mem_honest", "summary": "told her the truth about the amnesia", "sentiment": 2, "kind": "fact" } }], "goto": "truth_path" },
+        { "id": "r_authority", "text": "[Authority] I ask the questions here. Who is the dead man?", "tone": "aggressive", "check": { "attribute": "authority", "dc": 11, "kind": "white", "label": "Cow the bailswoman", "modifiers": [{ "label": "She's seen harder men than you", "value": -1 }], "onSuccess": "authority_win", "onFailure": "authority_fail" } }
+      ]
+    },
+    "watch_claim": {
+      "id": "watch_claim",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "The Watch. Right. The Watch hasn't crossed the tideline into the Quarter in three years — we're not worth the boot leather. But you're here, so. Congratulations on your assignment, detective.", "emotion": "cold" },
+        { "speaker": "attribute", "speakerId": "empathy", "text": "She doesn't believe you. Worse — she's decided not to mind. You've become, in one sentence, another official lie she has to manage. That costs you something you'll want back later." }
+      ],
+      "responses": [
+        { "id": "r_who_dead", "text": "Who is he?", "tone": "neutral", "goto": "who_dead" },
+        { "id": "r_come_clean", "text": "...That's not true. I don't actually remember who I am. I'm sorry.", "tone": "kind", "conditions": [{ "op": "flag", "key": "claimed_watch" }], "effects": [{ "op": "setFlag", "key": "told_teller_truth", "value": true }, { "op": "remember", "who": "teller", "memory": { "id": "mem_recanted", "summary": "lied about being the Watch, then admitted it", "sentiment": 0, "kind": "fact" } }], "goto": "truth_path" }
+      ]
+    },
+    "truth_path": {
+      "id": "truth_path",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Huh. That's the first honest thing anyone's said to me on this quay in a year. The water takes memories sometimes — we say the Drowned God keeps them. Don't laugh; people here believe it, and what people believe is half your case.", "emotion": "warm" },
+        { "speaker": "npc", "speakerId": "teller", "text": "His name was Tomas Kessler. Clerk. Kept the Mutual's books — kept MY books. Good man, bad at money, which down here is the same as saying he was drowning long before the harbour finished the job." }
+      ],
+      "responses": [
+        { "id": "r_debt", "text": "Bad at money how?", "tone": "neutral", "effects": [{ "op": "learnClue", "key": "clue_widow_debt" }, { "op": "xp", "value": 15 }], "goto": "debt" },
+        { "id": "r_last_night", "text": "What happened last night?", "tone": "neutral", "goto": "last_night" },
+        { "id": "r_widow_where", "text": "He has a wife?", "tone": "kind", "goto": "widow_where" }
+      ]
+    },
+    "who_dead": {
+      "id": "who_dead",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Tomas Kessler. Our clerk. He kept the ledger that keeps this Quarter from eating itself. Now he's keeping the rain company.", "emotion": "cold" }
+      ],
+      "responses": [
+        { "id": "r_debt2", "text": "Did he have enemies? Money trouble?", "tone": "neutral", "effects": [{ "op": "learnClue", "key": "clue_widow_debt" }, { "op": "xp", "value": 10 }], "goto": "debt" },
+        { "id": "r_last_night2", "text": "Where were you last night?", "tone": "aggressive", "goto": "last_night" }
+      ]
+    },
+    "debt": {
+      "id": "debt",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Tomas owed the Mutual more than the Mutual owns. Don't look like that — it happens. You bail a man, he bails another, and one bad season the whole web of it comes due at once. He couldn't pay. Couldn't even face Edda — his wife — about it." },
+        { "speaker": "attribute", "speakerId": "logic", "text": "A debt the Quarter could never collect. That cuts two ways: a man might end himself over it — or someone might end the debt by ending the man. File it. Both doors are open." }
+      ],
+      "responses": [
+        { "id": "r_to_widow", "text": "I should speak to his wife.", "tone": "kind", "goto": "widow_where" },
+        { "id": "r_to_last", "text": "Walk me through last night.", "tone": "neutral", "goto": "last_night" }
+      ]
+    },
+    "last_night": {
+      "id": "last_night",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Third bell, I hear shouting off toward the Spindles — the Guild runs barges at night, there's always shouting. By dawn there's you, and there's Tomas, and the tide's gone out and left you both like driftwood." }
+      ],
+      "passiveChecks": [
+        { "attribute": "perception", "dc": 9, "kind": "white", "label": "Perception — the timing", "onSuccess": "perc_bell", "onFailure": "noop" }
+      ],
+      "responses": [
+        { "id": "r_spindles", "text": "The Guild. Tell me about the barges.", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_guild_barges", "value": true }], "goto": "guild_hint" },
+        { "id": "r_done_teller", "text": "That's enough for now. Thank you, Maren.", "tone": "kind", "exit": true }
+      ]
+    },
+    "perc_bell": {
+      "id": "perc_bell",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "perception", "text": "Third bell. The same hour the Guild moved cargo and the same hour, near enough, a man's lungs filled with brine. Two clocks striking together are rarely a coincidence." }
+      ],
+      "responses": []
+    },
+    "guild_hint": {
+      "id": "guild_hint",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Anker Voss runs the night yard. He's not a bad man, just an old one — loyal to the Guild like it's still 1955 and the whistles still blow. If Tomas saw something off those barges he shouldn't have, Voss is where you start. Mind yourself; he's built like the cranes." }
+      ],
+      "responses": [
+        { "id": "r_thanks_guild", "text": "I'll pay him a visit.", "tone": "neutral", "exit": true }
+      ]
+    },
+    "widow_where": {
+      "id": "widow_where",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Edda's in the Hall, by the stove. She's been sitting vigil since before they found him — like she knew. Be gentle. Whatever she did or didn't do, she's lost her whole world tonight.", "emotion": "warm" }
+      ],
+      "responses": [
+        { "id": "r_go_hall", "text": "I'll be gentle.", "tone": "kind", "exit": true }
+      ]
+    },
+    "authority_win": {
+      "id": "authority_win",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "...Tomas Kessler. Our clerk. Alright. You've got the voice for it, I'll give you that.", "emotion": "wary" },
+        { "speaker": "attribute", "speakerId": "authority", "text": "Good. They obey the spine, not the smile. But notice — she gave you a name and took back her warmth. You can rule this woman or befriend her. Not both." }
+      ],
+      "responses": [
+        { "id": "r_after_auth", "text": "Money trouble? Enemies?", "tone": "neutral", "effects": [{ "op": "learnClue", "key": "clue_widow_debt" }], "goto": "debt" }
+      ]
+    },
+    "authority_fail": {
+      "id": "authority_fail",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Or what? You'll catch cold at me?", "emotion": "cold" },
+        { "speaker": "attribute", "speakerId": "authority", "text": "She looked at the shake in your hands and weighed exactly how much of your authority is borrowed. Verdict: all of it. Try a different door." }
+      ],
+      "responses": [
+        { "id": "r_recover_truth", "text": "Fair. The truth, then — I don't remember who I am.", "tone": "kind", "effects": [{ "op": "setFlag", "key": "told_teller_truth", "value": true }], "goto": "truth_path" },
+        { "id": "r_recover_who", "text": "Just tell me who he was.", "tone": "neutral", "goto": "who_dead" }
+      ]
+    },
+    "cold_open": {
+      "id": "cold_open",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "Back again. Should I expect the truth this time, or shall we keep pretending you're whatever you said you were?", "emotion": "cold" }
+      ],
+      "responses": [
+        { "id": "r_apologize", "text": "I should have been straight with you. I'm sorry.", "tone": "kind", "effects": [{ "op": "remember", "who": "teller", "memory": { "id": "mem_apology", "summary": "came back and apologised", "sentiment": 1, "kind": "kindness" } }], "goto": "truth_path" },
+        { "id": "r_press_on", "text": "Just answer my questions.", "tone": "aggressive", "goto": "who_dead" }
+      ]
+    },
+    "warm_open": {
+      "id": "warm_open",
+      "lines": [
+        { "speaker": "npc", "speakerId": "teller", "text": "The honest amnesiac returns. Sit. What do you need?", "emotion": "warm" }
+      ],
+      "responses": [
+        { "id": "r_w_debt", "text": "Tell me more about Tomas's debt.", "tone": "neutral", "effects": [{ "op": "learnClue", "key": "clue_widow_debt" }], "goto": "debt" },
+        { "id": "r_w_guild", "text": "The Guild barges — who runs them?", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_guild_barges", "value": true }], "goto": "guild_hint" },
+        { "id": "r_w_bye", "text": "Just checking in. Thank you.", "tone": "kind", "exit": true }
+      ]
+    },
+    "noop": { "id": "noop", "lines": [], "responses": [] }
+  }
+}

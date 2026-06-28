@@ -1,0 +1,90 @@
+{
+  "id": "spindle_yard",
+  "name": "The Spindle Yard",
+  "district": "the_spindles",
+  "width": 10,
+  "height": 8,
+  "tileWidth": 128,
+  "tileHeight": 64,
+  "spawn": { "x": 2, "y": 5 },
+  "ambience": "industrial_wind",
+  "theme": "spindles_theme",
+  "palette": { "sky": "#26221c", "ground": "#3c3a34", "accent": "#c9772e", "shadow": "#0c0b09" },
+  "weather": { "rain": 0.25, "fog": 0.5, "wind": 0.7, "fogColor": "#33302a" },
+  "layers": [
+    {
+      "name": "ground",
+      "tiles": [
+        4, 4, 4, 8, 8, 4, 4, 4, 8, 8,
+        4, 3, 3, 3, 3, 3, 3, 3, 8, 8,
+        4, 3, 3, 3, 3, 3, 3, 3, 3, 8,
+        8, 3, 3, 3, 3, 3, 3, 3, 3, 4,
+        8, 3, 3, 3, 3, 3, 3, 3, 3, 4,
+        4, 3, 3, 3, 3, 3, 3, 3, 3, 4,
+        4, 4, 3, 3, 3, 3, 3, 3, 4, 4,
+        2, 2, 4, 4, 4, 4, 4, 4, 2, 2
+      ]
+    },
+    {
+      "name": "decals",
+      "opacity": 0.8,
+      "tiles": [
+        0, 0, 0, 13, 0, 0, 13, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "yard_foreman",
+      "label": "Foreman Voss",
+      "x": 6,
+      "y": 3,
+      "kind": "npc",
+      "sprite": "npc_voss",
+      "dialogue": "voss",
+      "hoverNote": "A Guild man built like a bollard. He has been watching you cross the yard the whole way."
+    },
+    {
+      "id": "yard_barge",
+      "label": "The Night Barge",
+      "x": 8,
+      "y": 6,
+      "kind": "clue",
+      "sprite": "barge",
+      "emissive": "#5f8fb0",
+      "revealWhen": { "op": "attrAtLeast", "key": "perception", "value": 4 },
+      "hoverNote": "A barge logged as empty rides low in the water. Whatever's aboard, it wasn't on any manifest.",
+      "onExamine": [
+        { "op": "learnClue", "key": "clue_empty_barge" },
+        { "op": "xp", "value": 15 },
+        { "op": "playStinger", "key": "clue_found" }
+      ]
+    },
+    {
+      "id": "to_quay_east",
+      "label": "Back to the Quay",
+      "x": 1,
+      "y": 5,
+      "kind": "exit",
+      "target": { "scene": "quay_dawn", "spawn": { "x": 7, "y": 5 } },
+      "hoverNote": "West, to the water and the body."
+    },
+    {
+      "id": "to_rows",
+      "label": "The Gaslight Rows",
+      "x": 9,
+      "y": 2,
+      "kind": "exit",
+      "target": { "scene": "rows_night", "spawn": { "x": 3, "y": 6 } },
+      "hoverNote": "North, where the Syndicate keeps the lights on and the answers expensive.",
+      "revealWhen": { "op": "flag", "key": "knows_syndicate_link" }
+    }
+  ]
+}

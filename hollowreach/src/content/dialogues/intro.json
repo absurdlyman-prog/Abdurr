@@ -1,0 +1,85 @@
+{
+  "id": "intro",
+  "speaker": "the_body",
+  "start": "black",
+  "nodes": {
+    "black": {
+      "id": "black",
+      "lines": [
+        { "speaker": "narrator", "text": "— nothing. A warm, total nothing, like the inside of a held breath. You could stay here. You have, perhaps, stayed here a long time already." },
+        { "speaker": "attribute", "speakerId": "instinct", "text": "Cold. Wet stone under the cheek. Salt. Get up. GET UP.", "emotion": "alarm" }
+      ],
+      "responses": [
+        { "id": "r_wake", "text": "[Open your eyes.]", "tone": "inner", "goto": "wake" },
+        { "id": "r_stay", "text": "[Stay in the nothing a little longer.]", "tone": "inner", "goto": "linger" }
+      ]
+    },
+    "linger": {
+      "id": "linger",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "composure", "text": "Yes. Don't rush it. Whatever is out there waited all night; it can wait one more minute. Catalogue what you know before you let the light in." },
+        { "speaker": "attribute", "speakerId": "logic", "text": "What you know is a short list. You are horizontal. You are outdoors. You are, regrettably, alive." },
+        { "speaker": "attribute", "speakerId": "empathy", "text": "And you are not alone. There's someone very close. They are not breathing the way you are. They are not breathing at all." }
+      ],
+      "responses": [
+        { "id": "r_wake2", "text": "[Open your eyes. Now.]", "tone": "inner", "goto": "wake" }
+      ]
+    },
+    "wake": {
+      "id": "wake",
+      "onEnter": [{ "op": "setFlag", "key": "intro_woke", "value": true }],
+      "lines": [
+        { "speaker": "narrator", "text": "Grey light, the colour of dishwater. Rain you can't feel yet, only hear — a million soft collisions on the harbour. You are on a quay of black, weeping stone, and a man is lying ten feet away with his face turned to the planks." },
+        { "speaker": "attribute", "speakerId": "perception", "text": "His coat is good wool, gone to ruin in the wet. One shoe off. No blood. The water around him is the wrong shape — it ran toward him, not away.", "emotion": "flat" }
+      ],
+      "responses": [
+        { "id": "r_who", "text": "Who am I?", "tone": "inner", "goto": "who" },
+        { "id": "r_him", "text": "Who is HE?", "tone": "inner", "goto": "who" }
+      ]
+    },
+    "who": {
+      "id": "who",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "logic", "text": "Reasonable questions. Here is the inventory of answers: none. There is a hole where your name should be. Reach into it and it bites." },
+        { "speaker": "attribute", "speakerId": "intuition", "text": "But the hands. The hands remember something. There's a weight they're used to — a small brass weight, a thumb-flick. You've done a hundred small violent things and the body kept every one." },
+        { "speaker": "attribute", "speakerId": "authority", "text": "Enough. Stand up. There is a dead man and an audience, and a man on his back in the rain commands no one." }
+      ],
+      "passiveChecks": [
+        {
+          "attribute": "intuition",
+          "dc": 9,
+          "kind": "white",
+          "label": "Intuition — feel for the shape of who you were",
+          "onSuccess": "intuition_whisper",
+          "onFailure": "noop"
+        }
+      ],
+      "responses": [
+        { "id": "r_stand", "text": "[Stand. Face the audience.]", "tone": "neutral", "goto": "audience" }
+      ]
+    },
+    "intuition_whisper": {
+      "id": "intuition_whisper",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "intuition", "text": "V. K. Two letters, like two knocks on a door you're afraid to answer. They mean something. They mean YOU." }
+      ],
+      "responses": []
+    },
+    "noop": { "id": "noop", "lines": [], "responses": [] },
+    "audience": {
+      "id": "audience",
+      "onEnter": [
+        { "op": "setFlag", "key": "intro_done", "value": true },
+        { "op": "playStinger", "key": "theme_rise" }
+      ],
+      "lines": [
+        { "speaker": "narrator", "text": "You get your feet under you. The quay tilts, steadies. Up the plankway a woman in a bailswoman's oilskin watches you with the patience of someone deciding whether you are a problem or a tool." },
+        { "speaker": "the_body", "speakerId": "teller", "text": "So. The Watch sends a man who sleeps next to the body. That's either very good or very bad police work, and I genuinely can't tell which.", "emotion": "wary" },
+        { "speaker": "attribute", "speakerId": "composure", "text": "She called you the Watch. There is a badge in your coat. You don't remember earning it. Decide, quickly, whether you're going to be the man she thinks you are." }
+      ],
+      "responses": [
+        { "id": "r_begin", "text": "[Take the quay. Begin.]", "tone": "neutral", "exit": true, "effects": [{ "op": "setFlag", "key": "met_teller", "value": false }] }
+      ]
+    }
+  }
+}

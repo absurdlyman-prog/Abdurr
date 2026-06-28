@@ -1,0 +1,71 @@
+{
+  "id": "drowned_clerk",
+  "title": "The Drowned Clerk",
+  "resolutionFlag": "drowned_clerk_closed",
+  "briefing": "A Mutual clerk named Tomas Kessler lies dead on the dawn quay. No wound, no witnesses, and a city with five different reasons to want him quiet. You don't remember last night. The notebook in your coat is in your own hand, and it is afraid of you. Find out who drowned him — and whether the answer is a man you can still arrest, or one you've already become.",
+  "clues": [
+    { "id": "clue_no_wound", "title": "No visible wound", "detail": "Not a mark on him. No blood, no bruise, no ligature. Whatever killed Tomas Kessler left the skin perfect.", "source": "quay_dawn", "tags": ["physical"], "reliability": "hard" },
+    { "id": "clue_wet_lungs", "title": "Seawater in the lungs", "detail": "Press his chest and brine comes up, not bile. He drowned. In salt water.", "source": "quay_dawn", "tags": ["physical", "medical"], "reliability": "hard" },
+    { "id": "clue_brass_lighter", "title": "A lighter that knows your hands", "detail": "A brass lighter in the gutter, engraved 'V.K.' Your fingers found the striking motion before your mind agreed to it. The initials are not the victim's. They might be yours.", "source": "quay_dawn", "tags": ["physical", "personal"], "reliability": "soft" },
+    { "id": "clue_widow_debt", "title": "The clerk's impossible debt", "detail": "Tomas owed the Mutual more than the Quarter could ever forgive, and the Widow knew it. A man that far underwater looks for any rope — or lets go.", "source": "mutual_hall", "tags": ["financial", "testimony"], "reliability": "soft" },
+    { "id": "clue_ledger_paid", "title": "A lit house in a dark district", "detail": "A torn page from a Lantern Syndicate ledger: one Drowned Quarter address marked PAID, in a district the Syndicate keeps in the dark. Tomas found out somebody down here was buying light in secret — and from whom.", "source": "mutual_hall", "tags": ["financial", "physical"], "reliability": "hard" },
+    { "id": "clue_guild_chit", "title": "Guild cargo chit", "detail": "A brass chit stamped with a crane and the third-bell hour. The Guild moved something off a night barge while Tomas was dying a hundred yards away.", "source": "spindle_yard", "tags": ["physical"], "reliability": "hard" },
+    { "id": "clue_empty_barge", "title": "The barge that rides too low", "detail": "A barge logged empty sits low in the water, gunwales near the tideline. Empty boats float high. This one is carrying something off the books.", "source": "spindle_yard", "tags": ["physical"], "reliability": "soft" },
+    { "id": "clue_moved_body", "title": "The body was moved", "detail": "He drowned in seawater, but he lies on dry stone above the tideline. A drowned man does not climb out and arrange himself. Someone carried Tomas Kessler here after the water was done with him.", "tags": ["deduction"], "reliability": "hard" },
+    { "id": "clue_smuggled", "title": "Off-the-books cargo", "detail": "The Guild ran unlogged cargo off the night barge at the third bell — the same hour Tomas drowned. Whatever it was, it was worth a man's silence.", "tags": ["deduction"], "reliability": "hard" }
+  ],
+  "suspects": [
+    { "id": "suspect_voss", "characterId": "voss", "name": "Foreman Anker Voss", "motiveSketch": "Tomas was auditing barge manifests. If he saw the smuggling, Voss had a hundred reasons to put him in the water.", "alibi": "Claims he worked the barge alone all night — which no one can confirm." },
+    { "id": "suspect_widow", "characterId": "widow", "name": "Edda Kessler, the Widow", "motiveSketch": "She knew the debt would never be paid and the shame of it was killing them both. Mercy and murder share a doorway down here.", "alibi": "Says she was asleep in the Hall. The Hall does not lock." },
+    { "id": "suspect_syndicate", "characterId": "the_body", "name": "The Lantern Syndicate", "motiveSketch": "Tomas found the secret PAID ledger — proof the Syndicate runs a private wire into the Quarter. A clerk with that page is a liability with a face.", "alibi": "Corporations do not have alibis. They have factors who smile." },
+    { "id": "suspect_self", "characterId": "the_body", "name": "You", "motiveSketch": "The lighter is yours. Your hands knew the alley, the motion, the weight of a man. You woke beside him with no memory and a notebook that warns you about yourself.", "alibi": "You have no memory of last night. That is not an alibi. That is the opposite of one." }
+  ],
+  "contradictions": [
+    { "id": "contra_dry_drowning", "statement": "Drowned in seawater — found on dry stone, above the tideline.", "between": ["clue_wet_lungs", "clue_no_wound"], "resolvesTo": "clue_moved_body" },
+    { "id": "contra_empty_barge", "statement": "A barge logged empty that rides low in the water.", "between": ["clue_guild_chit", "clue_empty_barge"], "resolvesTo": "clue_smuggled" }
+  ],
+  "theories": [
+    {
+      "id": "theory_guild",
+      "title": "The Guild Drowned Him",
+      "summary": "Tomas saw the night barge running unlogged cargo. Voss put him under the water to keep the Guild's last paying secret, then carried him to the quay to make it look like the tide took a drunk.",
+      "requires": ["clue_wet_lungs", "clue_guild_chit", "clue_smuggled"],
+      "accuses": "voss",
+      "endingTag": "guild"
+    },
+    {
+      "id": "theory_syndicate",
+      "title": "The Syndicate Bought His Silence",
+      "summary": "Tomas found the PAID ledger — proof the Lantern Syndicate runs a black wire into the Drowned Quarter. A clerk with that page could ruin them. They drowned him and dropped him where the Guild would take the blame.",
+      "requires": ["clue_ledger_paid", "clue_moved_body"],
+      "accuses": "syndicate",
+      "endingTag": "syndicate"
+    },
+    {
+      "id": "theory_mutual",
+      "title": "The Quarter Took Care of Its Own",
+      "summary": "The debt was drowning everyone. The Widow — or the Mutual that protects her — ended it quietly and called it grief. The Quarter buries its problems below the tideline and bails for each other after.",
+      "requires": ["clue_widow_debt", "clue_moved_body"],
+      "weakenedBy": ["clue_ledger_paid"],
+      "accuses": "widow",
+      "endingTag": "mutual"
+    },
+    {
+      "id": "theory_accident",
+      "title": "He Let Go",
+      "summary": "No one drowned Tomas Kessler. A man that far underwater on a debt he could never repay walked into the harbour himself. The tide and a frightened passer-by did the rest.",
+      "requires": ["clue_wet_lungs", "clue_widow_debt"],
+      "weakenedBy": ["clue_moved_body"],
+      "accuses": "none",
+      "endingTag": "accident"
+    },
+    {
+      "id": "theory_self",
+      "title": "V.K.",
+      "summary": "The lighter is yours. The motion was yours. You woke beside a man you may have carried, in a city that handed you a badge to hide behind. Whoever you were before the water took your memory, his blood — his brine — is on your hands.",
+      "requires": ["clue_brass_lighter", "clue_moved_body"],
+      "accuses": "self",
+      "endingTag": "self"
+    }
+  ]
+}

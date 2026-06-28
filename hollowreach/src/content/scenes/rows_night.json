@@ -1,0 +1,65 @@
+{
+  "id": "rows_night",
+  "name": "The Gaslight Rows",
+  "district": "gaslight_rows",
+  "width": 10,
+  "height": 8,
+  "tileWidth": 128,
+  "tileHeight": 64,
+  "spawn": { "x": 3, "y": 6 },
+  "ambience": "neon_street",
+  "theme": "rows_theme",
+  "palette": { "sky": "#0e1420", "ground": "#1c2430", "accent": "#d65fa2", "shadow": "#05080d" },
+  "weather": { "rain": 0.7, "fog": 0.4, "wind": 0.3, "fogColor": "#1a2436" },
+  "layers": [
+    {
+      "name": "ground",
+      "tiles": [
+        9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+        9, 3, 3, 3, 3, 3, 3, 3, 3, 9,
+        9, 3, 3, 3, 3, 3, 3, 3, 3, 9,
+        9, 3, 3, 10, 10, 10, 10, 3, 3, 9,
+        9, 3, 3, 10, 10, 10, 10, 3, 3, 9,
+        9, 3, 3, 3, 3, 3, 3, 3, 3, 9,
+        9, 3, 3, 3, 3, 3, 3, 3, 3, 9,
+        9, 9, 9, 9, 1, 1, 9, 9, 9, 9
+      ]
+    },
+    {
+      "name": "decals",
+      "opacity": 1,
+      "tiles": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 14, 0, 0, 0, 0, 0, 0, 15, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 15, 0, 0, 0, 0, 0, 0, 14, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "rows_factor",
+      "label": "Syndicate Factor",
+      "x": 5,
+      "y": 3,
+      "kind": "npc",
+      "sprite": "npc_factor",
+      "dialogue": "voss",
+      "emissive": "#d6b25f",
+      "hoverNote": "A well-tailored functionary of the Lantern Syndicate, smiling under the only dry awning on the street."
+    },
+    {
+      "id": "to_spindles_south",
+      "label": "Back to the Spindles",
+      "x": 4,
+      "y": 7,
+      "kind": "exit",
+      "target": { "scene": "spindle_yard", "spawn": { "x": 8, "y": 2 } },
+      "hoverNote": "South, into the rust and the wind."
+    }
+  ]
+}

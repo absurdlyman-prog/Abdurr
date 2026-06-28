@@ -1,0 +1,141 @@
+{
+  "id": "widow",
+  "speaker": "widow",
+  "start": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "lines": [
+        { "speaker": "narrator", "text": "Edda Kessler sits with her back very straight, hands folded, eyes on the stove door as if there were something to read in the flame. She does not look up when you enter." },
+        { "speaker": "npc", "speakerId": "widow", "text": "You've seen him, then. Out there. On the stone.", "emotion": "grieving" }
+      ],
+      "passiveChecks": [
+        { "attribute": "empathy", "dc": 9, "kind": "white", "label": "Empathy — read the grief", "onSuccess": "emp_read", "onFailure": "noop" }
+      ],
+      "responses": [
+        { "id": "r_sorry", "text": "I'm sorry for your loss, Edda.", "tone": "kind", "effects": [{ "op": "remember", "who": "widow", "memory": { "id": "mem_kind", "summary": "offered condolence first, before questions", "sentiment": 2, "kind": "kindness" } }], "goto": "softened" },
+        { "id": "r_questions", "text": "I need to ask you some questions about last night.", "tone": "neutral", "goto": "guarded" },
+        { "id": "r_accuse", "text": "[Authority] Did you do this to him, Edda?", "tone": "aggressive", "effects": [{ "op": "setFlag", "key": "accused_widow", "value": true }, { "op": "remember", "who": "widow", "memory": { "id": "mem_accused", "summary": "accused her of murder over her husband's body", "sentiment": -3, "kind": "insult" } }], "goto": "betrayed_open" }
+      ]
+    },
+    "emp_read": {
+      "id": "emp_read",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "empathy", "text": "This is real. Whatever else she's hiding, the grief is bone-deep and brand new. But under it — listen — there's something older. Relief. She's been bracing for this knock for a long, long time." }
+      ],
+      "responses": []
+    },
+    "softened": {
+      "id": "softened",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "Loss. Such a clean little word for it. He's been leaving me by inches for a year — into the ledgers, into the bottle, into whatever he found that scared him so badly he stopped sleeping. The harbour just finished what the worry started.", "emotion": "grieving" }
+      ],
+      "responses": [
+        { "id": "r_scared", "text": "What did he find that scared him?", "tone": "neutral", "goto": "the_page" },
+        { "id": "r_debt", "text": "Maren told me about the debt.", "tone": "kind", "effects": [{ "op": "learnClue", "key": "clue_widow_debt" }, { "op": "xp", "value": 10 }], "goto": "debt" },
+        { "id": "r_lastnight", "text": "Where were you last night, Edda?", "tone": "neutral", "goto": "alibi" }
+      ]
+    },
+    "guarded": {
+      "id": "guarded",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "Questions. Of course. Ask them, detective, and I'll give you the answers the Quarter allows me to give. Which is fewer than you'd like.", "emotion": "guarded" }
+      ],
+      "responses": [
+        { "id": "r_g_scared", "text": "What was Tomas afraid of?", "tone": "neutral", "goto": "the_page" },
+        { "id": "r_g_alibi", "text": "Where were you when it happened?", "tone": "neutral", "goto": "alibi" },
+        { "id": "r_g_soft", "text": "[Empathy] I'm not here to trap you. I want to know who hurt him.", "tone": "kind", "check": { "attribute": "empathy", "dc": 10, "kind": "white", "label": "Earn her trust", "modifiers": [{ "label": "She wants to be believed", "value": 2, "when": { "op": "attrAtLeast", "key": "empathy", "value": 3 } }], "onSuccess": "softened", "onFailure": "guarded_fail" } }
+      ]
+    },
+    "guarded_fail": {
+      "id": "guarded_fail",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "Everyone wants to know who hurt him. No one wanted to know him while he was alive to be known.", "emotion": "guarded" }
+      ],
+      "responses": [
+        { "id": "r_gf_scared", "text": "Then tell me what scared him.", "tone": "neutral", "goto": "the_page" },
+        { "id": "r_gf_leave", "text": "[Give her space. Leave.]", "tone": "kind", "exit": true }
+      ]
+    },
+    "the_page": {
+      "id": "the_page",
+      "onEnter": [
+        { "op": "learnClue", "key": "clue_ledger_paid" },
+        { "op": "giveItem", "key": "syndicate_ledger_page" },
+        { "op": "xp", "value": 30 },
+        { "op": "setFlag", "key": "knows_syndicate_link", "value": true },
+        { "op": "playStinger", "key": "clue_found" }
+      ],
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "He brought this home a week ago and wouldn't say where from. Tore it out of something he wasn't meant to touch. Take it. I've been too frightened to burn it and too frightened to keep it.", "emotion": "guarded" },
+        { "speaker": "narrator", "text": "She presses a torn ledger page into your hand. A Lantern Syndicate connection sheet — and one address, here in the lightless Drowned Quarter, is stamped PAID." },
+        { "speaker": "attribute", "speakerId": "logic", "text": "The Syndicate keeps the Quarter dark to keep it cheap. Yet someone down here pays them in secret to stay lit. Tomas found the wire — and a man who can prove the Syndicate lies is a man the Syndicate cannot afford." }
+      ],
+      "responses": [
+        { "id": "r_who_paid", "text": "Whose address is this?", "tone": "neutral", "goto": "whose_address" },
+        { "id": "r_alibi2", "text": "Where were you last night, Edda?", "tone": "neutral", "goto": "alibi" }
+      ]
+    },
+    "whose_address": {
+      "id": "whose_address",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "I don't know. He never said. But he went to the Spindles to find out — to ask Voss who'd been bringing lit lanterns off the night barges. That was the last night he slept at all.", "emotion": "grieving" },
+        { "speaker": "attribute", "speakerId": "intuition", "text": "The threads are crossing. The Guild's barges. The Syndicate's secret wire. A clerk who pulled both and unravelled himself. The answer is in the Spindle yard, behind Anker Voss's eyes." }
+      ],
+      "responses": [
+        { "id": "r_thanks_widow", "text": "Thank you, Edda. I'll find out who did this.", "tone": "kind", "exit": true }
+      ]
+    },
+    "debt": {
+      "id": "debt",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "The debt, yes. Everyone's so interested in the debt. As if a number on Maren's page is reason enough to drown a man. It isn't. He was going to fix it — he said he'd found a way to make it all right. That's what frightened me most. Men who've found a way are the ones who don't come home.", "emotion": "grieving" }
+      ],
+      "responses": [
+        { "id": "r_d_way", "text": "A way? What did he mean?", "tone": "neutral", "goto": "the_page" },
+        { "id": "r_d_alibi", "text": "Where were you, Edda?", "tone": "neutral", "goto": "alibi" }
+      ]
+    },
+    "alibi": {
+      "id": "alibi",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "Here. Asleep. Or pretending to be, the way you do when the bed's half-empty and you know why. The Hall doesn't lock, detective. I have no one to swear for me. Make of that what your conscience can stand.", "emotion": "guarded" }
+      ],
+      "passiveChecks": [
+        { "attribute": "intuition", "dc": 11, "kind": "white", "label": "Intuition — is she lying?", "onSuccess": "int_alibi", "onFailure": "noop" }
+      ],
+      "responses": [
+        { "id": "r_a_scared", "text": "What scared Tomas?", "tone": "neutral", "goto": "the_page" },
+        { "id": "r_a_leave", "text": "[That's enough. Leave her to the stove.]", "tone": "kind", "exit": true }
+      ]
+    },
+    "int_alibi": {
+      "id": "int_alibi",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "intuition", "text": "She's not lying about the bed. But she's not telling you everything about the night, either. There's a door in her story she's standing in front of. Press another time, gently, and it might open." }
+      ],
+      "responses": []
+    },
+    "betrayed_open": {
+      "id": "betrayed_open",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "Get out. You stand over my husband not an hour cold and call me his murderer. Get OUT.", "emotion": "guarded" },
+        { "speaker": "attribute", "speakerId": "empathy", "text": "You've slammed a door that may not open again. Maybe she did it. Maybe you just lost the only person who could have told you who did. The Quarter will hear of this by noon." }
+      ],
+      "responses": [
+        { "id": "r_b_apolog", "text": "[Empathy] Edda — I'm sorry. That was cruelty, not police work.", "tone": "kind", "check": { "attribute": "empathy", "dc": 13, "kind": "red", "label": "Take it back", "onSuccess": "guarded", "onFailure": "betrayed_final" } },
+        { "id": "r_b_leave", "text": "[Leave.]", "tone": "neutral", "exit": true }
+      ]
+    },
+    "betrayed_final": {
+      "id": "betrayed_final",
+      "lines": [
+        { "speaker": "npc", "speakerId": "widow", "text": "No. You don't get to be sorry. Sorry is for people who can still be trusted. Take your badge and your suspicions and drown with the rest of us.", "emotion": "guarded" }
+      ],
+      "responses": [
+        { "id": "r_bf_leave", "text": "[There's nothing left to say. Leave.]", "tone": "neutral", "exit": true }
+      ]
+    },
+    "noop": { "id": "noop", "lines": [], "responses": [] }
+  }
+}

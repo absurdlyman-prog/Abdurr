@@ -1,0 +1,64 @@
+{
+  "id": "mutual_hall",
+  "name": "The Mutual Hall",
+  "district": "drowned_quarter",
+  "width": 9,
+  "height": 8,
+  "tileWidth": 128,
+  "tileHeight": 64,
+  "spawn": { "x": 4, "y": 6 },
+  "ambience": "hall_interior",
+  "theme": "drowned_quarter_theme",
+  "palette": { "sky": "#241c16", "ground": "#4a3a2a", "accent": "#d6b25f", "shadow": "#120c08" },
+  "weather": { "rain": 0, "fog": 0.2, "wind": 0, "fogColor": "#3a2e22" },
+  "layers": [
+    {
+      "name": "ground",
+      "tiles": [
+        5, 5, 5, 5, 5, 5, 5, 5, 5,
+        5, 7, 7, 7, 7, 7, 7, 7, 5,
+        5, 7, 5, 5, 5, 5, 5, 7, 5,
+        5, 7, 5, 5, 5, 5, 5, 7, 5,
+        5, 7, 5, 5, 5, 5, 5, 7, 5,
+        5, 7, 5, 5, 5, 5, 5, 7, 5,
+        5, 7, 7, 7, 7, 7, 7, 7, 5,
+        5, 5, 5, 5, 1, 1, 5, 5, 5
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "hall_widow",
+      "label": "The Widow Kessler",
+      "x": 3,
+      "y": 3,
+      "kind": "npc",
+      "sprite": "npc_widow",
+      "dialogue": "widow",
+      "hoverNote": "She sits by the stove with her hands folded, the way people sit when they are waiting for bad news to become official."
+    },
+    {
+      "id": "hall_ledger",
+      "label": "The Mutual Ledger",
+      "x": 6,
+      "y": 3,
+      "kind": "clue",
+      "sprite": "book",
+      "emissive": "#d6b25f",
+      "hoverNote": "The book of favours owed. Tomas Kessler's name recurs on every other page, always in the debit column.",
+      "onExamine": [
+        { "op": "learnClue", "key": "clue_widow_debt" },
+        { "op": "xp", "value": 10 }
+      ]
+    },
+    {
+      "id": "to_quay",
+      "label": "Out to the Quay",
+      "x": 4,
+      "y": 7,
+      "kind": "exit",
+      "target": { "scene": "quay_dawn", "spawn": { "x": 2, "y": 4 } },
+      "hoverNote": "Back into the rain."
+    }
+  ]
+}

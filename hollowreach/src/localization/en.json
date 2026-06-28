@@ -1,0 +1,29 @@
+{
+  "locale": "en",
+  "name": "English",
+  "strings": {
+    "menu.new": "Begin a New Case",
+    "menu.continue": "Continue",
+    "menu.import": "Import save code",
+    "hud.caseBoard": "Case Board",
+    "hud.voices": "The Voices",
+    "hud.thoughts": "Mind Reliquary",
+    "hud.inventory": "Coat",
+    "hud.journal": "Notebook",
+    "hud.save": "Save",
+    "hud.menu": "Menu",
+    "dialogue.continue": "[Continue.]",
+    "check.success": "Success",
+    "check.failure": "Failure",
+    "check.crit.success": "Critical!",
+    "check.crit.failure": "Snake eyes…",
+    "board.accuse": "Accuse & close",
+    "board.evidence": "Evidence",
+    "board.theories": "Theories — accuse one",
+    "settings.title": "Settings",
+    "settings.reducedMotion": "Reduced motion",
+    "settings.highContrast": "High contrast",
+    "settings.dyslexia": "Dyslexia-friendly font",
+    "settings.noFail": "No-fail mode"
+  }
+}

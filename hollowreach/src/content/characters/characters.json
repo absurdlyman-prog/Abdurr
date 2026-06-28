@@ -1,0 +1,80 @@
+{
+  "characters": [
+    {
+      "id": "teller",
+      "name": "Maren Teller",
+      "role": "Mutual Bailswoman",
+      "faction": "drowned_quarter_mutual",
+      "nameColor": "#6fae8f",
+      "bio": "Keeps the Drowned Quarter's ledger of favours and runs its bail line. Found you and the body on the quay at dawn. Watchful, dry-humoured, and tired in a way that sleep won't fix.",
+      "portrait": {
+        "base": "teller_neutral",
+        "frame": "#6fae8f",
+        "emotions": { "wary": "teller_wary", "warm": "teller_warm", "cold": "teller_cold" }
+      },
+      "dialogue": "teller",
+      "reactions": [
+        { "whenMemoryKind": "lie", "whenSentimentBelow": -1, "gotoNode": "cold_open" },
+        { "whenFlag": "told_teller_truth", "gotoNode": "warm_open" }
+      ],
+      "schedule": [
+        { "fromMinute": 300, "scene": "quay_dawn", "at": { "x": 7, "y": 5 }, "activity": "Standing the dawn watch over the body" },
+        { "fromMinute": 600, "scene": "mutual_hall", "at": { "x": 5, "y": 4 }, "activity": "Working the bail ledger" },
+        { "fromMinute": 1200, "scene": "mutual_hall", "at": { "x": 2, "y": 5 }, "activity": "Closing the soup line" }
+      ]
+    },
+    {
+      "id": "widow",
+      "name": "Edda Kessler",
+      "role": "The Widow",
+      "faction": "drowned_quarter_mutual",
+      "nameColor": "#c9aad6",
+      "bio": "Wife — now widow — of the man on the quay. She knew he was in trouble. She did not know it would come for him in the dark by the water.",
+      "portrait": {
+        "base": "widow_neutral",
+        "frame": "#c9aad6",
+        "emotions": { "grieving": "widow_grieving", "guarded": "widow_guarded" }
+      },
+      "dialogue": "widow",
+      "reactions": [
+        { "whenFlag": "accused_widow", "gotoNode": "betrayed_open" }
+      ],
+      "schedule": [
+        { "fromMinute": 360, "scene": "mutual_hall", "at": { "x": 3, "y": 3 }, "activity": "Sitting vigil by the stove" }
+      ]
+    },
+    {
+      "id": "voss",
+      "name": "Anker Voss",
+      "role": "Guild Foreman",
+      "faction": "harbour_guild",
+      "nameColor": "#c9772e",
+      "bio": "Runs the night barges in the Spindles for the Harbour Guild. Built like a bollard, loyal to the old order, and very interested in who you are and why you're asking about last night's cargo.",
+      "portrait": {
+        "base": "voss_neutral",
+        "frame": "#c9772e",
+        "emotions": { "hostile": "voss_hostile", "respect": "voss_respect" }
+      },
+      "dialogue": "voss",
+      "reactions": [
+        { "whenMemoryKind": "threat", "gotoNode": "hostile_open" },
+        { "whenMemoryKind": "bribe", "gotoNode": "bought_open" }
+      ],
+      "schedule": [
+        { "fromMinute": 0, "scene": "spindle_yard", "at": { "x": 6, "y": 3 }, "activity": "Working the night barge" },
+        { "fromMinute": 480, "scene": "spindle_yard", "at": { "x": 4, "y": 4 }, "activity": "Logging the morning manifest" },
+        { "fromMinute": 1080, "scene": "rows_night", "at": { "x": 5, "y": 3 }, "activity": "Meeting his Syndicate contact", "when": { "op": "flag", "key": "knows_syndicate_link" } }
+      ]
+    },
+    {
+      "id": "the_body",
+      "name": "Tomas Kessler",
+      "role": "The Deceased",
+      "faction": "drowned_quarter_mutual",
+      "nameColor": "#8a8f9a",
+      "bio": "A Mutual clerk who kept the Quarter's accounts. Dead on the quay, face-down, with no wound the dawn light can find. He learned something about who was really paying for the light.",
+      "portrait": { "base": "corpse_portrait", "frame": "#3a4a55" },
+      "dialogue": "the_body"
+    }
+  ]
+}

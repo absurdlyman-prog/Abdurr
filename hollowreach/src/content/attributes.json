@@ -1,0 +1,93 @@
+{
+  "$schema": "../schemas/attributes.schema.json",
+  "attributes": [
+    {
+      "id": "logic",
+      "name": "Logic",
+      "cluster": "intellect",
+      "tagline": "Two and two, and never a third.",
+      "description": "The cold clerk that lives behind your eyes. Logic builds chains of cause and effect and is offended when reality refuses to obey them. It is brilliant at exposing a lie that has the wrong number of moving parts — and useless against a grief that has no parts at all.",
+      "goodAt": ["Deduction", "Spotting inconsistencies", "Procedure", "Following the money"],
+      "pitfall": "At high levels it sneers at people who feel before they think — and misses everything that can't be proven.",
+      "color": "#7fb0d6",
+      "voiceSignature": "states the obvious as though it were a verdict"
+    },
+    {
+      "id": "empathy",
+      "name": "Empathy",
+      "cluster": "psyche",
+      "tagline": "Their wound, in your chest.",
+      "description": "The open door. Empathy reads the tremor under a steady voice and knows when a man is lying because the lie costs him something. It will make you weep at a stranger's funeral — and it cannot tell you whether weeping is wise.",
+      "goodAt": ["Reading grief", "Earning trust", "Detecting performance", "Comforting witnesses"],
+      "pitfall": "It bleeds. Too much Empathy and every con artist's sob story becomes your own debt to repay.",
+      "color": "#d68fb0",
+      "voiceSignature": "speaks softly, from somewhere just behind the sternum"
+    },
+    {
+      "id": "intuition",
+      "name": "Intuition",
+      "cluster": "intellect",
+      "tagline": "You knew before you knew.",
+      "description": "The leap across the missing stair. Intuition assembles a conclusion from evidence it never shows you, and is usually — not always — right. It is the part of you that walks into a room and decides, instantly, where the body would be.",
+      "goodAt": ["Hunches", "Pattern completion", "Reading rooms", "Cold reads"],
+      "pitfall": "Confidence without footnotes. When it's wrong, it is wrong with total conviction.",
+      "color": "#b59fe0",
+      "voiceSignature": "interrupts, certain, before the sentence is finished"
+    },
+    {
+      "id": "authority",
+      "name": "Authority",
+      "cluster": "psyche",
+      "tagline": "They are already obeying. They just don't know it.",
+      "description": "The spine. Authority is the part of you that fills a doorway, that turns a question into a command by lowering its voice. It wins the room and loses the friend. Use it on the guilty; never on the grieving.",
+      "goodAt": ["Intimidation", "Command presence", "Holding a line", "Bluffing rank"],
+      "pitfall": "It mistakes fear for respect, and respect for love. It will make enemies of people you needed.",
+      "color": "#d6a25f",
+      "voiceSignature": "doesn't ask; it informs"
+    },
+    {
+      "id": "creativity",
+      "name": "Creativity",
+      "cluster": "intellect",
+      "tagline": "What if the wall were a door?",
+      "description": "The wild architect. Creativity invents the theory nobody else would dare, finds the third option between two bad ones, and occasionally builds a cathedral of nonsense and insists you live in it. Genius and embarrassment share a birthday.",
+      "goodAt": ["Lateral solutions", "Improvised lies", "Reframing", "Seeing the absurd"],
+      "pitfall": "It would rather be interesting than be right.",
+      "color": "#e0c45f",
+      "voiceSignature": "pitches an idea like it's the best one anyone's ever had"
+    },
+    {
+      "id": "perception",
+      "name": "Perception",
+      "cluster": "reflex",
+      "tagline": "The room is talking. Are you listening?",
+      "description": "The thousand small eyes. Perception catches the cigarette burn on the wrong finger, the draught from a door that should be sealed, the name nobody said out loud. It is the difference between a scene and a crime scene.",
+      "goodAt": ["Spotting clues", "Hearing whispers", "Noticing tells", "Smell, sound, detail"],
+      "pitfall": "It floods. Everything is signal; nothing is. The noise can drown the case.",
+      "color": "#9fd6b0",
+      "voiceSignature": "names a detail, flatly, and lets it sit there accusing"
+    },
+    {
+      "id": "composure",
+      "name": "Composure",
+      "cluster": "psyche",
+      "tagline": "Let the face hold while the house burns.",
+      "description": "The held breath. Composure is the mask you wear so well it becomes a skill — the poker face, the steady hand at the autopsy, the refusal to flinch when a confession lands. It guards your Morale; when it cracks, you crack.",
+      "goodAt": ["Hiding tells", "Withstanding shock", "Defusing hostility", "Keeping the mask"],
+      "pitfall": "The mask can fuse to the face. People who never flinch sometimes stop feeling.",
+      "color": "#9fb8d6",
+      "voiceSignature": "reminds you, quietly, that they are watching your hands"
+    },
+    {
+      "id": "instinct",
+      "name": "Instinct",
+      "cluster": "physique",
+      "tagline": "The body knew the alley was wrong.",
+      "description": "The old animal. Instinct is hunger, threat-sense, the prickle on the neck, the readiness to run or to hit first. It keeps the meat alive when the mind is busy being clever. It guards your Endurance; spend it, and the body sends the bill.",
+      "goodAt": ["Threat detection", "Physical confrontation", "Stamina", "Reading violence"],
+      "pitfall": "It answers every problem with the same two verbs: fight, or flee.",
+      "color": "#d68f7f",
+      "voiceSignature": "speaks in nouns and warnings, never in full sentences"
+    }
+  ]
+}

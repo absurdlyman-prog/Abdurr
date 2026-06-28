@@ -1,0 +1,38 @@
+{
+  "comment": "Starting archetypes pre-seed attribute spreads and a signature thought, like DE's Thinker/Sensitive/Physical — but each is a wound, not a class.",
+  "archetypes": [
+    {
+      "id": "the_clerk",
+      "name": "The Clerk Who Counted",
+      "blurb": "You were good with ledgers and bad with people. The mind is a fortress; the heart is a rumour. They say you noticed something in the numbers you shouldn't have.",
+      "attributes": { "logic": 4, "empathy": 1, "intuition": 3, "authority": 2, "creativity": 3, "perception": 3, "composure": 4, "instinct": 2 },
+      "startingThought": "the_ledger_speaks",
+      "startingItems": ["watch_badge", "case_notebook"]
+    },
+    {
+      "id": "the_open_wound",
+      "name": "The Open Wound",
+      "blurb": "You feel everything, all the time, whether or not you're invited to. It has cost you a marriage, a posting, and most of your sleep. People tell you the truth. You wish they wouldn't.",
+      "attributes": { "logic": 2, "empathy": 5, "intuition": 4, "authority": 1, "creativity": 3, "perception": 3, "composure": 2, "instinct": 2 },
+      "startingThought": "everyone_is_drowning",
+      "startingItems": ["case_notebook", "ration_card"]
+    },
+    {
+      "id": "the_old_dog",
+      "name": "The Old Dog",
+      "blurb": "Twenty years on the worst streets in Hollowreach taught your body things your mind forgot. You hit first, you stand in doorways, and you have never once filled out a form correctly. Something finally broke.",
+      "attributes": { "logic": 2, "empathy": 2, "intuition": 3, "authority": 4, "creativity": 1, "perception": 4, "composure": 3, "instinct": 5 },
+      "startingThought": "the_body_remembers",
+      "startingItems": ["watch_badge", "brass_lighter"]
+    },
+    {
+      "id": "blank_slate",
+      "name": "The Hollow Man",
+      "blurb": "You woke on the quay with no name and no past, only a notebook in your own hand. Build yourself from nothing. (Free point allocation.)",
+      "attributes": { "logic": 3, "empathy": 3, "intuition": 3, "authority": 3, "creativity": 3, "perception": 3, "composure": 3, "instinct": 3 },
+      "startingThought": "who_was_i",
+      "startingItems": ["case_notebook"],
+      "freeAllocation": true
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "id": "quay_dawn",
+  "name": "The Dawn Quay",
+  "district": "drowned_quarter",
+  "width": 10,
+  "height": 10,
+  "tileWidth": 128,
+  "tileHeight": 64,
+  "spawn": { "x": 5, "y": 6 },
+  "ambience": "quay_water",
+  "theme": "drowned_quarter_theme",
+  "palette": { "sky": "#1a2330", "ground": "#39434f", "accent": "#c9772e", "shadow": "#0a0e13" },
+  "weather": { "rain": 0.55, "fog": 0.7, "wind": 0.4, "fogColor": "#2a3744" },
+  "layers": [
+    {
+      "name": "ground",
+      "tiles": [
+        2, 2, 2, 2, 6, 6, 2, 2, 2, 2,
+        2, 2, 6, 1, 1, 1, 1, 6, 2, 2,
+        2, 6, 1, 1, 1, 1, 1, 1, 6, 2,
+        6, 1, 1, 3, 3, 3, 3, 1, 1, 6,
+        1, 1, 3, 3, 3, 3, 3, 3, 1, 1,
+        1, 1, 3, 3, 3, 3, 3, 3, 1, 1,
+        6, 1, 1, 3, 3, 3, 3, 1, 1, 6,
+        2, 6, 1, 1, 1, 1, 1, 1, 6, 2,
+        2, 2, 6, 1, 1, 1, 1, 6, 2, 2,
+        2, 2, 2, 2, 6, 6, 2, 2, 2, 2
+      ]
+    },
+    {
+      "name": "decals",
+      "opacity": 0.9,
+      "tiles": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 11, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 12, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "the_body",
+      "label": "The Body",
+      "x": 4,
+      "y": 3,
+      "kind": "clue",
+      "sprite": "corpse",
+      "dialogue": "the_body",
+      "emissive": "#3a4a55",
+      "hoverNote": "A man, face-down on the wet stone. He has been here longer than you have."
+    },
+    {
+      "id": "the_teller",
+      "label": "Maren Teller",
+      "x": 7,
+      "y": 5,
+      "kind": "npc",
+      "sprite": "npc_teller",
+      "dialogue": "teller",
+      "hoverNote": "The Mutual woman who found you. She is waiting to see what you are."
+    },
+    {
+      "id": "lighter_clue",
+      "label": "Something in the gutter",
+      "x": 6,
+      "y": 5,
+      "kind": "clue",
+      "sprite": "glint",
+      "emissive": "#d6b25f",
+      "revealWhen": { "op": "attrAtLeast", "key": "perception", "value": 3 },
+      "hoverNote": "A brass lighter, engraved 'V.K.' Your thumb finds the strike-wheel before your mind agrees to it.",
+      "onExamine": [
+        { "op": "giveItem", "key": "brass_lighter" },
+        { "op": "learnClue", "key": "clue_brass_lighter" },
+        { "op": "addThought", "key": "who_was_i" },
+        { "op": "xp", "value": 20 },
+        { "op": "playStinger", "key": "clue_found" }
+      ]
+    },
+    {
+      "id": "to_mutual_hall",
+      "label": "The Mutual Hall",
+      "x": 1,
+      "y": 4,
+      "kind": "exit",
+      "target": { "scene": "mutual_hall", "spawn": { "x": 4, "y": 7 } },
+      "hoverNote": "Lamp-light and woodsmoke up the plankway. The Quarter's beating heart."
+    },
+    {
+      "id": "to_spindles",
+      "label": "The Spindles",
+      "x": 8,
+      "y": 4,
+      "kind": "exit",
+      "target": { "scene": "spindle_yard", "spawn": { "x": 2, "y": 5 } },
+      "hoverNote": "The dead cranes loom east, where the Guild men work the night barges."
+    }
+  ]
+}

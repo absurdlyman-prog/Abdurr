@@ -1,0 +1,28 @@
+{
+  "districts": [
+    {
+      "id": "drowned_quarter",
+      "name": "The Drowned Quarter",
+      "blurb": "The lowest streets, never fully reclaimed from the flood of '71. Plank walkways over black water, houses with their first floors given to the tide, lantern-light rationed by the Syndicate. Where the case begins.",
+      "scenes": ["quay_dawn", "mutual_hall"],
+      "faction": "drowned_quarter_mutual",
+      "classTier": "drowned"
+    },
+    {
+      "id": "the_spindles",
+      "name": "The Spindles",
+      "blurb": "Forests of dead crane-towers and gutted textile mills along the old industrial waterfront. The Harbour Guild's heartland; rust, salt, and men who remember when the whistles still blew.",
+      "scenes": ["spindle_yard"],
+      "faction": "harbour_guild",
+      "classTier": "labour"
+    },
+    {
+      "id": "gaslight_rows",
+      "name": "The Gaslight Rows",
+      "blurb": "Where the Syndicate keeps the lights on and the merchant class keeps its head down. Neon over wet cobbles, reflections that look better than the things reflected. A different city after dark.",
+      "scenes": ["rows_night"],
+      "faction": "lantern_syndicate",
+      "classTier": "merchant"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "id": "the_body",
+  "speaker": "the_body",
+  "start": "approach",
+  "nodes": {
+    "approach": {
+      "id": "approach",
+      "lines": [
+        { "speaker": "narrator", "text": "Tomas Kessler — you don't know the name yet — lies with his cheek to the stone, one arm folded under him as if he fell asleep mid-sentence. The rain has been washing him for hours." }
+      ],
+      "passiveChecks": [
+        {
+          "attribute": "perception",
+          "dc": 8,
+          "kind": "white",
+          "label": "Perception — the water's wrong shape",
+          "onSuccess": "perc_water",
+          "onFailure": "noop"
+        }
+      ],
+      "responses": [
+        { "id": "r_examine_body", "text": "[Logic] Examine him for a wound.", "tone": "inner", "check": { "attribute": "logic", "dc": 8, "kind": "white", "label": "Find what killed him", "onSuccess": "no_wound", "onFailure": "examine_fail" } },
+        { "id": "r_chest", "text": "[Perception] Press his chest. Listen to what comes up.", "tone": "inner", "conditions": [{ "op": "visited", "key": "no_wound" }], "check": { "attribute": "perception", "dc": 10, "kind": "white", "label": "Read the body's last breath", "modifiers": [{ "label": "The light is improving", "value": 1, "when": { "op": "timeAfter", "value": 480 } }], "onSuccess": "wet_lungs", "onFailure": "chest_fail" } },
+        { "id": "r_leave_body", "text": "[Step back. Let the dead keep their counsel.]", "tone": "neutral", "exit": true }
+      ]
+    },
+    "perc_water": {
+      "id": "perc_water",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "perception", "text": "The runoff pools toward him, not from him. He didn't crawl out of the harbour and collapse. The harbour was brought to him — or he was brought to the harbour and set back down. Either way: he was moved." }
+      ],
+      "responses": []
+    },
+    "no_wound": {
+      "id": "no_wound",
+      "onEnter": [
+        { "op": "learnClue", "key": "clue_no_wound" },
+        { "op": "xp", "value": 15 }
+      ],
+      "lines": [
+        { "speaker": "narrator", "text": "You roll back the ruined wool, part the wet shirt. The skin is grey and perfect. No blade, no bruise, no rope-burn, no needle." },
+        { "speaker": "attribute", "speakerId": "logic", "text": "No wound. Catalogue it and move on — a man does not simply stop. Something filled him or emptied him. Find which." }
+      ],
+      "responses": [
+        { "id": "r_back1", "text": "[Keep looking.]", "tone": "neutral", "goto": "approach" }
+      ]
+    },
+    "examine_fail": {
+      "id": "examine_fail",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "logic", "text": "Your eyes slide off him. The cold has your hands shaking and your thoughts are a deck of cards dropped down a stairwell. Steady — try again when you've collected yourself." },
+        { "speaker": "attribute", "speakerId": "instinct", "text": "Or don't. The dead are patient. The living, watching you fumble a corpse, are not." }
+      ],
+      "responses": [
+        { "id": "r_retry", "text": "[Breathe. Look again.]", "tone": "neutral", "goto": "approach" }
+      ]
+    },
+    "wet_lungs": {
+      "id": "wet_lungs",
+      "onEnter": [
+        { "op": "learnClue", "key": "clue_wet_lungs" },
+        { "op": "xp", "value": 25 },
+        { "op": "playStinger", "key": "clue_found" }
+      ],
+      "lines": [
+        { "speaker": "narrator", "text": "You press below the sternum. A thin run of water rises at the corner of his mouth, and you taste the air above it: salt. Harbour-salt." },
+        { "speaker": "attribute", "speakerId": "logic", "text": "Seawater in the lungs. He drowned. And yet —", "emotion": "frown" },
+        { "speaker": "attribute", "speakerId": "perception", "text": "— and yet he's lying on dry stone, above the tideline, with his shoe set neatly beside him. A drowned man does not tuck himself in. Two facts that refuse to share a room." }
+      ],
+      "responses": [
+        { "id": "r_contradiction", "text": "[The water and the dry stone don't agree. File the contradiction.]", "tone": "inner", "effects": [{ "op": "addContradiction", "key": "contra_dry_drowning" }, { "op": "setFlag", "key": "saw_dry_drowning", "value": true }], "goto": "filed" },
+        { "id": "r_done_body", "text": "[Enough. The rest is for the living to answer.]", "tone": "neutral", "exit": true }
+      ]
+    },
+    "filed": {
+      "id": "filed",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "intuition", "text": "Hold those two facts up to the light together and a third stands behind them, waiting. Open the case board when you're ready to make them speak." }
+      ],
+      "responses": [
+        { "id": "r_close_body", "text": "[Close his eyes. Stand.]", "tone": "kind", "exit": true }
+      ]
+    },
+    "chest_fail": {
+      "id": "chest_fail",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "perception", "text": "Nothing. The rain has been at him too long, washing the story off his skin. Come back when your eyes are sharper — or your hands steadier." }
+      ],
+      "responses": [
+        { "id": "r_back2", "text": "[Step back.]", "tone": "neutral", "goto": "approach" }
+      ]
+    },
+    "noop": { "id": "noop", "lines": [], "responses": [] }
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "id": "voss",
+  "speaker": "voss",
+  "start": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "lines": [
+        { "speaker": "narrator", "text": "Anker Voss does not stop coiling the barge-rope as you approach. His forearms are the diameter of your calves. He has watched you the whole way across the yard, and his welcome is a long, unhurried silence." },
+        { "speaker": "npc", "speakerId": "voss", "text": "Watch badge. In the Spindles. Either the harbour froze over or you're lost, friend. Which?", "emotion": "neutral" }
+      ],
+      "passiveChecks": [
+        { "attribute": "instinct", "dc": 10, "kind": "white", "label": "Instinct — read the threat", "onSuccess": "inst_threat", "onFailure": "noop" }
+      ],
+      "responses": [
+        { "id": "r_barge", "text": "You ran a barge at the third bell last night. I want to know what came off it.", "tone": "neutral", "conditions": [{ "op": "flag", "key": "knows_guild_barges" }], "goto": "barge_q" },
+        { "id": "r_kessler", "text": "Tomas Kessler came to see you. Now he's dead on the quay.", "tone": "aggressive", "goto": "kessler_q" },
+        { "id": "r_intimidate", "text": "[Authority] I'm not your friend, and you'll answer me.", "tone": "aggressive", "effects": [{ "op": "remember", "who": "voss", "memory": { "id": "mem_threatened", "summary": "tried to throw his weight around in the yard", "sentiment": -2, "kind": "threat" } }], "check": { "attribute": "authority", "dc": 13, "kind": "white", "label": "Out-muscle a Guild foreman", "modifiers": [{ "label": "He's twice your size", "value": -2 }, { "label": "You hold a badge", "value": 1, "when": { "op": "hasItem", "key": "watch_badge" } }], "onSuccess": "intimidate_win", "onFailure": "hostile_open" } }
+      ]
+    },
+    "inst_threat": {
+      "id": "inst_threat",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "instinct", "text": "Hands. Watch the hands, not the mouth. He's not afraid of you — he's deciding how much trouble you are. The rope in his fist is not for the barge. Don't make him answer with it." }
+      ],
+      "responses": []
+    },
+    "barge_q": {
+      "id": "barge_q",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "Logged it empty. Says so on the manifest, plain as you like. Empty barge, no cargo, nothing to see. Now you can walk back across my yard the way you came.", "emotion": "neutral" }
+      ],
+      "passiveChecks": [
+        { "attribute": "perception", "dc": 11, "kind": "white", "label": "Perception — the waterline", "onSuccess": "perc_barge", "onFailure": "noop" }
+      ],
+      "responses": [
+        { "id": "r_lowrides", "text": "[Perception] That 'empty' barge is riding low enough to ship water. Empty boats float high, Voss.", "tone": "sly", "conditions": [{ "op": "knows", "key": "clue_empty_barge" }], "effects": [{ "op": "learnClue", "key": "clue_guild_chit" }, { "op": "xp", "value": 20 }], "goto": "caught" },
+        { "id": "r_logic_chit", "text": "[Logic] Show me the chit. Every barge logs a chit, even an empty one.", "tone": "neutral", "check": { "attribute": "logic", "dc": 11, "kind": "white", "label": "Catch the paperwork lie", "onSuccess": "caught", "onFailure": "logic_fail" } },
+        { "id": "r_drop_barge", "text": "[Let it go for now.]", "tone": "neutral", "goto": "start" }
+      ]
+    },
+    "perc_barge": {
+      "id": "perc_barge",
+      "onEnter": [{ "op": "learnClue", "key": "clue_empty_barge" }, { "op": "xp", "value": 15 }],
+      "lines": [
+        { "speaker": "attribute", "speakerId": "perception", "text": "Look at the hull. The waterline's a hand's-breadth too high. There's weight in that 'empty' boat — a lot of it. He's lying with the whole barge as evidence and he doesn't even know it shows." }
+      ],
+      "responses": [
+        { "id": "r_use_it", "text": "[Confront him with the waterline.]", "tone": "sly", "effects": [{ "op": "learnClue", "key": "clue_guild_chit" }, { "op": "xp", "value": 20 }], "goto": "caught" }
+      ]
+    },
+    "caught": {
+      "id": "caught",
+      "onEnter": [{ "op": "giveItem", "key": "harbour_chit" }, { "op": "playStinger", "key": "clue_found" }],
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "...You've got an eye. Fine. There was cargo. Lanterns — proper Syndicate streetlamps, a whole crate of 'em, coming OFF the barge into the Quarter. Backwards. Light flowing into the district that's supposed to be dark. I move it, I don't ask whose. That's how a man keeps his hands and his job both.", "emotion": "neutral" },
+        { "speaker": "attribute", "speakerId": "intuition", "text": "There it is. The Guild smuggles the Syndicate's own light INTO the Quarter for whoever's paying the secret bill. Tomas pulled this thread and it pulled back. The case just grew a spine." }
+      ],
+      "responses": [
+        { "id": "r_did_you", "text": "Did you drown him, Voss? For seeing the crates?", "tone": "aggressive", "goto": "denial" },
+        { "id": "r_who_pays", "text": "Who's paying for the light? Whose address?", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_syndicate_link", "value": true }], "goto": "who_pays" }
+      ]
+    },
+    "denial": {
+      "id": "denial",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "I move crates. I don't drown clerks. He came, he saw, he went white as a sheet and ran for the Rows to find the factor who pays me. If anyone put him under, look north — not at an old man with rope-burn and a pension to protect.", "emotion": "neutral" }
+      ],
+      "passiveChecks": [
+        { "attribute": "empathy", "dc": 12, "kind": "white", "label": "Empathy — is he telling the truth?", "onSuccess": "emp_voss", "onFailure": "noop" }
+      ],
+      "responses": [
+        { "id": "r_north", "text": "North. The Gaslight Rows. The factor.", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_syndicate_link", "value": true }], "goto": "who_pays" }
+      ]
+    },
+    "emp_voss": {
+      "id": "emp_voss",
+      "lines": [
+        { "speaker": "attribute", "speakerId": "empathy", "text": "He believes what he's saying. No flicker, no tell. Either Anker Voss is the finest liar in the Spindles, or he genuinely watched Tomas leave on his own feet. Your gut says the latter. Your gut has been wrong before." }
+      ],
+      "responses": []
+    },
+    "who_pays": {
+      "id": "who_pays",
+      "onEnter": [{ "op": "setFlag", "key": "knows_syndicate_link", "value": true }],
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "A factor. Smooth one, smiles like a wet step. Holds court under the only dry awning in the Gaslight Rows. He pays the Guild to carry what the Syndicate won't admit it sells. You want the man who scared your clerk to death? He's standing north of here, dry as a bone, waiting for the rain to make him interesting.", "emotion": "neutral" }
+      ],
+      "responses": [
+        { "id": "r_to_rows", "text": "Then I'm going north.", "tone": "neutral", "exit": true }
+      ]
+    },
+    "kessler_q": {
+      "id": "kessler_q",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "The clerk. Aye, he was here. Asking about manifests like manifests ever told the truth in this harbour. I sent him off. He left breathing. What the night did with him after isn't mine to answer.", "emotion": "neutral" }
+      ],
+      "responses": [
+        { "id": "r_k_barge", "text": "Then let's talk about your 'empty' barge.", "tone": "sly", "conditions": [{ "op": "flag", "key": "knows_guild_barges" }], "goto": "barge_q" },
+        { "id": "r_k_barge2", "text": "What was he asking about, exactly?", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_guild_barges", "value": true }], "goto": "barge_q" }
+      ]
+    },
+    "logic_fail": {
+      "id": "logic_fail",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "Chit's in the office. Office is locked. Key's with the harbourmaster, and the harbourmaster's a week's worth of bribes above your pay grade, detective. Come back with the law behind you or don't come back.", "emotion": "neutral" }
+      ],
+      "responses": [
+        { "id": "r_lf_perc", "text": "[Look the barge over yourself.]", "tone": "sly", "goto": "barge_q" },
+        { "id": "r_lf_leave", "text": "[Leave the yard. For now.]", "tone": "neutral", "exit": true }
+      ]
+    },
+    "intimidate_win": {
+      "id": "intimidate_win",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "...Alright. ALRIGHT. Lower your voice before the whole yard hears. There was cargo. Lanterns, into the Quarter, off the books. That's all I know and that's the truth — now get off my back.", "emotion": "hostile" },
+        { "speaker": "attribute", "speakerId": "authority", "text": "He folded. But a man cowed is a man who waits. You won the crate and made an enemy of the Spindles in one breath. Spend that coin wisely." }
+      ],
+      "responses": [
+        { "id": "r_iw_clue", "text": "Who pays for the light?", "tone": "neutral", "effects": [{ "op": "learnClue", "key": "clue_guild_chit" }, { "op": "giveItem", "key": "harbour_chit" }, { "op": "setFlag", "key": "knows_syndicate_link", "value": true }], "goto": "who_pays" }
+      ]
+    },
+    "hostile_open": {
+      "id": "hostile_open",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "No. You don't come into MY yard and bark. I've buried bigger men than you in softer ground. Walk away while walking's still an option you've got.", "emotion": "hostile" },
+        { "speaker": "attribute", "speakerId": "instinct", "text": "Stop. He means it. The rope's gone tight in his fist. This is the part where the body decides whether you're brave or stupid — and they look identical from the outside." }
+      ],
+      "responses": [
+        { "id": "r_back_down", "text": "[Back down. Hands open. Try another way.]", "tone": "kind", "goto": "deescalate" },
+        { "id": "r_push", "text": "[Instinct] Hold your ground. Don't blink.", "tone": "aggressive", "check": { "attribute": "instinct", "dc": 14, "kind": "red", "label": "Stare down a man who could break you", "onSuccess": "stared_down", "onFailure": "thrown_out" } }
+      ]
+    },
+    "deescalate": {
+      "id": "deescalate",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "Smarter. Sit the temper down. Ask me like a person and maybe you'll get a person's answer.", "emotion": "neutral" }
+      ],
+      "responses": [
+        { "id": "r_de_barge", "text": "The barge last night. What really came off it?", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_guild_barges", "value": true }], "goto": "barge_q" }
+      ]
+    },
+    "stared_down": {
+      "id": "stared_down",
+      "lines": [
+        { "speaker": "narrator", "text": "You don't blink. Rain runs into your collar and you let it. After a long moment something in Voss's shoulders gives — not fear, exactly. Recognition. Two animals agreeing not to find out." },
+        { "speaker": "npc", "speakerId": "voss", "text": "...Hm. You've stood in a doorway before, haven't you. Alright, hard-eyes. Lanterns. Off the books, into the Quarter. Now we both pretend this never got physical.", "emotion": "respect" }
+      ],
+      "responses": [
+        { "id": "r_sd_clue", "text": "Who pays for the light?", "tone": "neutral", "effects": [{ "op": "learnClue", "key": "clue_guild_chit" }, { "op": "giveItem", "key": "harbour_chit" }, { "op": "setFlag", "key": "knows_syndicate_link", "value": true }], "goto": "who_pays" }
+      ]
+    },
+    "thrown_out": {
+      "id": "thrown_out",
+      "onEnter": [{ "op": "health", "value": -1 }, { "op": "remember", "who": "voss", "memory": { "id": "mem_humiliated", "summary": "you pushed him and he put you down", "sentiment": -1, "kind": "threat" } }],
+      "lines": [
+        { "speaker": "narrator", "text": "You don't even see the shove coming. The yard's wet stone rushes up to meet your shoulder, and the wind goes out of you in a grey burst. Voss stands over you, not even breathing hard." },
+        { "speaker": "npc", "speakerId": "voss", "text": "Stay down till the want to get up means it. And when you come back — and you will — come back asking, not telling.", "emotion": "hostile" }
+      ],
+      "responses": [
+        { "id": "r_to_pick", "text": "[Pick yourself up. Swallow it. Ask properly.]", "tone": "kind", "goto": "deescalate" }
+      ]
+    },
+    "bought_open": {
+      "id": "bought_open",
+      "lines": [
+        { "speaker": "npc", "speakerId": "voss", "text": "The paying detective. What's your coin buying today?", "emotion": "neutral" }
+      ],
+      "responses": [
+        { "id": "r_bo_who", "text": "Who pays for the light in the Quarter?", "tone": "neutral", "effects": [{ "op": "setFlag", "key": "knows_syndicate_link", "value": true }], "goto": "who_pays" }
+      ]
+    },
+    "noop": { "id": "noop", "lines": [], "responses": [] }
+  }
+}

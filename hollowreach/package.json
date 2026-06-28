@@ -1,0 +1,35 @@
+{
+  "name": "hollowreach",
+  "version": "0.3.0",
+  "private": true,
+  "description": "HOLLOWREACH — a narrative detective RPG set in a drowning post-industrial port city. Internal-voice psychology, JSON-driven branching dialogue, investigation mechanics.",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false && tsc -p tsconfig.json --noEmit",
+    "validate:content": "tsx scripts/validate-content.ts",
+    "server": "tsx server/index.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "pixi.js": "^8.6.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

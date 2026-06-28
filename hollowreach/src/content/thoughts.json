@@ -1,0 +1,82 @@
+{
+  "thoughts": [
+    {
+      "id": "who_was_i",
+      "name": "Who Was I?",
+      "category": "trauma",
+      "premise": "There's a hole where your past should be. You keep reaching into it. The reaching itself hurts, and slows everything down.",
+      "conclusion": "You stop demanding the whole memory back and start letting it return in pieces, on its own terms. The hole is still there — but now you can stand at its edge without falling in.",
+      "formMinutes": 480,
+      "whileForming": [{ "attribute": "composure", "value": -1, "reason": "The blank past gnaws at you." }],
+      "whenInternalized": [
+        { "attribute": "composure", "value": 1, "reason": "You've made peace with the gap." },
+        { "attribute": "intuition", "value": 1, "reason": "What the memory can't say, the gut now does." }
+      ],
+      "grantsFlags": ["thought_who_was_i"]
+    },
+    {
+      "id": "the_ledger_speaks",
+      "name": "The Ledger Speaks",
+      "category": "craft",
+      "premise": "Numbers don't lie, but the people who write them do. You can't stop auditing every sentence you hear for the missing column.",
+      "conclusion": "You learn to hear the silence in a balance sheet — the deliberate omission, the rounded-off body. The city is a fraud, and you can finally read its books.",
+      "formMinutes": 360,
+      "whileForming": [{ "attribute": "empathy", "value": -1, "reason": "Everything is a transaction right now." }],
+      "whenInternalized": [{ "attribute": "logic", "value": 2, "reason": "You see the load-bearing lie in any account." }],
+      "grantsFlags": ["thought_ledger"]
+    },
+    {
+      "id": "everyone_is_drowning",
+      "name": "Everyone Is Drowning",
+      "category": "ideology",
+      "premise": "Once you see how much quiet suffering this city runs on, you can't stop seeing it. It's hard to interrogate a man you've already forgiven.",
+      "conclusion": "You hold two truths at once: that everyone is drowning, and that some of them are holding others under. Compassion stops being a weakness and becomes a lens.",
+      "formMinutes": 420,
+      "whileForming": [{ "attribute": "authority", "value": -1, "reason": "You can't bring yourself to lean on anyone." }],
+      "whenInternalized": [
+        { "attribute": "empathy", "value": 2, "reason": "You read pain like print." },
+        { "attribute": "authority", "value": -1, "reason": "You will never be feared, only trusted." }
+      ],
+      "grantsFlags": ["thought_drowning"]
+    },
+    {
+      "id": "the_body_remembers",
+      "name": "The Body Remembers",
+      "category": "trauma",
+      "premise": "Your hands know things — how to throw a punch, pick a lock, hold a man under. Your mind doesn't want to ask where they learned it.",
+      "conclusion": "You stop fighting the muscle memory and start trusting it. Whatever you were, the body kept the receipts.",
+      "formMinutes": 300,
+      "whileForming": [{ "attribute": "logic", "value": -1, "reason": "Instinct keeps overriding thought." }],
+      "whenInternalized": [
+        { "attribute": "instinct", "value": 1, "reason": "The animal and the man finally cooperate." },
+        { "attribute": "perception", "value": 1, "reason": "You read a room the way a fighter does." }
+      ],
+      "grantsFlags": ["thought_body"]
+    },
+    {
+      "id": "the_drowned_god",
+      "name": "The Drowned God",
+      "category": "revelation",
+      "premise": "The Quarter says the flood didn't just take houses — it took something that was owed worship, and left a hunger in the water. Probably nonsense. You can't stop listening to the tide.",
+      "conclusion": "Believe it or not, the story is true *enough*: people act on it, kill for it, bail for it. You've learned to read the city's faith like evidence — because it is.",
+      "formMinutes": 600,
+      "whileForming": [{ "attribute": "logic", "value": -1, "reason": "Reason keeps slipping under the waterline." }],
+      "whenInternalized": [
+        { "attribute": "intuition", "value": 1, "reason": "You feel the current of belief moving people." },
+        { "attribute": "creativity", "value": 1, "reason": "You can speak the city's mythology back to it." }
+      ],
+      "grantsFlags": ["thought_drowned_god"]
+    },
+    {
+      "id": "badge_or_man",
+      "name": "Badge, or Man?",
+      "category": "ideology",
+      "premise": "You carry a Watch badge you may not have earned, for an order that may not deserve you. Every choice asks the same question and you keep refusing to answer it.",
+      "conclusion": "You answer it. (Which way you answer sets a permanent stance the city — and the endings — will hold you to.)",
+      "formMinutes": 540,
+      "whileForming": [{ "attribute": "authority", "value": -1, "reason": "You can't lead while you doubt the flag." }],
+      "whenInternalized": [{ "attribute": "authority", "value": 2, "reason": "You finally know who you answer to." }],
+      "grantsFlags": ["thought_badge_resolved"]
+    }
+  ]
+}

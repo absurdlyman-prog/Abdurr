@@ -1,0 +1,49 @@
+{
+  "factions": [
+    {
+      "id": "harbour_guild",
+      "name": "The Harbour Guild",
+      "creed": "The tide pays its debts. So will you.",
+      "blurb": "The dockworkers' guild that once ran half the city through its grip on the only deepwater port. Forty years of silt and one collapsed shipping cartel later, the Guild is a proud, bankrupt institution that still controls who unloads what — and who disappears under the quay. Old loyalty, older grudges.",
+      "color": "#c9772e",
+      "rivals": ["reclamation_office", "lantern_syndicate"],
+      "allies": ["drowned_quarter_mutual"]
+    },
+    {
+      "id": "reclamation_office",
+      "name": "The Reclamation Office",
+      "creed": "Drain it, map it, sell it.",
+      "blurb": "The municipal-corporate hybrid charged with 'reclaiming' the flooded lower districts. To the gentry it is progress and dry basements. To the people being pumped out of their homes it is eviction with a survey stamp. Speaks the bloodless dialect of permits.",
+      "color": "#5f8fb0",
+      "rivals": ["harbour_guild", "drowned_quarter_mutual"],
+      "allies": ["lantern_syndicate"]
+    },
+    {
+      "id": "lantern_syndicate",
+      "name": "The Lantern Syndicate",
+      "creed": "Light is a service. Darkness is negotiable.",
+      "blurb": "The private cartel that bought the failing public gasworks and now meters every lit street in Hollowreach. They keep the neon burning over the merchant rows and let the Drowned Quarter rot in the dark — unless you can pay the connection fee. Smiling, well-tailored, utterly without sentiment.",
+      "color": "#d6b25f",
+      "rivals": ["harbour_guild", "drowned_quarter_mutual"],
+      "allies": ["reclamation_office"]
+    },
+    {
+      "id": "drowned_quarter_mutual",
+      "name": "The Drowned Quarter Mutual",
+      "creed": "We bail each other out. No one else will.",
+      "blurb": "Not a gang and not a charity — a mutual-aid network that grew out of the flood years in the lowest district. They run the soup lines, the unlicensed clinic, and a quiet ledger of every favour owed. Idealistic, exhausted, and one bad winter from becoming something harder.",
+      "color": "#6fae8f",
+      "rivals": ["reclamation_office", "lantern_syndicate"],
+      "allies": ["harbour_guild"]
+    },
+    {
+      "id": "civil_watch",
+      "name": "The Civil Watch",
+      "creed": "Order, on paper.",
+      "blurb": "What passes for police in Hollowreach: under-paid, half-bought, and stretched across a city that stopped believing in them. Some watchmen are tired idealists; most are surviving. You are, nominally, one of them — or were, before whatever happened to land you here.",
+      "color": "#8a8f9a",
+      "rivals": [],
+      "allies": []
+    }
+  ]
+}
