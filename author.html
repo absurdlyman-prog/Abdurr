@@ -39,7 +39,7 @@
     .pickrow select { width: auto; min-width: 130px; }
     .pickrow .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); }
     .opt-row { display: grid; grid-template-columns: 1fr 150px auto; gap: 8px; margin-bottom: 8px; align-items: start; }
-    .opt-row.mg { grid-template-columns: 1fr 150px; }
+    .opt-row.mg { grid-template-columns: 1fr 150px auto; }
     .opt-row .note { grid-column: 1 / -1; }
     .btn { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 13px; font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
     .btn:hover { border-color: var(--primary); color: var(--primary-d); }
@@ -218,8 +218,8 @@
       d.innerHTML =
         '<input type="text" class="mg-label" placeholder="management label" value="' + (label || "") + '" />' +
         '<select class="mg-tier"><option value="correct">correct</option><option value="acceptable">acceptable</option><option value="suboptimal">suboptimal</option><option value="harmful">harmful</option></select>' +
-        '<textarea class="mg-note note" placeholder="teaching note (why this is right/wrong)">' + (note || "") + '</textarea>' +
-        '<button class="rm" title="remove" style="position:absolute">×</button>';
+        '<button class="rm" title="remove">×</button>' +
+        '<textarea class="mg-note note" placeholder="teaching note (why this is right/wrong)">' + (note || "") + '</textarea>';
       if (tier) d.querySelector(".mg-tier").value = tier;
       d.querySelector(".rm").onclick = () => d.remove();
       return d;

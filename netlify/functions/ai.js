@@ -83,6 +83,9 @@ exports.handler = async (event) => {
         role: "user",
         content: [{ type: "text", text: String(payload.message || "Hello.") }],
       });
+      // The Messages API requires the list to start with a user turn — drop any
+      // leading assistant turns (e.g. the patient's opening greeting).
+      while (messages.length && messages[0].role !== "user") messages.shift();
 
       const reply = await callClaude({
         model: PATIENT_MODEL,

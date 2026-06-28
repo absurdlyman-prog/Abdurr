@@ -882,33 +882,35 @@
   }
 
   async function askQuestion(text, orderId) {
-    if (enc.busy) return;
+    if (!enc || enc.busy) return;
     text = String(text || "").trim();
     if (!text) return;
-    const c = enc.caseObj;
+    const myEnc = enc;            // guard against the encounter being closed/switched mid-reply
+    const c = myEnc.caseObj;
     const id = orderId || mapHistory(text);
-    if (id) { enc.ordered.add(id); enc.visited.add("history"); }
+    if (id) { myEnc.ordered.add(id); myEnc.visited.add("history"); }
 
-    enc.chat.push({ role: "doctor", text });
+    myEnc.chat.push({ role: "doctor", text });
     renderChat();
     updateFooter(); syncTabDoneFlags();
 
     let reply;
     if (AI.available) {
-      enc.busy = true; renderChat();
+      myEnc.busy = true; renderChat();
       try {
-        const conv = enc.chat.slice(0, -1).map((m) => ({ role: m.role, text: m.text }));
+        const conv = myEnc.chat.slice(0, -1).map((m) => ({ role: m.role, text: m.text }));
         const d = await aiCall({ mode: "patient", patient: buildPatientContext(c), conversation: conv, message: text });
         reply = d && d.reply ? d.reply : null;
         if (!reply) { AI.available = AI.available && !(d && d.error); reply = scriptedAnswer(id, c); }
       } catch (e) {
         reply = scriptedAnswer(id, c);
       }
-      enc.busy = false;
+      myEnc.busy = false;
     } else {
       reply = scriptedAnswer(id, c);
     }
-    enc.chat.push({ role: "patient", text: reply });
+    myEnc.chat.push({ role: "patient", text: reply });
+    if (enc !== myEnc) return;    // user left this encounter while we were waiting
     // re-render the whole tab so chips update their "asked" check
     if (enc.activeTab === "history") renderTab();
     else renderChat();
