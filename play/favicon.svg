@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#f0c66b"/>
+      <stop offset="55%" stop-color="#b07b2e"/>
+      <stop offset="100%" stop-color="#0b0f14"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="#0b0f14"/>
+  <!-- a drowned lamp: the city's only constant -->
+  <circle cx="32" cy="26" r="13" fill="url(#g)"/>
+  <rect x="30" y="34" width="4" height="20" fill="#6b5a3a"/>
+  <path d="M20 54 h24" stroke="#6b5a3a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M14 44 q18 10 36 0" stroke="#2a3a4a" stroke-width="3" fill="none" opacity="0.7"/>
+</svg>

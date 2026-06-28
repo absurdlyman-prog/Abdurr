@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f14" />
+    <meta name="description" content="HOLLOWREACH — a narrative detective RPG in a drowning post-industrial port city. Eight inner voices argue inside your skull while you solve a death that the city would rather forget." />
+    <title>HOLLOWREACH</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      html, body, #root { height: 100%; margin: 0; background: #0b0f14; }
+      /* First-paint loader so the screen is never blank while the bundle boots. */
+      #boot {
+        position: fixed; inset: 0; display: grid; place-items: center;
+        font-family: Georgia, 'Times New Roman', serif; color: #c8b48a;
+        letter-spacing: 0.35em; text-transform: uppercase; font-size: 13px;
+        background: radial-gradient(120% 90% at 50% 30%, #16202b 0%, #0b0f14 70%);
+      }
+      #boot .pulse { animation: boot-pulse 2.4s ease-in-out infinite; }
+      @keyframes boot-pulse { 0%,100% { opacity: 0.25 } 50% { opacity: 0.85 } }
+    </style>
+    <script type="module" crossorigin src="./assets/index-BnhA1yeS.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/react-BdZgHC1P.js">
+    <link rel="modulepreload" crossorigin href="./assets/pixi-DfEZtuXZ.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-cF9xN91o.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot"><span class="pulse">Hollowreach is waking…</span></div>
+  </body>
+</html>
