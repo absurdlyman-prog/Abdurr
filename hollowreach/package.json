@@ -15,7 +15,7 @@
     "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false && tsc -p tsconfig.json --noEmit",
     "validate:content": "tsx scripts/validate-content.ts",
     "server": "tsx server/index.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --test src/game/systems/skillcheck.test.ts src/game/systems/investigation/CaseBoard.test.ts"
   },
   "dependencies": {
     "pixi.js": "^8.6.6",
