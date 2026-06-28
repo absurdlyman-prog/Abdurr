@@ -8,6 +8,8 @@ import { screenToTile } from './iso';
 import { RainLayer } from './atmosphere/RainLayer';
 import { FogLayer } from './atmosphere/FogLayer';
 import { gradeForMinute } from './atmosphere/DayNight';
+import { Backdrop } from './atmosphere/Backdrop';
+import { PostFX } from './atmosphere/PostFX';
 
 // Top-level Pixi orchestrator. Owns the Application, the camera-transformed world
 // container, the screen-space atmosphere layers, and the day/night grade. It
@@ -18,11 +20,16 @@ import { gradeForMinute } from './atmosphere/DayNight';
 
 export class SceneRenderer {
   private app = new Application();
+  /** Backdrop + world + atmosphere, composited then bloom/godray-filtered. */
+  private sceneFx = new Container();
   private world = new Container();
   private atmosphere = new Container();
   private grade = new Graphics();
+  private backdrop = new Backdrop();
+  private postfx = new PostFX();
   private rain = new RainLayer();
   private fog = new FogLayer();
+  private time = 0;
   private built: BuiltScene | null = null;
   private sceneId = '';
   private hovered: string | null = null;
@@ -46,11 +53,18 @@ export class SceneRenderer {
     }
     host.appendChild(this.app.canvas);
 
-    this.app.stage.addChild(this.world);
-    this.app.stage.addChild(this.atmosphere);
+    // Backdrop → world → atmosphere all live inside sceneFx, which carries the
+    // bloom + godray filter stack. The day/night grade and the vignette/grain
+    // overlay sit ABOVE the filtered scene so they tint and frame the result.
+    this.sceneFx.addChild(this.backdrop.view, this.world, this.atmosphere);
+    this.sceneFx.filters = this.postfx.filters;
+    this.sceneFx.filterArea = this.app.screen;
+    this.app.stage.addChild(this.sceneFx);
     this.app.stage.addChild(this.grade);
+    this.app.stage.addChild(this.postfx.overlay);
     this.atmosphere.addChild(this.fog.view, this.rain.view);
     this.atmosphere.eventMode = 'none';
+    this.sceneFx.eventMode = 'none';
     this.grade.eventMode = 'none';
 
     this.app.stage.eventMode = 'static';
@@ -99,6 +113,9 @@ export class SceneRenderer {
     this.rain.configure(scene.weather.rain, scene.weather.wind, reduce);
     const fogColor = scene.weather.fogColor ? parseInt(scene.weather.fogColor.replace('#', ''), 16) : 0x2a3744;
     this.fog.configure(scene.weather.fog, fogColor, reduce);
+    this.backdrop.configure(scene.palette, hashSeed(scene.id), reduce);
+    this.postfx.configureScene(scene.weather.rain, scene.weather.fog);
+    this.postfx.configure({ reducedMotion: reduce, highContrast: g.settings.highContrast });
   }
 
   private visibleHotspots(scene: SceneDef, g: GameState): SceneHotspot[] {
@@ -139,13 +156,22 @@ export class SceneRenderer {
   private applyCamera(): void {
     this.world.scale.set(this.camera.zoom);
     this.world.position.set(this.camera.x, this.camera.y);
+    this.backdrop.setParallax(this.camera.x, this.camera.y);
   }
 
   private resizeAtmosphere(): void {
-    this.rain.resize(this.app.screen.width, this.app.screen.height);
-    this.fog.resize(this.app.screen.width, this.app.screen.height);
+    const { width, height } = this.app.screen;
+    this.rain.resize(width, height);
+    this.fog.resize(width, height);
+    this.backdrop.resize(width, height);
+    this.postfx.resize(width, height);
+    this.sceneFx.filterArea = this.app.screen;
     const g = useGame.getState().game;
-    if (g) this.updateGrade(g);
+    if (g) {
+      this.updateGrade(g);
+      const scene = Content.scene(g.location.scene);
+      if (scene) this.backdrop.configure(scene.palette, hashSeed(scene.id), g.settings.reducedMotion);
+    }
   }
 
   private bindInput(): void {
@@ -214,8 +240,12 @@ export class SceneRenderer {
   }
 
   private tick(dt: number): void {
+    this.time += dt / 60;
     this.rain.tick(dt);
     this.fog.tick(dt);
+    this.backdrop.tick(dt);
+    this.postfx.tick(dt);
+    this.built?.tickWater(this.time);
   }
 
   destroy(): void {

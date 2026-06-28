@@ -17,8 +17,18 @@ how to layer real bitmap/audio assets on top when you want them.
 | Rain | `atmosphere/RainLayer.ts` | Recycled wind-sheared streak particles; intensity from scene weather. |
 | Fog | `atmosphere/FogLayer.ts` | Parallax drifting soft blobs (stacked circles = cheap gaussian); density from scene weather. |
 | Day/night | `atmosphere/DayNight.ts` | Keyframed colour-grade overlay (multiply) by minute-of-day. |
-| Neon | tile `glow` + decal `lamp_neon` | Emissive fills + the day/night ambient make neon pop after dusk. |
+| Neon | tile `glow` + decal `lamp_neon` | Bright emissive cores fed to the bloom pass make neon pop after dusk. |
+| **Bloom + light shafts** | `atmosphere/PostFX.ts` (pixi-filters) | `AdvancedBloomFilter` glows neon/lamps/clues like wet paint; `GodrayFilter` adds volumetric rain shafts. Scaled by scene wetness. |
+| **Vignette + film grain** | `atmosphere/PostFX.ts` | A multiply vignette + drifting procedural grain above the grade — frames each scene like a photographed oil painting. |
+| **Parallax skyline** | `atmosphere/Backdrop.ts` | Drifting silhouettes of rooftops/crane-towers with flickering lit windows (which catch the bloom) behind the map. |
+| Rim light + contact shadows | `IsoScene.ts` | Warm key-light edge highlights on lit tile faces; soft shadows under raised tiles for sculpted depth. |
+| Animated wet reflections | `IsoScene.tickWater` | Sliding glints + neon reflection streaks on water tiles each frame. |
 | Camera | `SceneRenderer` | Smooth follow, drag-pan, wheel-zoom (0.55×–2.2×). |
+
+The post stack composites as: **backdrop → world → atmosphere** (all inside one
+container carrying the bloom + godray filters) → **day/night grade** (multiply) →
+**vignette + grain**. All of it tunes down or off under reduced-motion /
+high-contrast (see `Settings`).
 
 Scenes are authored as JSON tile maps (`content/scenes/*.json`): `layers[].tiles`
 (row-major ids), `hotspots[]`, `weather`, `palette`, `spawn`. The content linter
