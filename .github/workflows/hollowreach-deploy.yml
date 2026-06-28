@@ -1,0 +1,46 @@
+name: Deploy HOLLOWREACH (playable)
+
+# Builds HOLLOWREACH and publishes it to the existing gh-pages site under
+# /play/, so it's playable at:
+#   https://absurdlyman-prog.github.io/Abdurr/play/
+#
+# Publishing is ADDITIVE (keep_files: true) and lands in its own /play/
+# subdirectory, so it never touches the existing gh-pages content or collides
+# with the hollowreach/ source in the open PR. A relative asset base ("./")
+# makes the build work regardless of the exact Pages path or casing.
+on:
+  push:
+    branches: ["claude/narrative-rpg-disco-elysium-az8mpn"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hollowreach-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: hollowreach/package-lock.json
+      - name: Install
+        run: npm ci
+        working-directory: hollowreach
+      - name: Build (relative base for path-independent hosting)
+        run: VITE_BASE=./ npm run build
+        working-directory: hollowreach
+      - name: Publish to gh-pages /play
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: hollowreach/dist
+          destination_dir: play
+          keep_files: true
+          commit_message: "Deploy HOLLOWREACH playable build to /play"
