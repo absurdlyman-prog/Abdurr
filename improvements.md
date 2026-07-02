@@ -7,8 +7,8 @@
 - ✅ #6 `/session-log` project skill created
 - ✅ #7 `.claude/settings.json` (permission allowlist) + SessionStart hook (`npm install` on web sessions)
 - ✅ #8 orphaned files deleted; README/title fixed
-- ⏳ #1 branch surgery (create `main`, set default, merge/close 9 branches + 3 PRs) — **needs your decisions per branch**
-- ⏳ #5 repo split — **needs your decision**
+- ✅ #1 branch surgery (2026-07-02, second pass): PR #4 merged; `main` created at the merged tip; stale PRs #1 (Python curriculum), #2 (SurgeryQuest), #3 (HOLLOWREACH) closed with explanatory comments — **all their branches are preserved untouched**. Two manual steps remain (no API access from this session): in repo **Settings → General**, set the default branch to `main`, and fix the repo description (it still says "Telegram bot"). After the flip, `claude/smart-drug-formulary-po2v8` is redundant with `main` and can be deleted.
+- ⏳ #5 repo split — **cannot be executed from this session** (GitHub access is scoped to this repo only, so new repos can't be created). When wanted, run a session with broader scope; source material is intact on the preserved branches (`claude/learn-python-basics-lauc8`, SurgeryQuest and HOLLOWREACH branches).
 
 ## How this was produced
 
