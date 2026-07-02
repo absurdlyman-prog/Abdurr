@@ -1,16 +1,16 @@
-# React + Vite
+# Abdurr
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Two things live in this repository (a split into separate repos is under consideration — see `improvements.md`):
 
-Currently, two official plugins are available:
+## 1. Smart Drug Formulary
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+A Vite + React web app for searching a DOH drug formulary, with filters, fuzzy search (Fuse.js), and an AI prescription-scan feature that reads a prescription photo and suggests packages to dispense.
 
-## React Compiler
+- **Run locally:** `npm install && npm run dev`
+- **Lint / build:** `npm run lint` / `npm run build`
+- **Data:** loaded at runtime from `public/Doh_Drugs_January_2026.xlsx` (sheets: `Version`, `Drugs`)
+- **Deploy:** Netlify (`netlify.toml`). The prescription scan uses the serverless function `netlify/functions/scan-prescription.mjs` — set `OPENAI_API_KEY` in the Netlify site environment to enable it. Without it, the UI falls back to asking the user for their own key.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 2. Second Brain vault
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+A personal markdown vault (`inbox/`, `daily/`, `digests/`, `tasks/`, `people/`, `ideas/`, `projects/`, `reference/`, `private/`) managed with Claude Code. Conventions and rules are in `CLAUDE.md`. `private/` contents are gitignored and off limits.

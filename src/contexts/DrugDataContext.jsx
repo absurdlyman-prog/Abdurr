@@ -97,6 +97,7 @@ export function DrugDataProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives with its provider by design
 export function useDrugData() {
   const ctx = useContext(DrugDataContext);
   if (!ctx) throw new Error('useDrugData must be used within DrugDataProvider');

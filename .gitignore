@@ -1,3 +1,11 @@
+# Secrets — never commit env files or API keys
+.env
+.env.*
+
+# Private vault folder — contents must never reach version control
+private/*
+!private/README.md
+
 # Logs
 logs
 *.log
