@@ -1,16 +1,12 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useDrugData } from '../contexts/DrugDataContext';
 import { matchPrescription } from '../utils/prescriptionMatch';
+import { EXTRACT_PROMPT } from '../utils/scanPrompt';
 
-const EXTRACT_PROMPT = `You are a pharmacy assistant reading a medical prescription image.
-Extract EVERY prescribed medication. For each one provide:
-- genericName: the active ingredient(s). If only a brand/trade name is written, give the generic name if you are confident, otherwise repeat the brand name.
-- strength: the dose with units exactly as written, e.g. "500 mg", "250 mg/5 ml", "1 g".
-- form: the dosage form if stated (tablet, capsule, syrup, injection, drops, cream...). Empty string if not stated.
-- quantity: the number prescribed if written, otherwise an empty string.
-Return ONLY valid JSON in this exact shape, with no markdown fences and no commentary:
-{"medications":[{"genericName":"","strength":"","form":"","quantity":""}]}
-If a field is unreadable, use an empty string. Do not invent doses.`;
+// Serverless proxy that holds the OpenAI key (set OPENAI_API_KEY in Netlify).
+// Netlify never applies redirects to /.netlify/* paths, so the SPA catch-all
+// in netlify.toml can't shadow this.
+const SCAN_SERVICE_URL = '/.netlify/functions/scan-prescription';
 
 function dispenseBadge(mode) {
   const m = (mode || '').toLowerCase();
@@ -128,11 +124,11 @@ export default function ScanModal({ onClose }) {
   const [medications, setMedications] = useState([]);
   const fileInputRef = useRef(null);
 
-  // Persist (or forget) the key on this device based on the "remember" toggle.
-  const updateApiKey = (value) => {
-    setApiKey(value);
-    if (remember) localStorage.setItem('openaiApiKey', value);
-  };
+  // A short-lived Anthropic variant of the scan feature saved keys under this
+  // name; clear it from devices that still carry one.
+  useEffect(() => {
+    localStorage.removeItem('anthropicApiKey');
+  }, []);
 
   const toggleRemember = (checked) => {
     setRemember(checked);
@@ -169,9 +165,66 @@ export default function ScanModal({ onClose }) {
       reader.readAsDataURL(file);
     });
 
+  // Returns the model's text content via the serverless proxy, or null when
+  // the service can't take the request (not deployed — e.g. plain `vite dev`
+  // returns the SPA's HTML here — or deployed without OPENAI_API_KEY).
+  const scanViaService = async (image, mimeType) => {
+    let res;
+    try {
+      res = await fetch(SCAN_SERVICE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, mimeType }),
+      });
+    } catch {
+      return null;
+    }
+    const contentType = res.headers.get('content-type') || '';
+    if (res.status === 404 || res.status === 501 || !contentType.includes('application/json')) {
+      return null;
+    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || `Scan service error ${res.status}`);
+    return data.content;
+  };
+
+  // Direct browser → OpenAI fallback using the user's own key.
+  const scanWithOwnKey = async (image, mimeType) => {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey.trim()}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 800,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: EXTRACT_PROMPT },
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${image}` } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `API error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) throw new Error('Empty response from model');
+    return content;
+  };
+
   const handleScan = async () => {
     if (!imageFile) { setErrorMsg('Please select a prescription image first.'); return; }
-    if (!apiKey.trim()) { setErrorMsg('Please enter your OpenAI API key.'); return; }
 
     setStatus('loading');
     setErrorMsg('');
@@ -181,38 +234,14 @@ export default function ScanModal({ onClose }) {
       const base64 = await toBase64(imageFile);
       const mimeType = imageFile.type || 'image/jpeg';
 
-      const body = {
-        model: 'gpt-4o',
-        max_tokens: 800,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: EXTRACT_PROMPT },
-              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } },
-            ],
-          },
-        ],
-      };
-
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey.trim()}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `API error ${res.status}`);
+      let content = await scanViaService(base64, mimeType);
+      if (content == null) {
+        if (!apiKey.trim()) {
+          throw new Error('The hosted scan service is unavailable — enter your OpenAI API key to scan directly.');
+        }
+        if (remember) localStorage.setItem('openaiApiKey', apiKey.trim());
+        content = await scanWithOwnKey(base64, mimeType);
       }
-
-      const data = await res.json();
-      const content = data.choices?.[0]?.message?.content?.trim();
-      if (!content) throw new Error('Empty response from model');
 
       let parsed;
       try {
@@ -258,14 +287,16 @@ export default function ScanModal({ onClose }) {
         </div>
 
         <div className="modal-body">
-          {/* API Key */}
+          {/* API Key — only needed when the hosted scan service isn't configured */}
           <div className="field-group">
             <label className="field-label" htmlFor="oai-key">
               OpenAI API Key
-              <span className="field-note">{remember ? '(saved on this device)' : '(kept in memory only)'}</span>
+              <span className="field-note">
+                {remember ? '(saved on this device)' : '(optional — only used if the hosted scan service is unavailable)'}
+              </span>
             </label>
             <input id="oai-key" className="field-input" type="password" placeholder="sk-..."
-              value={apiKey} onChange={(e) => updateApiKey(e.target.value)} autoComplete="off" />
+              value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
             <label className="field-remember">
               <input type="checkbox" checked={remember} onChange={(e) => toggleRemember(e.target.checked)} />
               <span>Remember key on this device</span>
@@ -293,6 +324,11 @@ export default function ScanModal({ onClose }) {
               </div>
             )}
           </div>
+
+          <p className="rx-disclaimer">
+            The photo is sent to OpenAI to read the prescription — cover patient-identifying
+            details (name, ID) before photographing when possible.
+          </p>
 
           {errorMsg && <div className="scan-error" role="alert">⚠️ {errorMsg}</div>}
 

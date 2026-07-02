@@ -30,16 +30,8 @@ export default function AlternativesPanel() {
       ) : (
         <div className="alt-list">
           {/* Include selected drug first, marked as "currently viewing" */}
-          {[selectedDrug, ...alternatives].map((drug, idx) => {
-            const isBestPrice = idx > 0
-              ? false
-              : alternatives.length > 0
-                ? (selectedDrug.packagePrice !== null &&
-                   (alternatives[0].packagePrice === null ||
-                    selectedDrug.packagePrice <= alternatives[0].packagePrice))
-                : true;
-
-            // Re-determine the best price across all (selected + alternatives)
+          {[selectedDrug, ...alternatives].map((drug) => {
+            // Determine the best price across all (selected + alternatives)
             const all = [selectedDrug, ...alternatives];
             const minPrice = Math.min(
               ...all.filter((d) => d.packagePrice !== null).map((d) => d.packagePrice)
