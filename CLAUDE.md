@@ -41,6 +41,7 @@ Read the section for the thing you're working on. A split into separate repos is
 ## Deploy
 
 - **Single deploy target: Netlify** (`netlify.toml`: build to `dist`, SPA redirect, functions in `netlify/functions/`). Do not add gh-pages or second Netlify sites.
+- Netlify deploy previews are **not reachable from remote Claude Code containers** (network policy blocks netlify.app) — verify with CI plus a local `vite preview` smoke test instead of curling the preview URL.
 
 ---
 
