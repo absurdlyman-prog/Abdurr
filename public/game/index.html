@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HUSHWATER — a requiem in fog</title>
+  <meta name="description" content="A short narrative RPG in the tradition of Disco Elysium. Seven voices in your head, a darkened lighthouse, forty-one souls, and the grey wall at the end of the world." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%AF%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./game.css" />
+</head>
+<body>
+
+  <canvas id="bg"></canvas>
+  <canvas id="grain"></canvas>
+
+  <div id="hud">
+    <div class="meter">
+      <span class="mlabel">HEALTH</span>
+      <span class="mtrack"><span class="mfill" id="hpBar"></span></span>
+      <span class="mnum" id="hpNum">4/4</span>
+    </div>
+    <div class="meter">
+      <span class="mlabel">SPIRIT</span>
+      <span class="mtrack"><span class="mfill" id="spBar"></span></span>
+      <span class="mnum" id="spNum">4/4</span>
+    </div>
+    <div id="insightRow">INSIGHT <span id="insightNum">0</span></div>
+    <button id="btnPsyche" class="ghostbtn">PSYCHE &amp; THOUGHTS</button>
+  </div>
+
+  <div id="dialogue">
+    <div id="log"></div>
+    <div id="choices"></div>
+  </div>
+
+  <div id="dice">
+    <div id="diceSkill"></div>
+    <div id="diceTray">
+      <div class="die" id="die1">?</div>
+      <div class="die" id="die2">?</div>
+    </div>
+    <div id="diceMath"></div>
+    <div id="diceVerdict"></div>
+  </div>
+
+  <div id="panel">
+    <div id="panelInner">
+      <div id="panelBody"></div>
+      <button id="panelClose" class="ghostbtn">CLOSE</button>
+    </div>
+  </div>
+
+  <div id="fin">
+    <div id="finKicker">— AN ENDING —</div>
+    <div id="finTitle"></div>
+    <div id="finStats"></div>
+    <button id="btnAgain" class="titlebtn">BEGIN AGAIN</button>
+  </div>
+
+  <div id="title">
+    <h1>HUSHWATER</h1>
+    <div class="subtitle">A REQUIEM IN FOG</div>
+    <div class="tagline">
+      Seven voices in your head. A lighthouse that went dark on purpose.
+      Forty-one souls, one lever, and the grey wall at the end of the world —
+      which is closer this morning than it was last night.
+    </div>
+    <div class="menu">
+      <button id="btnNew" class="titlebtn">NEW GAME</button>
+      <button id="btnContinue" class="titlebtn" style="display:none">CONTINUE</button>
+      <button id="btnSound" class="titlebtn">♪ SOUND OFF</button>
+    </div>
+    <div class="foot">A NARRATIVE RPG · DICE ARE HONEST · THE SEA KEEPS NO BOOKS</div>
+  </div>
+
+  <script type="module" src="./engine.js"></script>
+</body>
+</html>
