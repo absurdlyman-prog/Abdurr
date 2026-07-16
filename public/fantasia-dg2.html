@@ -1043,6 +1043,7 @@ function renderDialog(n){
   const openedAt=performance.now(); // swallow the ghost click that follows a touch interact
   $('#dlgName').textContent=n.sp;
   $('#dlgText').innerHTML=n.txt;
+  if(window.injectVoices)injectVoices(n); // passive skill-voices (Disco-style inner monologue)
   const host=$('#dlgChoices');host.innerHTML='';
   let chs=n.ch||[];
   chs=chs.filter(c=>{
@@ -1053,7 +1054,20 @@ function renderDialog(n){
   if(!chs.length)chs=[{t:'متابعة…',fx:{close:1}}];
   chs.forEach(c=>{
     const b=document.createElement('button');b.className='chBtn';
-    const tag=c.check?checkTag(c.check):c.tag; // RPG layer renders stat + odds
+    const lockStat=c.reqStat&&G.stats[c.reqStat.stat]<c.reqStat.min;
+    const redShut=c.check&&c.check.red&&G.flags['ckx_'+c.check.id];
+    if(lockStat){ // visible but out of reach — build envy is the point
+      b.classList.add('locked');b.disabled=true;
+      b.innerHTML=c.t+`<span class="tag">🔒 يتطلب ${STATS[c.reqStat.stat].n} ${AR(c.reqStat.min)}</span>`;
+      host.appendChild(b);return;
+    }
+    if(redShut){ // a failed red check closes this door for the whole dive
+      b.classList.add('locked');b.disabled=true;
+      b.innerHTML=c.t+'<span class="tag">🔒 انغلق هذا الطريق</span>';
+      host.appendChild(b);return;
+    }
+    let tag=c.check?checkTag(c.check):c.tag;
+    if(c.reqStat&&!tag)tag=`✨ ${STATS[c.reqStat.stat].n} ${AR(c.reqStat.min)}`;
     b.innerHTML=c.t+(tag?`<span class="tag">${tag}</span>`:'');
     b.addEventListener('click',()=>{if(performance.now()-openedAt<250)return;sfx.choice();
       if(c.check)runCheck(c);else applyFx(c.fx||{},null,c);});
@@ -1081,7 +1095,7 @@ function applyFx(fx,ent,choice){
   if(fx.end){closeDialog();finishWorld(fx.end);return;}
   if(fx.enc){closeDialog();mgEncounter(G.world._enc);return;}
   if(fx.mg){closeDialog();G.world.startMinigame();return;}
-  if(fx.next){renderDialog(G.world.dialogs[fx.next]);return;}
+  if(fx.next){dlgNode=fx.next;renderDialog(G.world.dialogs[fx.next]);return;}
   closeDialog();
 }
 
@@ -3811,7 +3825,8 @@ function runCheck(c){
       +(roll===6?' — نردٌ كامل!':roll===1?' — نردٌ خائن!':'');
     $('#diceVerdict').innerHTML=success
       ?'<span style="color:#7de3a0">✦ نجاح</span>':'<span style="color:#e08a8a">✦ إخفاق</span>';
-    if(success){sfx.quote();addXp(4);}else{sfx.bad();addXp(1);}
+    if(success){sfx.quote();addXp(4);}
+    else{sfx.bad();addXp(1);if(c.check.red&&c.check.id)G.flags['ckx_'+c.check.id]=true;}
     setTimeout(()=>{
       rpgHost.classList.remove('open');
       applyFx((success?c.ok:c.ko)||{},null,c);
@@ -4155,6 +4170,240 @@ addCheck('secret','refaat2',{t:'✦ تعدّدين له أساطيره: أوزي
   ko:{stab:-4,toast:'«آنوسا في العدد التاسع لا الحادي عشر» — صحّح لك وهو ينفث الدخان بانتصار.'}});
 
 /* Hiroshima stays gentle: its checks never bite (no ko.stab) — enforced above. */
+</script>
+<script>
+/* ============================================================
+   INNER VOICES — Disco-Elysium-style passive skill interjections.
+   Abeer's faculties speak inside the dialogue panel when high enough.
+   ============================================================ */
+(function(){
+const css=document.createElement('style');css.textContent=`
+.voice{margin-top:10px;padding:7px 14px;border-right:3px solid var(--vc);
+  background:rgba(255,255,255,.045);border-radius:10px;font-size:.9rem;
+  color:#d8d4e8;line-height:1.8;animation:fadeup .5s both}
+.voice b{color:var(--vc);font-style:normal;letter-spacing:.02em}
+.voice i{opacity:.94}
+.chBtn.locked{opacity:.45;cursor:not-allowed}
+.chBtn.locked:hover{transform:none;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16)}`;
+document.head.appendChild(css);
+})();
+const VC={wit:'#8fd0ff',courage:'#ffb36a',heart:'#ff9ab8',lore:'#c9a8ff',guide:'#f0d98c'};
+
+const VOICES={
+ 'sherlock:watson':[
+  {stat:'wit',min:3,t:'حقيبته تُحمل باليمين رغم أن اليسار أقوى — عادةُ من ألِف مسندَ عكاز. جريحُ حربٍ يداري جرحه.'},
+  {stat:'heart',min:3,t:'نبرته تقفز عند ذكر هولمز — نصفها إعجاب، ونصفها قلقُ ممرضٍ على مريضٍ عبقري.'},
+ ],
+ 'sherlock:hudson':[
+  {stat:'heart',min:3,t:'تعبها ليس من الدرج. إنه تعبُ من تطمئن على الجميع ولا يطمئن عليها أحد.'},
+  {stat:'lore',min:4,t:'صاحبة البيت في الأدب البوليسي تعرف دائمًا أكثر مما تُسأل. اسأليها أكثر مما ينبغي.'},
+ ],
+ 'sherlock:verdict':[
+  {stat:'courage',min:4,t:'قامته تملأ الضباب كله. ممتاز — الأشياء الكبيرة أهدافٌ أسهل للثبات في وجهها.'},
+  {stat:'guide',t:'موريارتي ليس في جدول هذا العدد أصلًا… حلمُك يرتجل شخصياتٍ إضافية. هذه فانتازيا كما تعلمون.'},
+ ],
+ 'orient:poirot':[
+  {stat:'wit',min:3,t:'الشارب مصفف بمسطرة، لكن الشوكولاتة الساخنة باردة منذ ساعة — العقل الأنيق مشغول فعلًا.'},
+  {stat:'lore',min:3,t:'قرأتِ عنه بما يكفي: لا يحترم إلا من يحاجج خلاياه الرمادية. لا تجامليه — ناقشيه.'},
+ ],
+ 'orient:princess':[
+  {stat:'heart',min:4,t:'تحت طبقات الكبرياء المهاجر صوتُ امرأةٍ تعدّ خسائرها كل ليلة قبل النوم، بالروبل القديم.'},
+ ],
+ 'orient:cabin':[
+  {stat:'wit',min:4,t:'اثنا عشر وجهًا وتوترٌ واحد متزامن — هذه وقفة جوقةٍ تدرّبت، لا مصادفة ركاب.'},
+ ],
+ 'dracula:harker':[
+  {stat:'heart',min:3,t:'أظافره مقضومة حتى اللحم. الرعب هنا لم يعد حدثًا — صار عادةً يومية.'},
+  {stat:'courage',min:3,t:'يرتجف؟ إذن يحتاج إلى من لا يرتجف. كوني ذلك الأحد.'},
+ ],
+ 'dracula:gypsy':[
+  {stat:'lore',min:3,t:'التعويذات في كلامها أقدم من الرواية التي أنتِ بداخلها الآن. احفظي كل كلمة.'},
+ ],
+ 'dracula:drac':[
+  {stat:'courage',min:4,t:'قاعدة الليل الأولى: من يملك الخطوة الأولى يملك نصف المبارزة. تقدّمي قبل أن يدعوك.'},
+  {stat:'guide',t:'بروتوكول الانسحاب متاح دائمًا. الكونت لا يحترم المنسحبين — لكنه لا يأكلهم أيضًا. غالبًا.'},
+ ],
+ 'lovecraft:sailor':[
+  {stat:'wit',min:3,t:'يرمش كثيرًا عن عمد… ويقف حيث لا يرى الماء. الرجل يخاف انعكاسه في البحر، لا البحر.'},
+ ],
+ 'lovecraft:lib':[
+  {stat:'lore',min:4,t:'كتابٌ يُنسَخ ثم يُغرَق — هذا طقسُ دفنٍ للمعرفة. المكتبات لا تدفن كتبها إلا مرعوبة.'},
+ ],
+ 'lovecraft:thing':[
+  {stat:'courage',min:4,t:'معطفه لا يتحرك مع الريح لأن الريح تتحرك معه. لاحظي — ولا تُريه أنك لاحظتِ.'},
+  {stat:'heart',min:4,t:'تحت الصوت المتعالي وحدةُ حارسٍ وقف على رصيفٍ مهجور دهرًا كاملًا. حتى هذا يُخاطَب.'},
+ ],
+ 'greek:flower':[
+  {stat:'lore',min:3,t:'في الترنيمة، عند قطف هذه بالذات تنشق الأرض. إصبعك على الزناد الأسطوري — بوعيٍ إذن.'},
+ ],
+ 'greek:charon':[
+  {stat:'wit',min:3,t:'القارب يتسع لواحد… لكن فيه مقعدين محفورين. حتى صانع قوارب الموت صمّم على أمل رفقة.'},
+ ],
+ 'greek:hades':[
+  {stat:'heart',min:4,t:'عرشه أكبر من جسده بمقاسين. الوحدة هنا مقاسها ملكيّ أيضًا.'},
+ ],
+ 'gilgamesh:enkidu':[
+  {stat:'heart',min:3,t:'ظلٌّ ينتظر آلاف السنين أن يسأله أحدٌ عن الموت. لا تسألي. اسألي عن الصداقة.'},
+ ],
+ 'gilgamesh:siduri':[
+  {stat:'lore',min:4,t:'«املأ بطنك وافرح يومك» — أنتِ الآن في حضرة أقدم نصيحة حياةٍ دوّنها البشر. الأصل، لا الاقتباس.'},
+ ],
+ 'gilgamesh:utna':[
+  {stat:'wit',min:3,t:'عيناه تقيسانك قبل أن تتكلمي — رجلٌ يقيس الزمن بالطوفانات لا بالساعات.'},
+ ],
+ 'kadesh:scribe':[
+  {stat:'wit',min:3,t:'قصبته تكتب الأحداث قبل وقوعها. إما نبيّ، وإما موظف دعاية ملكية — والثانية أخطر على التاريخ.'},
+ ],
+ 'kadesh:ramses':[
+  {stat:'courage',min:4,t:'ثلاثةٌ وعشرون قرنًا من الهيبة تحدّق فيك. حدّقي بمقدار قرنين فقط — أدبًا.'},
+  {stat:'lore',min:4,t:'مهما حدث اليوم سيُنقش نصرًا ساحقًا. أنتِ تقفين داخل المسودة الأولى للتاريخ الرسمي.'},
+ ],
+ 'cairo:boy':[
+  {stat:'heart',min:3,t:'حافي القدمين ويوزّع الحقيقة بمليم. هذا الطفل رأسُ ماله وطن.'},
+ ],
+ 'cairo:lady':[
+  {stat:'heart',min:4,t:'حدادٌ على منفيٍّ لا ميت — أصعب أنواع الحداد: لا قبر تبكين عنده، والأمل ممنوعٌ من الصرف.'},
+ ],
+ 'cairo:officer':[
+  {stat:'wit',min:4,t:'نظرته تفتش الوجوه لا الحقائب — هذا من النوع الخطير من الضباط.'},
+  {stat:'courage',min:4,t:'قلبك يدق بعنف؟ جيد. القلوب الهادئة تمامًا عند الحواجز أكثر ما يثير الريبة.'},
+ ],
+ 'nights:pair':[
+  {stat:'wit',min:3,t:'عباءة خشنة وخاتمٌ بمئة دينار — إما لصٌّ فاشل جدًا أو ملكٌ متنكر. والثانية أرجح في بغداد.'},
+ ],
+ 'nights:sindbad':[
+  {stat:'lore',min:3,t:'سبع رحلات في الذاكرة، وأول كلامه عن الرزق لا عن البحر — التاجر فيه أعمق من البحّار.'},
+ ],
+ 'nights:night_end':[
+  {stat:'heart',min:4,t:'الشك في عينيه جرحٌ يمشي على قدمين. لا تحاربي الجرح — ضمّديه.'},
+ ],
+ 'hiroshima:kenji1':[
+  {stat:'heart',min:3,t:'يصوّر الأشياء التي يخاف نسيانها… وعينه عليكِ منذ وصلتِ. افهمي المعادلة يا عبير.'},
+ ],
+ 'hiroshima:oba':[
+  {stat:'lore',min:3,t:'كل حركة في الطقس معنى: الدوران، والانحناءة، والصمت. هذه ليست ضيافة — هذه فلسفة تُشرَب.'},
+ ],
+ 'hiroshima:kenji2':[
+  {stat:'guide',t:'سأصمت في هذا العالم يا عبير. بعض الفصول يليق بها أن تُقرأ بلا هوامش.'},
+ ],
+ 'philo:soc':[
+  {stat:'wit',min:3,t:'سيسألك، ثم يسأل عن سؤالك. لا تجيبي لتُصيبي — أجيبي لتُسألي سؤالًا أفضل.'},
+ ],
+ 'philo:desc':[
+  {stat:'wit',min:4,t:'يشكّ في الكرسي الذي يجلس عليه ويثق بالشمعة. اسأليه عن معيار الفرز هذا.'},
+ ],
+ 'philo:niet':[
+  {stat:'courage',min:4,t:'يهاجم ليختبر عمودك الفقري لا رأيك. مَن انحنى للعاصفة خسرها، ومَن وقف كسبها.'},
+ ],
+ 'dost:rodya':[
+  {stat:'heart',min:4,t:'مونولوجه ليس هذيانًا — إنه محكمة داخلية تعقد جلساتها علنًا، والقاضي والمتهم شخصٌ واحد.'},
+ ],
+ 'dost:porfiry':[
+  {stat:'wit',min:4,t:'كل لطفه فخّ، وكل فخّه لطف. اللعبة الرابحة الوحيدة معه: الصدق الممل.'},
+ ],
+ 'dost:bridge':[
+  {stat:'courage',min:4,t:'ليس ارتفاعُ الجسر ما يقتل — بل خفّةُ الجيوب من الأسباب. ثقّلي جيبه بسببٍ واحد يكفي.'},
+ ],
+ 'secret:refaat':[
+  {stat:'lore',min:4,t:'هذا الرجل واجه المستذئبين بضغطٍ مرتفع وسخرية. أمامك الأسطورة المصرية الوحيدة بنظارة طبية.'},
+  {stat:'guide',t:'تنبيه إداري: الضيف من سلسلةٍ مجاورة. استقبليه بحرارة — وسأسوّي مسألة الحقوق مع الناشر لاحقًا.'},
+ ],
+ 'secret:ghost':[
+  {stat:'heart',min:3,t:'ستون سنةً على جملةٍ ناقصة. أنتِ تعرفين هذا الألم — كتبك المؤجلة كلها تئنّ في رفوفها.'},
+ ],
+};
+
+function injectVoices(n){
+  if(!G.world||!dlgNode)return;
+  const list=VOICES[G.world.id+':'+dlgNode];
+  if(!list)return;
+  const host=$('#dlgText');let shown=false,i=0;
+  for(const v of list){
+    if(!v||!v.t)continue;
+    if(v.stat!=='guide'&&G.stats[v.stat]<(v.min||3))continue;
+    shown=true;
+    const d=document.createElement('div');d.className='voice';
+    d.style.setProperty('--vc',VC[v.stat]);
+    d.style.animationDelay=(.3+i*.35)+'s';i++;
+    d.innerHTML=`<b>${v.stat==='guide'?'المرشد (هامس)':STATS[v.stat].n}:</b> <i>${v.t}</i>`;
+    host.appendChild(d);
+  }
+  if(shown&&!G.voiceHintShown){G.voiceHintShown=true;
+    toast('🧠 <b>ملَكات عبير بدأت تهمس داخل الحوار.</b><br><small>كلما نمت ملَكة، سمعتِ أصواتًا أكثر — ورأيتِ خياراتٍ لا يراها غيرك.</small>');}
+}
+
+/* ============================================================
+   STAT-GATED DEEP BRANCHES — options that exist only for your build
+   ============================================================ */
+function addGated(wid,node,choice,replyId,reply){
+  const w=WORLDS[wid];if(!w||!w.dialogs[node])return;
+  if(reply)w.dialogs[replyId]=reply;
+  w.dialogs[node].ch.push(choice);
+}
+addGated('sherlock','holmes',
+ {t:'«حدثني عن بحثك في تمييز رماد التبغ — قرأته بين السطور»',reqStat:{stat:'lore',min:4},fx:{next:'holmes_lore'}},
+ 'holmes_lore',{sp:'شيرلوك هولمز',txt:'توقّف هولمز عن حشو غليونه — وهذا حدثٌ جلل: «قرأتِه؟ مئةٌ وأربعون نوعًا من الرماد، ولم يقرأ البحث كاملًا سوى ثلاثة أشخاص: أنا، وواطسون مُكرهًا، ومجرمٌ واحد استفاد منه أكثر مما ينبغي. اجلسي — سأريكِ الفرق بين رماد تريتشينوبولي وهافانا تحت العدسة. واطسون! الفتاة تفهم!»',ch:[
+   {t:'تقضين معه ربع ساعةٍ من أمتع دروس حياتك',fx:{cp:4,toast:'📚 +٤ ثقافة — وهولمز صار يناديك «الزميلة».'}}]});
+addGated('orient','poirot',
+ {t:'«مسيو بوارو… من يعتني بالعقل العظيم حين ينفضّ الركاب؟»',reqStat:{stat:'heart',min:4},fx:{next:'poirot_heart'}},
+ 'poirot_heart',{sp:'هيركيول بوارو',txt:'للمرة الأولى، نزل الشارب المصفف نصف مليمتر: «سؤالٌ لم يطرحه عليّ أحد منذ… منذ زمن. الجميع يريدون العقل، مدموازيل. العقل يحلّ اللغز، ثم يعود وحده إلى مقصورته». ثم اعتدل: «لكن الوحدة — بين نحن الاثنين — مقصورة درجة أولى أيضًا. المهم أن تكون بطانتها أنيقة».',ch:[
+   {t:'«البطانة الأنيقة لا تدفئ. تعال احكِ لي عن بلجيكا.»',fx:{cp:4,stab:+5,toast:'💗 حكى لك عن حقول بلجيكا نصف ساعة — ونسي أن يتباهى مرة واحدة.'}}]});
+addGated('dracula','gypsy',
+ {t:'«ومن فقدتِ أنتِ للقلعة يا جدة؟»',reqStat:{stat:'heart',min:4},fx:{next:'gypsy_heart'}},
+ 'gypsy_heart',{sp:'العجوز الغجرية',txt:'توقفت يدها على الضفيرة. «أختي. منذ خمسين شتاءً. صعدت تخدم في القلعة ونزلت… مختلفة. لم أحدّث بهذا أحدًا لأن أحدًا لم يسأل — الناس يسألون الغجر عن الحظ لا عن الحزن». وأمسكت يدك: «اذهبي وأنهي الحكاية يا ابنتي. لأجل التي لم تنزل سليمة».',ch:[
+   {t:'«لأجلها إذن.» (عهدٌ يثقل خطاك ويشدّ ظهرك)',fx:{cp:4,flag:'vow',toast:'💗 عهد الجدة معك — بعض الأسلحة لا تُرى.'}}]});
+addGated('lovecraft','lib',
+ {t:'«عبد الحذرد… الاسم نفسه مُختلَق، أليس كذلك؟»',reqStat:{stat:'lore',min:4},fx:{next:'lib_lore'}},
+ 'lib_lore',{sp:'أمين المكتبة',txt:'شحب وجهه ثم — على غير المتوقع — ضحك ضحكة مكتومة: «تعرفين؟ نصف رعبنا من هذا الكتاب أنه بلا مصدر: مؤلفٌ عربيٌّ لا تنطقه العرب، وعنوانٌ يوناني لا يفهمه اليونان. رعبٌ مصنوع من أخطاء لغوية!» ثم عاد فجأة إلى الشحوب: «…لكن الرموز بالداخل حقيقية. من أين جاءت رموزٌ حقيقية لكتابٍ مزيف؟ هذا هو السؤال الذي لا أنام بسببه».',ch:[
+   {t:'سؤالٌ يستحق الأرق. (تدوّنينه)',fx:{cp:4,toast:'📚 «الرعب الحقيقي بمرجعية مزيفة» — ملاحظة نقدية من الطراز الأول.'}}]});
+addGated('greek','charon',
+ {t:'«عبَر هرقل وأورفيوس من قبلي حيَّين… فما التعرفة للأحياء؟»',reqStat:{stat:'lore',min:4},fx:{next:'charon_lore'}},
+ 'charon_lore',{sp:'خارون',txt:'توقّف المجداف. ومن تحت القلنسوة خرج صوتٌ كصرير رصيفٍ قديم: «هرقل كسر ضلعي. أورفيوس أبكاني بالقيثارة فعبر مجانًا — ولا أزال أندم. أنتِ ثالث حيٍّ يعرف أسماء ركّابي». مدّ كفّه العظمية: «الأوبولوس للموتى. العارفون يدفعون حكاية. احكي لي ماذا يقولون عني فوق».',ch:[
+   {t:'تحكين له أنه أشهر ملّاحٍ في تاريخ الأدب',fx:{cp:4,toast:'📚 غرغرة الرضا الثانية في تاريخ النهر — كلتاهما لكِ.'}}]});
+addGated('gilgamesh','utna',
+ {t:'«طوفانك يُروى عندنا أيضًا — بأسماء أخرى وسفينةٍ أخرى»',reqStat:{stat:'lore',min:4},fx:{next:'utna_lore'}},
+ 'utna_lore',{sp:'أوتنابشتيم',txt:'اعتدل الناجي القديم كمن سمع صدى صوته يعود من بعيد: «يُروى؟ بعدي؟» — «بعدك بقرون، وقبل زمني بقرون. سفينةٌ ونجاةٌ وطيرٌ يُرسَل ليستكشف». صمت طويلًا ثم قال: «إذن لم يكن الطوفان قصتي. كان قصة كل من نجا ليحكي. خذي هذا وحده يكفي عن نبتة الشباب: النجاة تكتمل حين تُروى».',ch:[
+   {t:'«النجاة تكتمل حين تُروى.» (تحفرينها في الذاكرة)',fx:{cp:4,toast:'📚 حكمة ما قبل الألواح — من فم صاحبها.'}}]});
+addGated('kadesh','ramses',
+ {t:'«قصيدة بنتاؤر ستُنقش في خمسة معابد — أعرف مطلعها قبل أن يكتبه»',reqStat:{stat:'lore',min:4},fx:{next:'ramses_lore'}},
+ 'ramses_lore',{sp:'رمسيس الثاني',txt:'ضاقت عينا الملك ثم اتسعتا: «خمسة معابد؟ لم آمر بعد إلا بثلاثة». ومال نحوك: «أنتِ إذن من الأحلام التي ترى بعيدًا. قولي — بصراحة جنديٍّ لا بمداهنة كاتب: بعد ثلاثة آلاف سنة… هل يذكرونني بالنصر أم بالمبالغة؟» وللحظةٍ لم يكن فرعونًا، بل شابًا يسأل عن درجته.',ch:[
+   {t:'«يذكرونك بالاثنين يا مولاي — وبالمعاهدة أكثر»',fx:{cp:4,toast:'📚 أومأ ببطء: «المعاهدة إذن». وبدا أن قرارًا تاريخيًا تحرّك مليمترًا.'}}]});
+addGated('cairo','lady',
+ {t:'«كيف تنظمن البيوت المغلقة؟ الرسائل، الشفرات، نقاط اللقاء…»',reqStat:{stat:'wit',min:4},fx:{next:'lady_wit'}},
+ 'lady_wit',{sp:'سيدة بيت الأمة',txt:'نظرت إليك نظرة تاجرٍ وجد صنعته عند غريب: «ذكية. سلال الغسيل تدخل كل بيت بلا تفتيش — والمنشور يُطوى في ثوبٍ مبلل. عربات الخضار تعرف الأزقة، وبائعات اللبن يحفظن أسماء البيوت الآمنة». ثم همست: «النساء يا ابنتي شبكةٌ قائمة منذ الأزل — الاحتلال فقط لم ينتبه أنها صارت سلكية».',ch:[
+   {t:'«شبكة قائمة منذ الأزل…» (فصلٌ كامل لمقالك القادم)',fx:{cp:4,toast:'🔍 فهمتِ للتوّ كيف انتصرت ١٩١٩ فعلًا.'}}]});
+addGated('nights','king',
+ {t:'«حكاياتي يا مولاي من نبعٍ أقدم — هزار أفسان الفارسية»',reqStat:{stat:'lore',min:4},fx:{next:'king_lore'}},
+ 'king_lore',{sp:'الملك شهريار',txt:'رفع الملك حاجبه: «تكشفين مصادرك للملك؟ الحكّاؤون يحرسون أسرارهم». — «الأسرار للخائفين يا مولاي. الحكاية تكبر كالنهر: نبعٌ فارسي، وروافد هندية، ومصبٌّ في بغداد ثم القاهرة». اعتدل شهريار وقال شيئًا لم يقله لأحد: «إذن أنا أسبح في نهرٍ لا في بئر. …أكملي. النهر أوسع من غضبي».',ch:[
+   {t:'«النهر أوسع من غضبك» — تكملين بثقة النبع',fx:{cp:4,toast:'📚 صار الملك تلميذًا في مجرى النهر — وموقفك الليلة أمتن.'}}]});
+addGated('philo','desc',
+ {t:'«شيطانك الماكر — هل يستطيع أن يزيّف الشك نفسه؟»',reqStat:{stat:'wit',min:4},fx:{next:'desc_wit'}},
+ 'desc_wit',{sp:'رينيه ديكارت',txt:'وضع ديكارت الشمعة جانبًا — إشارة الجدية القصوى: «آه. سؤال الأسئلة. إن زيّف شكّي فأنا أشك في شيءٍ مزيف — أي أنني أشك — أي أنه فشل. الشيطان مسكينٌ محاصر: كل انتصاراته تثبت هزيمته». وابتسم ابتسامة هندسية: «هذه أجمل زاوية في البناء كله، ولم تسألني عنها إلا أنتِ».',ch:[
+   {t:'«محاصَر بمنطقه.» (تبتسمين الابتسامة الهندسية نفسها)',fx:{cp:4,score:1,toast:'🔍 ديكارت يعدّك الآن زميلة بناء، لا زائرة.'}}]});
+addGated('dost','porfiry',
+ {t:'«سؤال معاكس: ما الذي يعذّب محققًا لا يستطيع إثبات ما يعرفه؟»',reqStat:{stat:'wit',min:5},fx:{next:'porf_wit'}},
+ 'porf_wit',{sp:'المحقق بورفيري',txt:'توقفت يداه عن الفرك — أول توقفٍ لهما منذ سنوات على الأرجح: «…قلبتِ الاستجواب عليّ. آخر من فعلها صار…» — ولم يكمل. ثم ضحك ضحكة حقيقية هذه المرة: «يعذّبه أن الحقيقة جالسة أمامه تشرب شايه، وأن القانون يطلب أوراقًا والروح لا تصدر أوراقًا. لهذا أنتظر الاعتراف يا صديقتي — ليس لأدين، بل لأريح الجالس».',ch:[
+   {t:'«لتريح الجالس…» (فهمتِ بورفيري أعمق من الرواية نفسها)',fx:{cp:5,toast:'🔍 نلتِ ما لا يناله أحد: بورفيري بلا قناع.'}}]});
+addGated('hiroshima','kenji2',
+ {t:'تقولين له بهدوء ما يخاف قوله هو',reqStat:{stat:'heart',min:4},fx:{next:'kenji_heart'}},
+ 'kenji_heart',{sp:'كينجي',txt:'«أنت لا تكتب الهايكو للنهر يا كينجي. أنت تكتبه لي». سقط القلم. والتقطه النهر العجوز بلطف وجرى به — شاهدًا وحيدًا. قال كينجي أخيرًا، ووجهه بلون التوري: «جدتي قالت إن عينيك ستفهمان قبل أذنيك. الجدات لا يخطئن أبدًا». وضحكتما معًا ذلك الضحك الذي يضيء ليلةً كاملة.',ch:[
+   {t:'«لا يخطئن أبدًا.» — والآن: الهايكو',tag:'اللحظة',fx:{cp:4,stage:2,mg:1}}]});
+addGated('secret','refaat3',
+ {t:'«قل لي يا دكتور: أيّهما أرعب فعلًا — النداهة أم أسطورة البيت؟»',reqStat:{stat:'lore',min:5},fx:{next:'refaat_lore'}},
+ 'refaat_lore',{sp:'د. رفعت إسماعيل',txt:'أشعل سيجارة جديدة من عقب القديمة — طقس الأسئلة المحترمة: «سؤال قارئة متمكنة. سأخبرك سرًّا مهنيًّا: لا هذه ولا تلك. أرعبُ ما قابلته كان دائمًا بشرًا عاديين وجدوا مبررًا. الغيلان تُهزم بالفضة والحيلة — أما موظفٌ حاقد بختمٍ رسمي…» ونفث الدخان نحو القمر: «لهذا أحببتُ الوحوش. إنها على الأقل صريحة».',ch:[
+   {t:'«الوحوش صريحة على الأقل.» (حكمة ثمانين عددًا في سطر)',fx:{cp:5,toast:'📚 كلام المعلمين لا يُقاطَع — يُحفَظ.'}}]});
+
+/* red checks: one attempt per dive — failure closes the door */
+function makeRed(wid,node,id){
+  const n=WORLDS[wid]&&WORLDS[wid].dialogs[node];if(!n)return;
+  const c=n.ch.find(c=>c.check);if(c){c.check.red=1;c.check.id=id;}
+}
+makeRed('sherlock','watson','shw');
+makeRed('orient','princess','orp');
+makeRed('gilgamesh','siduri','gis');
+makeRed('dost','rodya','dor');
+makeRed('lovecraft','sailor2','lvs');
+makeRed('nights','sindbad2','nis');
 </script>
 </body>
 </html>
