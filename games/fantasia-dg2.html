@@ -375,6 +375,16 @@ button{font-family:var(--f-body);cursor:pointer;border:none;background:none;colo
   border:1px dashed rgba(212,175,55,.5);border-radius:14px;padding:14px 18px;font-size:.98rem;
   line-height:2;margin-bottom:18px}
 #endQuote small{display:block;font-style:normal;color:#b9b2d9;margin-top:6px;font-size:.75rem}
+/* Hiroshima: the wake-up dissolves into a silent white */
+#ending.white{background:radial-gradient(ellipse at 50% 30%,#fffdf6 0%,#efe9da 75%)}
+#ending.white #endCard{background:rgba(255,255,255,.82);border-color:#c4b184;box-shadow:0 20px 60px rgba(120,100,60,.25)}
+#ending.white #endTitle{color:#8a6a2a;text-shadow:none}
+#ending.white #endDesc,#ending.white .endStats div{color:#3a352b}
+#ending.white #endWake{color:#8a8272}
+#ending.white .endStats div{background:rgba(140,110,60,.08);border-color:rgba(140,110,60,.25)}
+#ending.white .endStats b{color:#7a5a1a}
+#ending.white #endQuote{color:#4a4436;border-color:rgba(140,110,60,.5);background:rgba(140,110,60,.06)}
+#ending.white #endQuote small{color:#8a8272}
 
 /* ---------- touch controls ---------- */
 #touchUI{position:absolute;inset:0;pointer-events:none;z-index:25;display:none}
@@ -550,10 +560,12 @@ const G={
 
 const ACH={
   first:{i:'🌀',t:'أوّل غوص',d:'أنهيتِ أوّل حلم كامل'},
-  quotes:{i:'📚',t:'قارئة نهمة',d:'جمعتِ كل كنوز هذه المرحلة الأربعة'},
+  quotes:{i:'📚',t:'قارئة نهمة',d:'جمعتِ كنوز العوالم الاثني عشر كلّها'},
   wall:{i:'🪞',t:'هذه فانتازيا كما تعلمون',d:'خمس لحظات كسرتِ فيها الجدار الرابع'},
   clean:{i:'💠',t:'حلمٌ صافٍ',d:'أنهيتِ عالمًا وثباتُ الحلم فوق ٨٠٪'},
   three:{i:'🗝️',t:'مفاتيح المكتبة',d:'ثلاثة عوالم اكتملت… وفي الرفّ السرّي حركةٌ ما'},
+  crossover:{i:'👻',t:'ما وراء فانتازيا',d:'قابلتِ رفعت إسماعيل خارج سلسلته'},
+  all:{i:'👑',t:'سيدة الأحلام',d:'اكتملت المكتبة كلها — الاثنا عشر عالمًا والرفّ السرّي'},
 };
 
 /* ============================================================
@@ -665,23 +677,15 @@ $('#boot').addEventListener('pointerdown',()=>{ac();leaveBoot();});
 /* ============================================================
    LIBRARY — wings & covers
    ============================================================ */
-const LOCKED_META=[ // phase-2+ worlds: cover metadata only
- {id:'orient', wing:0,issue:'العدد ٢٠',title:'قطار الشرق السريع',sub:'أجاثا كريستي · جريمة في قطار مغلق',motif:'🚂',bg:'linear-gradient(160deg,#4a1220,#1d0a10)',glow:'rgba(190,60,80,.5)'},
- {id:'lovecraft',wing:1,issue:'العدد ٦٠',title:'بلاد لافكرافت',sub:'كثولهو · الرعب الكوني · إنسماوث',motif:'🐙',bg:'linear-gradient(160deg,#0e2e22,#060f12)',glow:'rgba(40,180,120,.45)'},
- {id:'gilgamesh',wing:2,issue:'العدد ٣٩',title:'ملحمة جلجامش',sub:'أوروك · إنكيدو · نبتة الخلود',motif:'🏺',bg:'linear-gradient(160deg,#5e3a1a,#160d06)',glow:'rgba(220,150,60,.45)'},
- {id:'kadesh',wing:3,issue:'العدد ٦',title:'معركة قادش',sub:'رمسيس الثاني · مركبات الحرب · أول معاهدة سلام',motif:'𓂀',bg:'linear-gradient(160deg,#8a6a14,#241a04)',glow:'rgba(230,190,60,.5)'},
- {id:'cairo',wing:3,issue:'العدد ٢٨',title:'القاهرة ١٩١٩',sub:'سعد زغلول · المنشورات السرّية · هتافات الثورة',motif:'🇪🇬',bg:'linear-gradient(160deg,#3d2a1a,#14100a)',glow:'rgba(200,160,110,.45)'},
- {id:'hiroshima',wing:4,issue:'العدد ٣٦',title:'حبٌّ في أغسطس',sub:'هيروشيما ١٩٤٥ · قصة تُروى بوقار',motif:'🌸',bg:'linear-gradient(160deg,#7a3a4a,#1a0e12)',glow:'rgba(240,150,180,.45)'},
- {id:'philo',wing:5,issue:'العدد ٣٧',title:'مأدبة الفلاسفة',sub:'سقراط · ابن رشد · ديكارت · نيتشه',motif:'🏛️',bg:'linear-gradient(160deg,#2a3a55,#0c1018)',glow:'rgba(140,170,230,.45)'},
- {id:'dost',wing:5,issue:'العدد ٣٠',title:'عالم دوستويفسكي',sub:'بطرسبرغ القيصرية · الجريمة والعقاب · ثلج وسماور',motif:'❄️',bg:'linear-gradient(160deg,#33405a,#10141e)',glow:'rgba(150,180,240,.4)'},
-];
 const WING_NAMES=['جناح الجريمة والغموض','جناح الرعب','جناح الأساطير والملاحم','جناح التاريخ','جناح الشرق الساحر','جناح العقول العظيمة'];
+// library order: canon issue first inside each wing
+const PLAYABLE=['sherlock','orient','dracula','lovecraft','greek','gilgamesh','kadesh','cairo','nights','hiroshima','philo','dost'];
 
 function refreshLibStats(){
   const doneN=Object.keys(G.done).length;
   $('#libStats').innerHTML=
     `<span>📖 نقاط الثقافة: ${AR(G.cp)}</span>
-     <span>🌍 عوالم مكتملة: ${AR(doneN)} / ${AR(12)}</span>
+     <span>🌍 عوالم مكتملة: ${AR(doneN)} / ${AR(13)}</span>
      <span>🏆 إنجازات: ${AR(Object.keys(G.ach).length)} / ${AR(Object.keys(ACH).length)}</span>
      <span>📜 كنوز: ${AR(Object.keys(G.quotes).length)}</span>`;
 }
@@ -725,21 +729,16 @@ function buildLibrary(){
     const w=document.createElement('section');w.className='wing';
     w.innerHTML=`<h2>${n}</h2><div class="cards"></div>`;host.appendChild(w);return w.querySelector('.cards');
   });
-  // playable worlds (phase 1)
-  for(const id of ['sherlock','dracula','greek','nights']){
+  for(const id of PLAYABLE){
     const W=WORLDS[id];
     wings[W.wing].appendChild(makeCard({...W.meta,id},true,G.done[id]));
   }
-  for(const m of LOCKED_META)wings[m.wing].appendChild(makeCard(m,false));
-  // secret shelf
+  // secret shelf — unchains after 3 completed worlds
   const sec=document.createElement('section');sec.className='wing';sec.id='secretWing';
   sec.innerHTML=`<h2>الرفّ السرّي</h2><div class="cards"></div>`;host.appendChild(sec);
   const unlocked3=Object.keys(G.done).length>=3;
-  const secretMeta={issue:'العدد ٣٥',title:'ما أمام الطبيعة',sub:'مطاردة أشباح مع رفعت إسماعيل نفسه',motif:'👻',
-    bg:'linear-gradient(160deg,#1d2a1d,#0a0f0a)',glow:'rgba(120,220,140,.4)',
-    lockNote:unlocked3?'انزاحت السلاسل! يُحمَّل في المرحلة القادمة…':'أنهي ٣ عوالم لفكّ السلاسل'};
-  const sc=makeCard(secretMeta,false);
-  if(unlocked3){sc.querySelector('.lock').innerHTML='✨<small>انزاحت السلاسل! هذا الحلم يُحمَّل في المرحلة القادمة… «هذه فانتازيا كما تعلمون»</small>';}
+  const sc=makeCard({...WORLDS.secret.meta,id:'secret',lockNote:'أنهي ٣ عوالم لفكّ السلاسل'},
+    unlocked3,G.done.secret);
   sec.querySelector('.cards').appendChild(sc);
 }
 </script>
@@ -767,6 +766,12 @@ addEventListener('keydown',e=>{
   if(['ArrowLeft','ArrowRight','Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();
 });
 addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('keydown',e=>{ // chariot lanes (Kadesh) listen for discrete presses
+  if(G.mode==='stealth'&&G.world&&G.world.laneKey){
+    if(e.code==='ArrowUp'||e.code==='KeyW')G.world.laneKey(-1);
+    if(e.code==='ArrowDown'||e.code==='KeyS')G.world.laneKey(1);
+  }
+});
 // touch buttons
 const tHold={l:false,r:false};
 function bindHold(el,k){
@@ -777,6 +782,13 @@ bindHold($('#tLeft'),'l');bindHold($('#tRight'),'r');
 $('#tAct').addEventListener('pointerdown',e=>{e.preventDefault();
   if(G.mode==='explore')tryInteract();
   else if(G.mode==='stealth'&&G.world&&G.world.stealthAction)G.world.stealthAction();
+});
+// canvas taps feed canvas-mode minigames that need positional input (chariot lanes)
+cv.addEventListener('pointerdown',e=>{
+  if(G.mode==='stealth'&&G.world&&G.world.canvasTap){
+    const r=cv.getBoundingClientRect();
+    G.world.canvasTap(e.clientX-r.left,e.clientY-r.top);
+  }
 });
 
 /* ---------- particles ---------- */
@@ -798,6 +810,8 @@ function newPart(anyY){
     case 'souls':p.soul=Math.random()<.35;
       if(p.soul){p.y=rand(H*.2,H);p.v=rand(12,30);p.r=rand(5,14);p.o=rand(.08,.2);p.w=rand(0,6);}
       else{p.y=rand(0,H);p.v=rand(4,14);p.r=rand(.8,2);p.o=rand(.2,.5);} break;
+    case 'snow':p.v=rand(22,64);p.r=rand(1,3.2);p.o=rand(.3,.8);p.w=rand(0,6);break;
+    case 'petals':p.v=rand(16,42);p.r=rand(3,6);p.o=rand(.35,.75);p.w=rand(0,6);break;
     default:p.y=rand(0,H);p.v=rand(6,22);p.r=rand(.7,2.4);p.o=rand(.25,.7);p.w=rand(0,6); // golden dust
   }
   return p;
@@ -834,6 +848,20 @@ function drawParticles(dt,t){
           g.addColorStop(0,`rgba(140,240,230,${p.o*2})`);g.addColorStop(1,'rgba(140,240,230,0)');
           ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();
         }else{ctx.fillStyle=`rgba(150,255,240,${p.o})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
+        break;
+      case 'snow':
+        p.y+=p.v*dt;p.w+=dt;p.x+=Math.sin(p.w)*.7;
+        if(p.y>H+10){p.y=-10;p.x=rand(0,W);}
+        ctx.fillStyle=`rgba(238,244,255,${p.o})`;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();
+        break;
+      case 'petals':
+        p.y+=p.v*dt;p.w+=dt*1.4;p.x+=Math.sin(p.w)*1.1;
+        if(p.y>H+12){p.y=-12;p.x=rand(0,W);}
+        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.w);
+        ctx.fillStyle=`rgba(246,182,203,${p.o})`;
+        ctx.beginPath();ctx.ellipse(0,0,p.r,p.r*.55,0,0,7);ctx.fill();
+        ctx.restore();
         break;
       default: // dust
         p.y-=p.v*dt;p.w+=dt;p.x+=Math.sin(p.w)*.4;
@@ -1000,7 +1028,7 @@ function collectQuote(){
   const w=G.world;if(G.quotes[w.id])return;
   G.quotes[w.id]={...w.quote};G.runTreasure++;addCp(3);refreshHUD();sfx.quote();
   toast(`📜 <b>كنز أدبي!</b><br><small>«${w.quote.text}»<br>— ${w.quote.src}</small>`);
-  if(['sherlock','dracula','greek','nights'].every(id=>G.quotes[id]))unlockAch('quotes');
+  if(PLAYABLE.every(id=>G.quotes[id]))unlockAch('quotes');
 }
 
 /* ---------- dialogue system ---------- */
@@ -1120,10 +1148,13 @@ function finishWorld(endKey){
   if(G.quotes[w.id]){q.classList.remove('hidden');
     q.innerHTML=`«${G.quotes[w.id].text}»<small>— ${G.quotes[w.id].src}</small>`;}
   else q.classList.add('hidden');
+  $('#ending').classList.toggle('white',!!e.white); // Hiroshima's silent-white wake-up
   showScreen('ending');sfx.quote();
   if(firstTime&&Object.keys(G.done).length===1)unlockAch('first');
   if(G.stability>=80)unlockAch('clean');
   if(Object.keys(G.done).length>=3)unlockAch('three');
+  if(w.id==='secret')unlockAch('crossover');
+  if(Object.keys(G.done).length>=13)unlockAch('all');
 }
 $('#endBack').addEventListener('click',()=>{sfx.ui();buildLibrary();showScreen('library');});
 
@@ -1266,7 +1297,25 @@ WORLDS.sherlock={
     {t:'اتهمي الوصيفة — قفازها الحريري وُجد قرب الخزانة!',tag:'نهاية متهوّرة',fx:{stab:-20,end:'wrong'}},
   ]},
  },
- startMinigame(){ mgDeduction(); },
+ startMinigame(){
+   mgDeduction({
+     title:'لوح الاستنتاج',
+     sub:'انقري دليلًا ثم انقري المشتبه الذي يفسّره. '+(G.flags.newspaper?'(خبر الصحيفة ثبّت دليل الرماد تلقائيًا)':''),
+     clues:[
+       {id:'ash',t:'🚬 رماد سيجار تريتشينوبولي هندي'},
+       {id:'knot',t:'🪢 عقدة بحرية في حبل الستائر'},
+       {id:'mud',t:'👣 وحلٌ من ضفة التايمز على السجادة'},
+       {id:'glove',t:'🧤 خيط حريرٍ من قفازٍ صغير'},
+     ],
+     suspects:[
+       {id:'sailor',f:'⚓',n:'البحّار الموشوم',d:'عاد لتوّه من مدراس بلا قرش، يداه تعرفان الحبال'},
+       {id:'maid',f:'🎀',n:'الوصيفة',d:'هادئة أكثر من اللازم، تلبس قفازات حرير في العمل'},
+       {id:'tobacco',f:'🎩',n:'تاجر التبغ',d:'يبيع السيجار الهندي ولا يدخّنه أبدًا'},
+     ],
+     correct:{ash:'sailor',knot:'sailor',mud:'sailor',glove:'maid'},
+     pre:G.flags.newspaper?{ash:'sailor'}:null, // the Times clue pre-pins the cigar link
+   });
+ },
  afterMinigame(s){
    G.flags.solved=true;G.stage=2;setObjective(this.objectives[2]);
    if(s>=.99)toast('🧠 لوحٌ مكتمل! واطسون يصفّق: «مذهل!»');
@@ -1345,27 +1394,15 @@ WORLDS.sherlock={
  },
 };
 
-/* deduction board minigame */
-function mgDeduction(){
-  const CLUES=[
-    {id:'ash',t:'🚬 رماد سيجار تريتشينوبولي هندي'},
-    {id:'knot',t:'🪢 عقدة بحرية في حبل الستائر'},
-    {id:'mud',t:'👣 وحلٌ من ضفة التايمز على السجادة'},
-    {id:'glove',t:'🧤 خيط حريرٍ من قفازٍ صغير'},
-  ];
-  const SUS=[
-    {id:'sailor',f:'⚓',n:'البحّار الموشوم',d:'عاد لتوّه من مدراس بلا قرش، يداه تعرفان الحبال'},
-    {id:'maid',f:'🎀',n:'الوصيفة',d:'هادئة أكثر من اللازم، تلبس قفازات حرير في العمل'},
-    {id:'tobacco',f:'🎩',n:'تاجر التبغ',d:'يبيع السيجار الهندي ولا يدخّنه أبدًا'},
-  ];
-  const CORRECT={ash:'sailor',knot:'sailor',mud:'sailor',glove:'maid'};
-  const asg={};let sel=null;
-  if(G.flags.newspaper){asg.ash='sailor';} // the Times clue pre-pins the Indian cigar link
-  openMg(`<h3>لوح الاستنتاج</h3>
-    <div class="mgSub">انقري دليلًا ثم انقري المشتبه الذي يفسّره. ${G.flags.newspaper?'(خبر الصحيفة ثبّت دليل الرماد تلقائيًا)':''}</div>
+/* deduction board minigame — generic (Sherlock, Orient Express, Plato's cave…) */
+function mgDeduction(cfg){
+  const CLUES=cfg.clues,SUS=cfg.suspects,CORRECT=cfg.correct;
+  const asg={...(cfg.pre||{})};let sel=null;
+  openMg(`<h3>${cfg.title}</h3>
+    <div class="mgSub">${cfg.sub}</div>
     <div class="clueRow" id="clueRow"></div>
     <div class="suspects" id="susRow"></div>
-    <div class="mgFoot"><button class="btn" id="mgAccuse" disabled>وجّهي الاتهام</button>
+    <div class="mgFoot"><button class="btn" id="mgAccuse" disabled>${cfg.accuse||'وجّهي الاتهام'}</button>
     <button class="btn ghost" id="mgReset">تفريغ اللوح</button></div>`);
   const cr=$('#clueRow'),sr=$('#susRow');
   function render(){
@@ -1708,7 +1745,11 @@ WORLDS.greek={
     {t:'تأكلين الثمرة كلها وتطلبين العرش كاملًا',tag:'نهاية خطرة',fx:{stab:-10,end:'queen'}},
   ]},
  },
- startMinigame(){ mgRow(); },
+ startMinigame(){
+   mgRhythm({title:'عبور نهر الستيكس',
+     sub:'اضغطي «جدّفي» (أو E / مسافة) حين يكون المؤشر داخل النطاق الأخضر — ستّ جذفات تكفي',
+     icon:'🛶',btn:'جدّفي!',hitLbl:'جذفات',hits:6,missStab:6});
+ },
  afterMinigame(s){
    G.stage=2;setObjective(this.objectives[2]);
    if(s>=.85)toast('🛶 عبورٌ ملكيّ — حتى خارون أومأ باحترام.');
@@ -1802,15 +1843,15 @@ WORLDS.greek={
  },
 };
 
-/* Styx rowing — rhythm bar */
-function mgRow(){
-  let strokes=0,misses=0,mark=0,dir=1,speed=IS_TOUCH?.55:.7,zoneL=40,zoneW=IS_TOUCH?24:18,run=true;
-  openMg(`<h3>عبور نهر الستيكس</h3>
-    <div class="mgSub">اضغطي «جدّفي» (أو E / مسافة) حين يكون المؤشر داخل النطاق الأخضر — ستّ جذفات تكفي</div>
-    <div id="rowBoat">🛶</div>
+/* rhythm bar minigame — generic (Styx rowing, Gilgamesh vigil, ghost photography…) */
+function mgRhythm(cfg){
+  let strokes=0,misses=0,mark=0,dir=1,speed=cfg.speed||(IS_TOUCH?.55:.7),zoneL=40,zoneW=cfg.zone||(IS_TOUCH?24:18),run=true;
+  openMg(`<h3>${cfg.title}</h3>
+    <div class="mgSub">${cfg.sub}</div>
+    <div id="rowBoat">${cfg.icon}</div>
     <div id="rowLane"><div id="rowZone"></div><div id="rowMark"></div></div>
-    <div class="mgStat"><span>جذفات: <b id="rowHits">٠</b>/٦</span><span>أخطاء: <b id="rowMiss">٠</b></span></div>
-    <div class="mgFoot"><button class="btn" id="rowGo" style="font-size:1.3rem;padding:.7em 2.2em">جدّفي!</button></div>`);
+    <div class="mgStat"><span>${cfg.hitLbl}: <b id="rowHits">٠</b>/${AR(cfg.hits)}</span><span>أخطاء: <b id="rowMiss">٠</b></span></div>
+    <div class="mgFoot"><button class="btn" id="rowGo" style="font-size:1.3rem;padding:.7em 2.2em">${cfg.btn}</button></div>`);
   const lane=$('#rowLane'),zone=$('#rowZone'),markEl=$('#rowMark');
   function placeZone(){zoneL=rand(15,100-zoneW-15);zone.style.left=zoneL+'%';zone.style.width=zoneW+'%';}
   placeZone();
@@ -1827,10 +1868,10 @@ function mgRow(){
       strokes++;speed+=.09;placeZone();sfx.item();
       $('#rowHits').textContent=AR(strokes);
       $('#rowBoat').style.transform=`translateX(${-strokes*36}px)`;
-      if(strokes>=6){run=false;window.mgKey=null;
+      if(strokes>=cfg.hits){run=false;window.mgKey=null;
         setTimeout(()=>endMinigame(clamp(1-misses*.12,.2,1)),450);}
     }else{
-      misses++;sfx.bad();setStability(G.stability-6);
+      misses++;sfx.bad();setStability(G.stability-(cfg.missStab||6));
       $('#rowMiss').textContent=AR(misses);
       lane.style.animation='shiver .25s';setTimeout(()=>lane.style.animation='',260);
       if(G.mode!=='minigame'){run=false;window.mgKey=null;}
@@ -1916,7 +1957,20 @@ WORLDS.nights={
     {t:'«الحقيقة يا مولاي: كلانا حكايةٌ في حلم قارئةٍ اسمها عبير»',tag:'كسر الجدار الرابع · خطِر',fx:{wall:1,stab:-15,end:'truth'}},
   ]},
  },
- startMinigame(){ mgTale(); },
+ startMinigame(){
+   mgOrder({title:'ليلةُ الحكاية',
+     sub:'انقري جملتين لتتبادلا مكانيهما حتى تستقيم الحكاية — قبل أن يطلع الفجر'+(G.flags.ring?' (خاتم المتنكّر أطال الليل قليلًا)':''),
+     frags:[
+       'خرج سندباد من بغداد ببضاعةٍ في سفينة تجّار، يطلب الرزق وعجائب البحار.',
+       'رست السفينة عند جزيرةٍ خضراء ناعمة التراب، فنزل البحّارة يوقدون النار ويستريحون.',
+       'اهتزّت الأرض فجأة — فما كانت جزيرةً قط، بل حوتًا عظيمًا نام حتى نبت على ظهره الشجر.',
+       'غاص الحوت في الأعماق، وتعلّق سندباد بقصعةٍ خشبية تتقاذفه الأمواج يومًا وليلة.',
+       'حملته الأمواج إلى جزيرة الملك المهرجان، فبدأت أولى عجائبه… وللحكاية بقية.',
+     ],
+     total:G.flags.ring?100:75,goLbl:'احكي للملك',
+     failToast:'🌅 طلع الفجر قبل اكتمال الحكاية…',
+     onWrong:w=>`📖 الملك يقطّب: ${AR(w)} جُملٍ في غير موضعها.`});
+ },
  afterMinigame(s){
    G.stage=2;setObjective(this.objectives[2]);
    if(s>=.7)toast('🌙 الملك مال إلى الأمام وهو يسمع — علامة النجاة الأولى.');
@@ -2015,23 +2069,17 @@ WORLDS.nights={
  },
 };
 
-/* tale-ordering minigame — Scheherazade's craft */
-function mgTale(){
-  const ORDER=[
-    'خرج سندباد من بغداد ببضاعةٍ في سفينة تجّار، يطلب الرزق وعجائب البحار.',
-    'رست السفينة عند جزيرةٍ خضراء ناعمة التراب، فنزل البحّارة يوقدون النار ويستريحون.',
-    'اهتزّت الأرض فجأة — فما كانت جزيرةً قط، بل حوتًا عظيمًا نام حتى نبت على ظهره الشجر.',
-    'غاص الحوت في الأعماق، وتعلّق سندباد بقصعةٍ خشبية تتقاذفه الأمواج يومًا وليلة.',
-    'حملته الأمواج إلى جزيرة الملك المهرجان، فبدأت أولى عجائبه… وللحكاية بقية.',
-  ];
-  let idx=[0,1,2,3,4];
+/* fragment-ordering minigame — generic (Scheherazade's tale, the 1919 dispatch…) */
+function mgOrder(cfg){
+  const ORDER=cfg.frags;
+  let idx=ORDER.map((_,i)=>i);
   do{idx.sort(()=>Math.random()-.5);}while(idx.every((v,i)=>v===i));
-  let sel=-1,attempts=0,total=G.flags.ring?100:75,left=total,run=true,timer;
-  openMg(`<h3>ليلةُ الحكاية</h3>
-    <div class="mgSub">انقري جملتين لتتبادلا مكانيهما حتى تستقيم الحكاية — قبل أن يطلع الفجر${G.flags.ring?' (خاتم المتنكّر أطال الليل قليلًا)':''}</div>
+  let sel=-1,attempts=0,total=cfg.total,left=total,run=true,timer;
+  openMg(`<h3>${cfg.title}</h3>
+    <div class="mgSub">${cfg.sub}</div>
     <div id="dawnBar"><div id="dawnFill"></div></div>
     <div id="fragList"></div>
-    <div class="mgFoot"><button class="btn" id="taleGo">احكي للملك</button></div>`);
+    <div class="mgFoot"><button class="btn" id="taleGo">${cfg.goLbl}</button></div>`);
   const list=$('#fragList');
   function render(){
     list.innerHTML='';
@@ -2051,7 +2099,7 @@ function mgTale(){
     if(!run||G.mode!=='minigame')return clearInterval(timer);
     left-=.5;$('#dawnFill').style.width=(100-left/total*100)+'%';
     if(left<=0){run=false;clearInterval(timer);
-      toast('🌅 طلع الفجر قبل اكتمال الحكاية…');
+      toast(cfg.failToast);
       endMinigame(.25);}
   },500);
   $('#taleGo').addEventListener('click',()=>{
@@ -2061,7 +2109,7 @@ function mgTale(){
       endMinigame(clamp(.55+.45*(left/total)-attempts*.06,.3,1));}
     else{attempts++;sfx.bad();setStability(G.stability-5);
       const wrong=idx.filter((v,i)=>v!==i).length;
-      toast(`📖 الملك يقطّب: ${AR(wrong)} جُملٍ في غير موضعها.`);
+      toast(cfg.onWrong(wrong));
       if(G.mode!=='minigame'){run=false;clearInterval(timer);}}
   });
 }
@@ -2071,6 +2119,1552 @@ function mgTale(){
    ============================================================ */
 addEventListener('pointerdown',()=>{const c=ac();if(c&&c.state==='suspended')c.resume();},{once:true});
 runBoot();
+</script>
+<script>
+/* ============================================================
+   PHASE 2 — new minigames
+   ============================================================ */
+/* glimpse-and-repeat sigils (Lovecraft): Simon-style, 3 rounds */
+function mgSimon(cfg){
+  const GLYPHS=['◈','☾','▲','✶'];
+  const LEN=[3,4,5];let round=0,seq=[],showing=true,inputIdx=0,fails=0;
+  openMg(`<h3>${cfg.title}</h3><div class="mgSub">${cfg.sub}</div>
+    <div id="simonShow" style="text-align:center;font-size:2.6rem;min-height:1.6em;letter-spacing:.35em;color:#7de3a0;text-shadow:0 0 18px rgba(125,227,160,.7);font-family:serif"></div>
+    <div class="clueRow" id="simonBtns"></div>
+    <div class="mgStat"><span>الصفحة: <b id="simonRound">١</b>/٣</span><span>زلّات: <b id="simonMiss">٠</b></span></div>`);
+  const show=$('#simonShow'),row=$('#simonBtns');
+  GLYPHS.forEach(g=>{
+    const b=document.createElement('button');b.className='clue';
+    b.style.cssText='font-size:1.7rem;min-width:2.6em;font-family:serif';
+    b.textContent=g;
+    b.onclick=()=>{if(showing||G.mode!=='minigame')return;press(g);};
+    row.appendChild(b);
+  });
+  function playRound(){
+    if(G.mode!=='minigame')return;
+    showing=true;inputIdx=0;
+    seq=Array.from({length:LEN[round]},()=>pick(GLYPHS));
+    $('#simonRound').textContent=AR(round+1);
+    let i=0;show.textContent='';
+    (function step(){
+      if(G.mode!=='minigame')return;
+      if(i<seq.length){
+        show.textContent=seq[i];beep(300+GLYPHS.indexOf(seq[i])*90,.14,'sine',.05);
+        i++;setTimeout(()=>{show.textContent='◌';setTimeout(step,180);},620);
+      }else{show.textContent='…اكتبي ما رأيتِ';showing=false;}
+    })();
+  }
+  function press(g){
+    if(g===seq[inputIdx]){
+      beep(300+GLYPHS.indexOf(g)*90,.1,'triangle',.05);inputIdx++;
+      if(inputIdx>=seq.length){
+        round++;
+        if(round>=LEN.length){setTimeout(()=>endMinigame(clamp(1-fails*.22,.2,1)),400);}
+        else setTimeout(playRound,700);
+      }
+    }else{
+      fails++;sfx.bad();setStability(G.stability-8);
+      $('#simonMiss').textContent=AR(fails);
+      toast('👁️ اهتزّت الرموز أمام عينيك… الصفحة تُعاد.');
+      if(G.mode==='minigame')setTimeout(playRound,700);
+    }
+  }
+  playRound();
+}
+/* conscience quiz (Dostoevsky): 3 questions, best answers align with redemption */
+function mgQuiz(cfg){
+  let qi=0,good=0;
+  openMg(`<h3>${cfg.title}</h3><div class="mgSub">${cfg.sub}</div><div id="quizBox"></div>
+    <div class="mgStat"><span>السؤال: <b id="quizN">١</b>/${AR(cfg.qs.length)}</span></div>`);
+  function render(){
+    const q=cfg.qs[qi];$('#quizN').textContent=AR(qi+1);
+    const box=$('#quizBox');
+    box.innerHTML=`<div style="font-size:1.05rem;line-height:1.9;margin:12px 4px">${q.q}</div>`;
+    const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;gap:8px';
+    q.a.forEach(opt=>{
+      const b=document.createElement('button');b.className='chBtn';b.textContent=opt.t;
+      b.onclick=()=>{
+        if(G.mode!=='minigame')return;
+        sfx.choice();if(opt.good)good++;else setStability(G.stability-5);
+        toast(opt.re);
+        qi++;
+        if(qi<cfg.qs.length)render();
+        else setTimeout(()=>endMinigame(clamp(.3+good/cfg.qs.length*.7,.3,1)),500);
+      };
+      wrap.appendChild(b);
+    });
+    box.appendChild(wrap);
+  }
+  render();
+}
+/* haiku assembly (Hiroshima): gentle by design — no timer, no penalty, no failure */
+function mgHaiku(cfg){
+  let chosen=[];
+  openMg(`<h3>${cfg.title}</h3><div class="mgSub">${cfg.sub}</div>
+    <div id="haikuOut" style="text-align:center;font-family:var(--f-fancy);font-size:1.25rem;min-height:5.5em;line-height:2.2;color:#f6e6d0"></div>
+    <div class="clueRow" id="haikuLines"></div>
+    <div class="mgFoot"><button class="btn ghost" id="haikuClear">ابدئي من جديد</button></div>`);
+  const out=$('#haikuOut'),row=$('#haikuLines');
+  const lines=[...cfg.lines].sort(()=>Math.random()-.5);
+  function render(){
+    out.innerHTML=chosen.map(l=>l).join('<br>')||'<span style="opacity:.4">…ثلاثة أسطر، كنَفَسٍ واحد</span>';
+    row.innerHTML='';
+    lines.forEach(l=>{
+      const b=document.createElement('button');b.className='clue'+(chosen.includes(l)?' used':'');
+      b.textContent=l;
+      b.onclick=()=>{
+        if(chosen.includes(l)||chosen.length>=3||G.mode!=='minigame')return;
+        beep(392+chosen.length*66,.16,'sine',.04);chosen.push(l);render();
+        if(chosen.length===3){
+          const ok=chosen.every((c,i)=>c===cfg.correct[i]);
+          if(ok){sfx.quote();out.style.color='#ffd9a8';
+            setTimeout(()=>endMinigame(1),1400);}
+          else{toast('🍃 قال كينجي بلطف: «قريب… لكن أنصتي للنهر مرة أخرى».');
+            setTimeout(()=>{chosen=[];render();},1200);}
+        }
+      };
+      row.appendChild(b);
+    });
+  }
+  $('#haikuClear').addEventListener('click',()=>{chosen=[];render();sfx.ui();});
+  render();
+}
+
+/* ============================================================
+   WORLD 5 — Orient Express  «قطار الشرق السريع»
+   ============================================================ */
+WORLDS.orient={
+ id:'orient',wing:0,len:2400,ptype:'dust',
+ meta:{issue:'العدد ٢٠',title:'قطار الشرق السريع',sub:'بوارو · جريمةٌ والثلج يحاصر القطار',
+   motif:'🚂',bg:'linear-gradient(160deg,#4a1220,#1d0a10)',glow:'rgba(190,60,80,.5)'},
+ intro:'قطارٌ فاخر عالق في جرفٍ ثلجي بين فيينا وبلغراد… وفي المقصورة رقم ٤ جثةٌ طُعنت اثنتي عشرة طعنة.',
+ costume:{dress:'#7a2432',dress2:'#451018',accent:'#d4af37'},
+ objectives:[
+  'اعثري على مسيو بوارو في عربة الطعام واسمعي القضية',
+  'رتّبي الأدلة على لوح الاستنتاج (تحدّثي إلى بوارو)',
+  'اعرضي الحلّين أمام المقصورة رقم ٤',
+ ],
+ hints:[
+  'بوارو في عربة الطعام يشكو برودة الشوكولاتة الساخنة. الكمساري يعرف أكثر مما يقول.',
+  'حين تشير كل الأدلة إلى أشخاصٍ مختلفين… فربما لا تكذب الأدلة، بل يتشارك الناس.',
+  'لهذه الجريمة حلّان، وكلاهما صحيح. السؤال ليس «مَن؟» بل «أيّ عدالة؟».',
+ ],
+ facts:[
+  'أجاثا كريستي أكثر الروائيين مبيعًا في التاريخ بحسب موسوعة غينيس — تُقدَّر مبيعاتها بأكثر من ملياري نسخة.',
+  'في ١٩٢٦ اختفت كريستي نفسها أحد عشر يومًا في لغزٍ حقيقي لم تفسّره قط.',
+  'قطار الشرق السريع خطٌّ حقيقي عمل منذ ١٨٨٣ بين باريس وإسطنبول، وفي ١٩٢٩ حاصرته الثلوج فعلًا ستة أيام — من هناك جاءت فكرة الرواية.',
+  'عملت كريستي صيدلانيةً مساعِدة في الحرب العالمية الأولى، ومن هناك خبرتها الشهيرة بالسموم.',
+ ],
+ quote:{text:'المستحيل لا يمكن أن يكون قد وقع، إذن فالمستحيل ممكنٌ رغم كل المظاهر',
+   src:'أجاثا كريستي، «جريمة في قطار الشرق السريع»'},
+ ents:[
+  {x:380,kind:'npc',name:'ميشيل الكمساري',c1:'#2a3a5e',c2:'#16203a',hat:'#16203a',prop:'🔑',dlg:'michel'},
+  {x:850,kind:'npc',name:'هيركيول بوارو',c1:'#26262e',c2:'#111116',skin:'#e8cba0',prop:'☕',dlg:'poirot'},
+  {x:1150,kind:'spot',name:'نافذة مثلّجة',icon:'❄️',h:110,dlg:'window'},
+  {x:1500,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:1850,kind:'npc',name:'الأميرة العجوز',c1:'#3d2a4a',c2:'#241830',hat:'#d5cfc0',prop:'🪭',dlg:'princess'},
+  {x:2250,kind:'spot',name:'المقصورة رقم ٤',icon:'🚪',h:70,dlg:'cabin'},
+ ],
+ dialogs:{
+  michel:{sp:'ميشيل الكمساري',txt:'مدموازيل! القطار عالق منذ منتصف الليل، والثلج يعلو، و… سيدٌ من الركاب لا يستيقظ. لا يستيقظ أبدًا. مسيو بوارو في عربة الطعام — الحمد لله أن على متننا أعظم عقلٍ في أوروبا. هو يقول ذلك بنفسه كثيرًا.',ch:[
+    {t:'خذني إلى تفاصيل الليلة الماضية',fx:{next:'michel2'}},
+    {t:'اطمئن. سنصل إلى الحقيقة قبل أن يصل المحرّك القاطر.',fx:{cp:1}},
+  ]},
+  michel2:{sp:'ميشيل الكمساري',txt:'القتيل هو السمسار زاخاروف — رجلٌ لم يحبه أحد، وكان يتلقى رسائل تهديد. طرق بابه في الليل أشخاص… كثيرون. أكثر مما يليق بقطارٍ نائم. وأنا لم أغادر ممرّي إلا مرتين، أقسم!',ch:[
+    {t:'مرتين؟ سنتذكر هذا. (تدوّنين)',fx:{cp:2}},
+  ]},
+  poirot:{sp:'هيركيول بوارو',txt:'آه، الآنسة القارئة! هيركيول بوارو — نعم، ذاك بوارو. خلاياي الرمادية الصغيرة تعمل منذ الفجر: ضحية طُعنت اثنتي عشرة طعنة، بعضها عميق غاضب وبعضها خجول مرتجف. طعناتٌ لا يوقّعها قاتل واحد، تعالي — اللوح ينتظر يدًا منظّمة.',ch:[
+    {t:'افتحي لوح الاستنتاج',tag:'لغز',fx:{stage:1,mg:1}},
+    {t:'ألستَ تجتمع عادةً بأعظم محققي الروايات في هذا العدد؟',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,next:'poirot2'}},
+  ]},
+  poirot2:{sp:'هيركيول بوارو',txt:'*يبرم شاربه بزهو* في «العدد العشرين» — كما تسمّينه — جمعنا القدرُ نحن مشاهير التحقيق في لغزٍ واحد. شيرلوك مغرور، وأنا… دقيق. هناك فرق، مدموازيل. فرقٌ كبير.',ch:[
+    {t:'دقيق جدًا. إلى اللوح إذن.',tag:'لغز',fx:{stage:1,mg:1}},
+  ]},
+  window:{sp:'النافذة المثلّجة',txt:'خلف الزجاج، سهوبٌ بيضاء بلا نهاية، وثلجٌ يهبط كأن السماء تُفرغ أرشيفها. أحدهم كتب على البخار حرفًا… ثم مسحه نصف مسحة.',ch:[
+    {t:'ترسمين الحرف في دفترك قبل أن يذوب',fx:{cp:2,gone:1}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'بين مقعدين مخمليين، ورقة تلمع بضوء ذهبي هادئ — كأنها تذكرة درجةٍ أولى إلى مكتبةٍ أخرى.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  princess:{sp:'الأميرة العجوز',txt:'أميرةٌ روسية مهاجرة تُحرّك مروحتها ببطء ملكي: «الضحية؟ رجلٌ رخيص سرق مِن عائلاتٍ كثيرة ما لا يُعوَّض. لا تنظري إليّ هكذا يا صغيرة — في عمري هذا لا نطعن أحدًا، نُشرف على الطعن فحسب». وتسقط من كمّها منديلٌ مطرّز.',ch:[
+    {t:'تلتقطين المنديل بأدب وتعيدينه',tag:'غرض',fx:{item:{id:'hank',icon:'🧣',name:'منديل مطرّز بحرف K'},cp:2}},
+    {t:'«الإشراف على الطعن» ليس دفاعًا مقنعًا يا صاحبة السمو',fx:{cp:1,stab:-5}},
+  ]},
+  cabin:{sp:'المقصورة رقم ٤',txt:'البابُ موارب، والستارة تتنفس مع مكيّف الهواء. بوارو يقف عند العتبة: «تفضّلي مدموازيل. أخبريهم بما وصلنا إليه — الحقيقة لها هنا وجهان، وأنا عجوزٌ بما يكفي لأدعكِ تختارين أيّهما يُروى».',ch:[
+    {t:'الحل البسيط: دخيلٌ صعد من الثلج وفرّ — تُطوى القضية',tag:'نهاية',req:'solved',fx:{score:2,end:'mercy'}},
+    {t:'الحقيقة كاملة أمام شرطة بلغراد: اشتركوا جميعًا',tag:'نهاية',req:'solved',fx:{score:1,end:'truth'}},
+    {t:'اتهمي الأميرة وحدها — منديلها وُجد قرب الجثة!',tag:'نهاية متهوّرة',req:'solved',fx:{stab:-20,end:'wrong'}},
+    {t:'لم يكتمل استنتاجي بعد (عودي إلى بوارو)',notFlag:'solved',fx:{}},
+  ]},
+ },
+ startMinigame(){
+   mgDeduction({
+     title:'لوح الاستنتاج — عربة الطعام',
+     sub:'كل دليل يشير إلى شخصٍ مختلف… إلا واحدًا يشير إلى الجميع. '+(G.flags.hank?'(منديل الأميرة بين يديك بالفعل)':''),
+     clues:[
+       {id:'cuff',t:'🔘 زرُّ كمٍّ ذهبي عليه شعار نبالة'},
+       {id:'hank',t:'🧣 منديل مطرّز بحرف K'},
+       {id:'pipe',t:'🚬 منظّف غليونٍ ملتوٍ'},
+       {id:'wounds',t:'🗡️ اثنتا عشرة طعنة مختلفة العمق واليد'},
+     ],
+     suspects:[
+       {id:'count',f:'🎖️',n:'الكونت الشاب',d:'يقسم أنه نام مبكرًا، وأزرار سترته تنقص واحدًا'},
+       {id:'nanny',f:'🧶',n:'المربية كاترينا',d:'تحفظ أسماء أطفالٍ فقدتهم عائلتها بسبب الضحية'},
+       {id:'servant',f:'🕯️',n:'الخادم العجوز',d:'يدخّن الغليون سرًّا ويكره أن يُسأل عن الليلة'},
+       {id:'all',f:'👥',n:'الركّاب جميعًا؟',d:'اثنتا عشرة يدًا… في قطارٍ فيه اثنا عشر راكبًا غاضبًا'},
+     ],
+     correct:{cuff:'count',hank:'nanny',pipe:'servant',wounds:'all'},
+     pre:G.flags.hank?{hank:'nanny'}:null,
+     accuse:'اعرضي الاستنتاج',
+   });
+ },
+ afterMinigame(s){
+   G.flags.solved=true;G.stage=2;setObjective(this.objectives[2]);
+   if(s>=.99)toast('🧠 قال بوارو: «مذهل! بالنسبة لغير بلجيكية».');
+   else if(s>=.5)toast('🧠 أومأ بوارو: «قريب، مدموازيل. الخلايا الرمادية تحتاج قهوة أفضل».');
+   else{toast('🌫️ اختلطت الخيوط… والثلج يهمس على الزجاج.');setStability(G.stability-10);}
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='mercy')return mg>=.7
+     ?{grade:'🌟🌟🌟',title:'نهاية العدالة الأخرى',desc:'قدّم بوارو للشرطة «الدخيل الذي فرّ عبر الثلج»، وقبِلوه لأن الأوراق تحب البساطة. اثنا عشر راكبًا حملوا سرّهم ونزلوا في اثنتي عشرة محطة، وكلٌّ منهم ترك في مقعدك وردة. قال بوارو وهو يودّعك: «مرةً في العمر، مدموازيل، يخطئ بوارو عمدًا — ولا يخطئ». هذه هي النهاية التي اختارتها كريستي نفسها… وأنتِ فهمتِ لماذا.'}
+     :{grade:'🌟🌟',title:'نهاية البساطة المرتبكة',desc:'مرّرتِ رواية الدخيل، لكن استنتاجكِ الناقص ترك خيوطًا مكشوفة، فظل مفتش بلغراد يستدعي الركاب شهورًا. نجوا جميعًا في النهاية — منهكين. غمغم بوارو: «الرحمة الرديئة الصنعة تُتعب أكثر من العدالة».'};
+   if(k==='truth')return {grade:'🌟🌟',title:'نهاية الحقيقة الكاملة',desc:'قلتِها كاملة: اثنتا عشرة يدًا لجريمةٍ واحدة، لضحيةٍ دمّرت اثنتي عشرة حياة. بكت المربية، واعتدل الكونت، وأغلقت الأميرة مروحتها بهدوءِ من انتظر هذه اللحظة عشر سنين. المحكمة رأفت بهم — لكن شيئًا في عربة الطعام ظل يسألك: أكانت الورقةُ الرسمية تستحق كل هذا؟'};
+   return {grade:'🌟',title:'نهاية الاتهام الأعرج',desc:'اتهمتِ الأميرة وحدها، فنهضت بكامل مجدها المهاجر وقالت جملة واحدة: «يا صغيرتي، لو قتلتُه لما ترك القطارُ المحطةَ أصلًا». ضحك الركاب، وتوارى بوارو خجلًا في قبّعته، وانهار الحلم من الإحراج قبل أن ينهار من التشويش.'};
+ },
+ draw(cx,W,H,cam,t){
+  // carriage interior: warm wood, window band onto snowy night
+  cx.fillStyle=skyGrad(cx,H,[[0,'#2a1410'],[.5,'#3d2016'],[1,'#1d0e0a']]);cx.fillRect(0,0,W,H);
+  // window band
+  const wy=H*.26,wh=H*.3;
+  for(let hx=80;hx<this.len;hx+=460){
+    const sx=hx-cam;if(sx<-420||sx>W+40)continue;
+    // frame
+    cx.fillStyle='#17100c';cx.fillRect(sx-14,wy-14,388,wh+28);
+    // night outside
+    const g=cx.createLinearGradient(0,wy,0,wy+wh);
+    g.addColorStop(0,'#0c1830');g.addColorStop(.7,'#1a2a48');g.addColorStop(1,'#e8ecf4');
+    cx.fillStyle=g;cx.fillRect(sx,wy,360,wh);
+    // snow drifts + far trees
+    cx.fillStyle='#dfe6f0';
+    cx.beginPath();cx.moveTo(sx,wy+wh);
+    for(let x=0;x<=360;x+=30)cx.lineTo(sx+x,wy+wh-14-Math.abs(Math.sin((hx+x)*.01))*22);
+    cx.lineTo(sx+360,wy+wh);cx.closePath();cx.fill();
+    cx.fillStyle='#0e1c36';
+    for(let p2=0;p2<4;p2++){const px=sx+50+p2*90;
+      cx.beginPath();cx.moveTo(px,wy+wh-20);cx.lineTo(px+10,wy+wh-64-(p2%2)*14);cx.lineTo(px+20,wy+wh-20);cx.closePath();cx.fill();}
+    // falling snow inside the pane
+    cx.fillStyle='rgba(255,255,255,.8)';
+    for(let s2=0;s2<14;s2++){
+      const px=sx+((s2*53+hx)%360),py=wy+((s2*97+t*.05+hx)%wh);
+      cx.fillRect(px,py,2,2);}
+    // frost corners
+    cx.fillStyle='rgba(220,235,255,.18)';
+    cx.beginPath();cx.arc(sx,wy,36,0,7);cx.arc(sx+360,wy+wh,30,0,7);cx.fill();
+  }
+  // art-deco paneling + brass lamps
+  for(let hx=40;hx<this.len;hx+=230){
+    const sx=hx-cam;if(sx<-60||sx>W+60)continue;
+    cx.strokeStyle='rgba(212,175,55,.35)';cx.lineWidth=2;
+    cx.strokeRect(sx,H*.62,150,H*.14);
+    cx.strokeRect(sx+8,H*.62+8,134,H*.14-16);
+    const fl=.8+Math.sin(t*.004+hx)*.2;
+    glow(cx,sx+75,H*.2,40*fl,'255,190,90',.3);
+    cx.fillStyle='#d4af37';cx.fillRect(sx+70,H*.16,10,14);
+    cx.fillStyle=`rgba(255,214,130,${.9*fl})`;
+    cx.beginPath();cx.arc(sx+75,H*.14,7,0,7);cx.fill();
+  }
+  // burgundy carpet
+  cx.fillStyle='#3d1018';cx.fillRect(0,GY,W,H-GY);
+  cx.fillStyle='rgba(212,175,55,.14)';
+  for(let i=0;i<14;i++){const sx=((i*140-cam)%(W+140)+W+140)%(W+140)-70;
+    cx.fillRect(sx,GY+12,80,3);cx.fillRect(sx+10,GY+22,60,3);}
+ },
+};
+
+/* ============================================================
+   WORLD 6 — Lovecraft Country  «بلاد لافكرافت»
+   ============================================================ */
+WORLDS.lovecraft={
+ id:'lovecraft',wing:1,len:2400,ptype:'souls',
+ meta:{issue:'العدد ٦٠',title:'بلاد لافكرافت',sub:'إنسماوث الغارقة · النيكرونوميكون · كثولهو',
+   motif:'🐙',bg:'linear-gradient(160deg,#0e2e22,#060f12)',glow:'rgba(40,180,120,.45)'},
+ intro:'بلدة ساحلية يبتلعها الطحلب، وبيوتها تميل بزوايا لا يجيزها إقليدس. البحر هنا… يفكّر.',
+ costume:{dress:'#2a4a3a',dress2:'#122a20',accent:'#7de3a0'},
+ objectives:[
+  'استمعي إلى همس البلدة ثم اقصدي أمين المكتبة المذعور',
+  'انسخي رموز الكتاب المحظور دون أن تحدّقي طويلًا',
+  'انزلي إلى الرصيف البحري وواجهي ما ينتظر',
+ ],
+ hints:[
+  'البحّار عند أول الطريق يتكلم بنصف فم — النصف الآخر يخاف أن يسمعه البحر.',
+  'الرموز لا تريد أن تُحفظ. اخطفيها بنظراتٍ قصيرة، كما تقرئين نهاية رواية رعبٍ من بين أصابعك.',
+  'عند الرصيف، القاعدة الأولى في كتب الرعب الكوني: مَن يعرف أقل، ينجو أكثر.',
+ ],
+ facts:[
+  'مات لافكرافت عام ١٩٣٧ شبه مجهول وفقيرًا — شهرته كلها جاءت بعد موته بعقود.',
+  'ظهر كثولهو أول مرة في قصة «نداء كثولهو» المنشورة عام ١٩٢٨ في مجلة «ويرد تيلز».',
+  'النيكرونوميكون كتابٌ لا وجود له — اخترعه لافكرافت، ونسبه لمؤلفٍ عربي متخيَّل سمّاه «عبد الحذرد»، وهو اسم لعب به منذ طفولته.',
+  '«الظل فوق إنسماوث» كانت الكتاب الوحيد من قصصه الذي صدر في حياته (١٩٣٦، عن دارٍ صغيرة).',
+ ],
+ quote:{text:'أقدمُ عواطف البشر وأقواها الخوف، وأقدمُ أنواع الخوف وأقواها الخوفُ من المجهول',
+   src:'هـ. ف. لافكرافت، «الرعب الخارق في الأدب»'},
+ ents:[
+  {x:400,kind:'npc',name:'بحّار عجوز',c1:'#2a3a3a',c2:'#141f1f',hat:'#1d2a2a',prop:'🪝',dlg:'sailor'},
+  {x:800,kind:'spot',name:'بيتٌ مائل',icon:'🏚️',h:90,dlg:'house'},
+  {x:1100,kind:'spot',name:'تمثال صغير رطب',icon:'🗿',dlg:'idol'},
+  {x:1450,kind:'npc',name:'أمين مكتبة مذعور',c1:'#3a3a2a',c2:'#20200f',skin:'#d8d0b0',prop:'📕',dlg:'lib'},
+  {x:1800,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:2250,kind:'npc',name:'شيءٌ عند الرصيف',c1:'#0e3a2e',c2:'#03140f',skin:'#4a8a72',prop:'🌊',dlg:'thing'},
+ ],
+ dialogs:{
+  sailor:{sp:'البحّار العجوز',txt:'*يتكلم دون أن ينظر إليك* غريبة؟ اسمعي نصيحة مجانية: لا تشتري السمك، ولا تسألي عن «شعب العمق»، ولا تنظري إلى الحيد المرجاني وقت الجزر. أهل البلدة… تغيّروا. عيونهم صارت لا ترمش. أنا أرمش. أرمش كثيرًا لأثبت لنفسي.',ch:[
+    {t:'ما الذي في الحيد المرجاني؟',fx:{next:'sailor2'}},
+    {t:'ترمشين له مرتين تضامنًا وتمضين',fx:{cp:1}},
+  ]},
+  sailor2:{sp:'البحّار العجوز',txt:'*يخفض صوته حتى يكاد يختفي* شيءٌ قديم. أقدم من البلدة، أقدم من الخريطة. يقولون إنه نائم و«يحلم». وأنا أقول: لا توقظي الأشياء التي حجمُها يُقاس بالمدن. اذهبي للمكتبة إن أردتِ أسماءً — أنا لا ألفظ الأسماء قرب الماء.',ch:[
+    {t:'حكمة بحّار. إلى المكتبة.',fx:{cp:2,stage:0}},
+  ]},
+  house:{sp:'البيت المائل',txt:'بيتٌ خشبي يميل بزاوية تؤلم العين — ليس ميل الإهمال، بل ميل مَن يحاول النظر إلى شيءٍ خلف السماء. نوافذه مغلقة بالألواح… من الداخل.',ch:[
+    {t:'تقيسين الزاوية بعينيك وتبتعدين (+نقطة ثقافة)',fx:{cp:2,gone:1}},
+    {t:'«هندسة غير إقليدية… في بلدية ساحلية. عظيم.»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:1,gone:1,toast:'🪞 قال المرشد: «إياكِ والسخرية من الهندسة هنا. الهندسة هنا تسمع».'}},
+  ]},
+  idol:{sp:'التمثال الرطب',txt:'تمثال أخضر صغير بحجم قبضة يد: جسدٌ متضخم، أجنحة قصيرة، ورأسٌ… رأسٌ من الأفضل وصفه بأنه «كثير الأذرع». إنه رطب رغم أنه بعيد عن الماء. رطبٌ دائمًا.',ch:[
+    {t:'تلفّينه في منديل وتحملينه كدليل',tag:'غرض',fx:{item:{id:'idol',icon:'🗿',name:'التمثال الرطب'},gone:1,stab:-5}},
+    {t:'تتركينه. بعض التذكارات تتذكرك هي الأخرى.',fx:{cp:1}},
+  ]},
+  lib:{sp:'أمين المكتبة',txt:'*يمسك رفًّا كي لا ترتجف يداه* في الخزانة المقفلة نسخة… نسخةٌ من الكتاب الذي لا نعيره. المجلس يريد نسخ صفحة الرموز قبل أن نغرقه في الخليج — لكن كل من حدّق فيها طويلًا صار يرسمها في نومه. أنتِ قارئة عابرة، عيناكِ جديدتان: انسخيها خطفًا، دون تحديق. أرجوكِ.',ch:[
+    {t:'افتحي صفحة الرموز (بنظرات قصيرة)',tag:'لغز',fx:{stage:1,mg:1}},
+    {t:'كتابٌ «يُقرأ ولا يُعار»؟ أعرف مكتبات هكذا.',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'على درج المكتبة، ورقة تشعّ بأخضر هادئ — الشيء الوحيد في البلدة الذي يضيء دون أن يقلق.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  thing:{sp:'الشيء عند الرصيف',txt:'عند نهاية الرصيف يقف ما ظننتِه صيادًا. لكن معطفه لا يتحرك مع الريح، وصوته يصل قبل أن يفتح فمه: «القارئةُ الصغيرة… جئتِ حتى حافة المعرفة. خلف هذا الماء ينام ما لا تتسع له اللغة. خطوةٌ أخيرة… أم غلافٌ يُغلق؟»',ch:[
+    {t:'تغرقين التمثال والرموز في الخليج: «بعض المعرفة يُدفن»',tag:'نهاية',req:'idol',fx:{score:2,end:'seal'}},
+    {t:'تغلقين دفترك وتديرين ظهرك للبحر دون كلمة',tag:'نهاية',fx:{score:1,end:'walk'}},
+    {t:'«سلّم لي على النائم. قولي له: قرّاء مصر يعرفونه جيدًا.»',tag:'كسر الجدار الرابع · خطِر',fx:{wall:1,stab:-25,end:'greet'}},
+  ]},
+ },
+ startMinigame(){
+   mgSimon({title:'صفحة الرموز المحظورة',
+     sub:'تُعرض الرموز لمحةً ثم تختفي — أعيدي كتابتها بالترتيب. ثلاث صفحات، والنسيان هنا نعمة'});
+ },
+ afterMinigame(s){
+   G.stage=2;setObjective(this.objectives[2]);
+   if(s>=.99)toast('📕 نسختِ الرموز ولم ترسميها في خيالك. أمين المكتبة يبكي امتنانًا.');
+   else if(s>=.5)toast('📕 نُسخت الصفحة… لكن رمزًا واحدًا ظل يطفو أمام عينيك لحظة.');
+   else toast('🌀 حدّقتِ أكثر مما ينبغي — الرموز الآن تعرف اسمك.');
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='seal')return mg>=.6
+     ?{grade:'🌟🌟🌟',title:'نهاية مَن أطفأت الفانوس',desc:'غرق التمثال، وذابت النسخة في ملح الخليج، ونامت البلدة أول نومٍ بلا أحلامٍ خضراء منذ جيل. لم يشكرك أحد — فالمنقذون في قصص لافكرافت لا يُذكرون، وهذا بالضبط ما يجعلهم منقذين. كتب المرشد في هامش الحلم: «أعظم انتصارٍ على الرعب الكوني؟ أن تعودي إلى بيتك وتنسي». وأنتِ — للأسف قارئة — لن تنسي تمامًا.'}
+     :{grade:'🌟🌟',title:'نهاية الختم المتصدّع',desc:'أغرقتِ التمثال، لكن الرموز التي حدّقتِ فيها طويلًا بقيت محفورة خلف جفنيك. البلدة نجت؛ أما أنتِ فستكتشفين بعد سنوات أنك ترسمين دوائر غريبة على هوامش الكتب. لا شيء خطير. غالبًا.'};
+   if(k==='walk')return {grade:'🌟🌟',title:'نهاية الغلاف المُغلق',desc:'أدرتِ ظهرك للبحر ومشيتِ، والشيء عند الرصيف لم يتبعك — فالرعب الكوني لا يطارد؛ الرعب الكوني ينتظر. قال المرشد وهو يطفئ أضواء الحلم: «قرارٌ حكيم. القاعدة الذهبية عند لافكرافت: البطل الحيّ هو من عرف متى يتوقف عن القراءة». ثم أضاف هامسًا: «لا تطبّقي هذه القاعدة على مكتبتنا، أرجوكِ».'};
+   return {grade:'🌟',title:'نهاية التحية غير الموفَّقة',desc:'قلتِها. وللحظةٍ توقف البحر عن الحركة — كل البحر — كأن شيئًا في الأعماق فتح عينًا واحدة بحجم ميدانٍ عام. لم يغضب؛ الأدهى: بدا أنه تذكّرك. انهار الحلم وأنتِ تسمعين المرشد يصرخ: «قلنا لا نلفظ الأسماء قرب الماء! هذه فانتازيا كما تعلمون، لكن بعض المستأجرين فيها أقدم من الخيال نفسه!»'};
+ },
+ draw(cx,W,H,cam,t){
+  cx.fillStyle=skyGrad(cx,H,[[0,'#04130e'],[.5,'#0c261d'],[1,'#071812']]);cx.fillRect(0,0,W,H);
+  // sickly moon behind haze
+  glow(cx,W*.68,H*.14,100,'120,220,160',.25);
+  cx.fillStyle='rgba(180,230,190,.75)';cx.beginPath();cx.arc(W*.68,H*.14,26,0,7);cx.fill();
+  // sea horizon + tentacles (k=.1)
+  const hy=H*.46;
+  cx.fillStyle='#062018';cx.fillRect(0,hy,W,H*.12);
+  for(let i=0;i<4;i++){
+    const tx=((i*520+140-cam*.1)%(W+800)+W+800)%(W+800)-400;
+    const sway=Math.sin(t*.0006+i*2)*18;
+    cx.strokeStyle='rgba(4,22,16,.9)';cx.lineWidth=14-i*2;
+    cx.beginPath();cx.moveTo(tx,hy+30);
+    cx.bezierCurveTo(tx+sway,hy-40,tx-sway,hy-90,tx+sway*1.6,hy-130-i*12);
+    cx.stroke();
+  }
+  // drowned town: tilted houses (k=.5)
+  for(let i=0;i<9;i++){
+    const bx=((i*300-cam*.5)%(W+600)+W+600)%(W+600)-300;
+    const tilt=Math.sin(i*4.7)*.09+(i===4?Math.sin(t*.0002)*.05:0); // one house tilts, slowly
+    cx.save();cx.translate(bx+80,H*.62);cx.rotate(tilt);
+    cx.fillStyle='#0a1d16';cx.fillRect(-70,-90,140,130);
+    cx.beginPath();cx.moveTo(-80,-90);cx.lineTo(0,-140);cx.lineTo(80,-90);cx.closePath();cx.fill();
+    cx.fillStyle=Math.sin(i*9)>.4?'rgba(120,230,170,.4)':'#03110c';
+    cx.fillRect(-30,-60,24,30);
+    cx.restore();
+  }
+  // moss fog band
+  const fg=cx.createLinearGradient(0,H*.6,0,GY);
+  fg.addColorStop(0,'rgba(30,80,60,0)');fg.addColorStop(1,'rgba(30,90,65,.3)');
+  cx.fillStyle=fg;cx.fillRect(0,H*.6,W,GY-H*.6);
+  // near pier planks & posts (k=1)
+  for(const px of [300,700,1100,1500,1900,2300]){
+    const sx=px-cam;if(sx<-30||sx>W+30)continue;
+    cx.fillStyle='#0c1f18';cx.fillRect(sx-8,GY-70,16,70);
+    cx.fillStyle='rgba(120,230,170,.25)';cx.beginPath();cx.arc(sx,GY-76,4,0,7);cx.fill();
+    glow(cx,sx,GY-76,26,'120,230,170',.14);
+  }
+  cx.fillStyle='#0a1812';cx.fillRect(0,GY,W,H-GY);
+  cx.strokeStyle='rgba(140,230,180,.08)';cx.lineWidth=2;
+  for(let i=0;i<12;i++){const sx=((i*170-cam)%(W+170)+W+170)%(W+170)-85;
+    cx.beginPath();cx.moveTo(sx,GY+8);cx.lineTo(sx+120,GY+8);cx.stroke();}
+ },
+};
+
+/* ============================================================
+   WORLD 7 — Epic of Gilgamesh  «ملحمة جلجامش»
+   ============================================================ */
+WORLDS.gilgamesh={
+ id:'gilgamesh',wing:2,len:2500,ptype:'dust',
+ meta:{issue:'العدد ٣٩',title:'ملحمة جلجامش',sub:'أوروك · الطوفان · نبتة الشباب',
+   motif:'🏺',bg:'linear-gradient(160deg,#5e3a1a,#160d06)',glow:'rgba(220,150,60,.45)'},
+ intro:'أقدم قصيدة كتبها البشر. طينُ أوروك دافئ تحت النجوم، وملكها يبحث عمّا لم يجده أحد: ألّا يموت.',
+ costume:{dress:'#8a5a2a',dress2:'#4a2c14',accent:'#3a6ad4'},
+ objectives:[
+  'واسي ظلَّ إنكيدو ثم اطلبي حانة سيدوري على طريق الشمس',
+  'اجتازي اختبار أوتنابشتيم: اسهري سبع ليالٍ (لغز اليقظة)',
+  'قرّري مصير نبتة الشباب عند أسوار أوروك',
+ ],
+ hints:[
+  'الظلّ عند البوابة يحتاج كلمة وفاءٍ لا كلمة شفقة. وسيدوري لا تسقي العابسين.',
+  'النعاس يأتي موجاتٍ — اضغطي في ذروة الصحو، لا في حضيضه. سبعُ ليالٍ تمرّ كسبع نقرات صادقة.',
+  'تذكّري كيف تنتهي الملحمة الحقيقية: لا بالخلود… بل بجدارٍ يُبنى جيدًا.',
+ ],
+ facts:[
+  'ملحمة جلجامش أقدم عملٍ أدبي كبير وصلنا — كُتبت بالمسمارية على اثني عشر لوحًا، وأفضل نسخها من مكتبة آشوربانيبال في نينوى.',
+  'قصة طوفان أوتنابشتيم في الملحمة أقدم من الروايات التوراتية للطوفان وتشبهها تفصيلًا بتفصيل.',
+  'حين فكّ جورج سميث رموز «لوح الطوفان» عام ١٨٧٢ في المتحف البريطاني، قفز من مقعده وأخذ يخلع ثيابه من فرط الانفعال — هكذا تروي القصة الشهيرة.',
+  'في الملحمة تسرق أفعى نبتةَ الشباب بينما يستحمّ جلجامش — وهكذا فسّر البابليون انسلاخ جلد الأفاعي وتجدّدها.',
+ ],
+ quote:{text:'يا جلجامش، إلى أين تسعى؟ إن الحياة التي تطلبها لن تجدها',
+   src:'ملحمة جلجامش — نصيحة سيدوري صاحبة الحانة'},
+ ents:[
+  {x:420,kind:'npc',name:'ظلُّ إنكيدو',c1:'#4a5a6e',c2:'#26303d',skin:'#9ab0c4',dlg:'enkidu'},
+  {x:800,kind:'spot',name:'جدارية مسمارية',icon:'𒀭',h:80,dlg:'wall'},
+  {x:1200,kind:'npc',name:'سيدوري صاحبة الحانة',c1:'#7a3a2a',c2:'#451d12',hat:'#d4af37',prop:'🍺',dlg:'siduri'},
+  {x:1600,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:1950,kind:'npc',name:'أوتنابشتيم',c1:'#3d3d2a',c2:'#202014',hat:'#d5cfc0',prop:'⛵',dlg:'utna'},
+  {x:2400,kind:'spot',name:'أسوار أوروك',icon:'🧱',h:80,dlg:'walls'},
+ ],
+ dialogs:{
+  enkidu:{sp:'ظلُّ إنكيدو',txt:'عند بوابة المدينة يقف ظلٌّ نصفه إنسان ونصفه برّية: «أنا مَن صارع الملكَ فصار أخاه. متُّ قبله فعرف الخوف. قولي لي أيتها الزائرة… أما زال يركض خلف الخلود، أم تعلّم أخيرًا؟»',ch:[
+    {t:'«ما زال يركض. لهذا جئتُ — لأشهد نهاية الركضة.»',fx:{cp:2}},
+    {t:'«يُذكر اسمك معه في كل نسخة من القصيدة. هذا خلودك أنت.»',tag:'وفاء',fx:{cp:2,flag:'loyal',toast:'🕊️ ابتسم الظل: «إذن لم أمت كله». وانحنى لكِ نصف انحناءة برّية.'}},
+  ]},
+  wall:{sp:'الجدارية المسمارية',txt:'مساميرُ من ضوءٍ محفورة في الطين المشوي: علاماتٌ تروي أن ملكًا «رأى الأعماق» وعاد. أصابعك تتبع الأسطر كمن يقرأ بالحواس الخمس.',ch:[
+    {t:'تنسخين سطرًا في دفترك (+نقطة ثقافة)',fx:{cp:2,gone:1}},
+  ]},
+  siduri:{sp:'سيدوري',txt:'صاحبة حانة نهاية العالم تمسح كوبًا فخاريًا: «كل عابرٍ هنا يطلب الخلود، وأنا أقدّم الجعة. اسمعي نصيحتي التي أُهملها الجميع: املئي بطنك، وافرحي ليلك ونهارك، وانظري للصغير الذي يمسك يدك — هذه حصة البشر. لكن أحدًا لا يصدقني قبل أن يجرّب طريق الشمس».',ch:[
+    {t:'تقبلين خبزها وجعتها (+ثبات)',fx:{stab:+8,cp:1}},
+    {t:'«نصيحتكِ أقدم فلسفة حياةٍ مكتوبة. يقتبسونها إلى اليوم.»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,toast:'🍺 رفعت سيدوري حاجبها: «يقتبسون؟ ولا أحد يدفع حساب الحانة؟»'}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'بين آجرّتين في الطريق، ورقة تشعّ بضوءٍ يشبه اللازورد. النجوم البابلية فوقها أكثر مما ينبغي لسماءٍ واحدة.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  utna:{sp:'أوتنابشتيم',txt:'الرجل الذي نجا من الطوفان يجلس حيث يلتقي الماءان: «نلتُ الخلود لأني نجوتُ حين غرق العالم — لا لأني أردته. تريدين ما أراده جلجامش؟ إذن اختبار الملك نفسه: مَن يطلب قهر الموت، فليقهر أخاه الأصغر أولًا. اسهري سبع ليالٍ بلا نوم».',ch:[
+    {t:'أقبل الاختبار. (لغز اليقظة)',tag:'لغز',fx:{stage:1,mg:1}},
+    {t:'وهل نجح جلجامش نفسه فيه؟',fx:{next:'utna3'}},
+  ]},
+  utna3:{sp:'أوتنابشتيم',txt:'*يبتسم للمرة الأولى منذ الطوفان* نام قبل أن أُنهي الجملة. سبعة أيامٍ كاملة، وخبزُ كلِّ يومٍ شاهدٌ يتعفن قربه. البطل الذي قتل الوحوش هزمه جفنه. هيا — لعل قارئةً تفلح فيما أخفق فيه ثلثا إله.',ch:[
+    {t:'أقبل الاختبار. (لغز اليقظة)',tag:'لغز',fx:{stage:1,mg:1}},
+  ]},
+  utna2:{sp:'أوتنابشتيم',txt:'ينظر إليك الناجي القديم نظرةً جديدة: «حسنٌ… بما أنكِ صمدتِ أكثر من الملك، خذي سرّه الذي أعطيتُه إياه رأفةً: في قاع الماء العذب نبتةٌ شوكية تُعيد الشباب. لكن اسمعي — في القصة الأصلية، الأفعى تنتظر دائمًا. القصة الأصلية تنتظر دائمًا».',ch:[
+    {t:'آخذ النبتة وأمضي إلى أسوار أوروك',fx:{item:{id:'plant',icon:'🌿',name:'نبتة الشباب'},stage:2}},
+    {t:'أتركها في قاعها — بعض الأسرار أجمل غاطسة',fx:{cp:2,flag:'ascetic',stage:2}},
+  ]},
+  walls:{sp:'أسوار أوروك',txt:'من فوق السور ترين المدينة كلها: الأفران تدخّن، والنهر يجرّ النجوم، وصبيٌّ يكتب على لوح طينٍ أول حروفه. لو كانت النبتة معكِ فهي الآن في حقيبتك… وقريبًا جدًا من بركة ماءٍ صافية تغري بالسباحة.',ch:[
+    {t:'تسبحين — ولتأخذ الأفعى ما كُتب لها: القصة تُروى كما وقعت',tag:'نهاية',req:'plant',fx:{score:2,end:'canon'}},
+    {t:'تحرسين النبتة ولا تقتربين من الماء أبدًا',tag:'نهاية',req:'plant',fx:{score:1,end:'keep'}},
+    {t:'تنقشين على السور: «هنا مرّ من بحث عن الخلود فوجد المدينة»',tag:'نهاية',notFlag:'plant',fx:{score:2,end:'wall'}},
+  ]},
+ },
+ startMinigame(){
+   mgRhythm({title:'سهر الليالي السبع',
+     sub:'النعاس يأتي موجات — اضغطي «اسهري» (أو E / مسافة) حين يعبر مؤشر الصحو النطاقَ الأخضر. سبع ليالٍ… سبع نقرات',
+     icon:'👁️',btn:'اسهري!',hitLbl:'ليالٍ ساهرة',hits:7,missStab:7,speed:IS_TOUCH?.5:.62});
+ },
+ afterMinigame(s){
+   if(s>=.85)toast('👁️ سبع ليالٍ وعيناك مفتوحتان — أوتنابشتيم لا يصدق ما يرى.');
+   else if(s>=.5)toast('👁️ غفوتِ غفواتٍ صغيرة… لكن الخبز لم يتعفن بعد.');
+   else toast('😴 كاد الاختبار يبتلعك كما ابتلع الملك.');
+   startDialog('utna2');
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='canon')return mg>=.6
+     ?{grade:'🌟🌟🌟',title:'نهاية الأفعى والجدار',desc:'سبحتِ، وجاءت الأفعى، وأخذت النبتة، وانسلخ جلدها القديم عند الشاطئ — تمامًا كما كُتب قبل أربعة آلاف سنة. ولم تبكي. لأنك رأيتِ ما رآه جلجامش حين كفّ عن الركض: مدينةً تعمل، وجدارًا متينًا، وصبيًّا يتعلم الكتابة. الخلود الحقيقي كان القصيدة نفسها — وها أنتِ داخلها. قال المرشد: «أقدم درسٍ في الأدب كله: نحن نموت، والحكاية لا».'}
+     :{grade:'🌟🌟',title:'نهاية العائدة المتعثرة',desc:'وقعت الأفعى على النبتة أسرع مما ينبغي — فسهركِ المتقطع جعل الحلم يتعجل صفحاته. عدتِ إلى أوروك بيدين فارغتين وقلبٍ شبه ممتلئ. تكفي البداية؛ فحتى جلجامش احتاج اثني عشر لوحًا ليفهم.'};
+   if(k==='keep')return {grade:'🌟🌟',title:'نهاية حارسة النبتة',desc:'لم تسبحي. حرستِ النبتة حتى حافة الاستيقاظ، والأفعى — المحرومة من دورها — تبعتك في الحلم بنظرة موظفٍ أُلغيت وظيفته. قال المرشد: «كسرتِ النص الأقدم في التاريخ. لا عقوبة على ذلك… إلا سؤالًا سيلح عليكِ: شبابٌ دائم، لتفعلي به ماذا بالضبط؟» وعلى هذا السؤال، لا نبتة تجيب.'};
+   return {grade:'🌟🌟🌟',title:'نهاية النقش على السور',desc:'تركتِ النبتة في قاعها ونقشتِ جملتك على آجرّ أوروك. مرّ من خلفك كاتبٌ طيني صغير، قرأ النقش، وحفظه — وبعد أربعة آلاف سنة، سيفكّ باحثٌ متعبٌ في متحفٍ بعيد رموزَ لوحٍ مكسور ويجد جملتك بين السطور، وسيقفز من مقعده. الخلود يا عبير أنواع؛ اخترتِ أرخصها ثمنًا وأطولها عمرًا.'};
+ },
+ draw(cx,W,H,cam,t){
+  // Babylonian starfield
+  cx.fillStyle=skyGrad(cx,H,[[0,'#0a0f2e'],[.5,'#1a2050'],[1,'#2a1810']]);cx.fillRect(0,0,W,H);
+  if(!this._stars){this._stars=[];for(let i=0;i<160;i++)this._stars.push([Math.random(),Math.random()*.55,rand(.5,2),rand(0,6)]);}
+  for(const [sx,sy,sr,ph] of this._stars){
+    const tw=.5+Math.sin(t*.0018+ph)*.4;
+    cx.fillStyle=`rgba(230,235,255,${tw})`;
+    cx.beginPath();cx.arc(sx*W,sy*H,sr,0,7);cx.fill();}
+  // great ziggurat (k=.15)
+  const zx=1250-cam*.15;
+  cx.fillStyle='#160d20';
+  for(let s2=0;s2<4;s2++){
+    const w2=420-s2*90,h2=H*.09;
+    cx.fillRect(zx-w2/2,H*.52-h2*(s2+1),w2,h2);
+  }
+  cx.fillStyle='rgba(255,170,60,.9)';cx.fillRect(zx-10,H*.52-H*.09*4-16,20,16);
+  glow(cx,zx,H*.52-H*.36-10,60,'255,170,60',.3);
+  // palms (k=.5)
+  for(let i=0;i<8;i++){
+    const px=((i*340+90-cam*.5)%(W+680)+W+680)%(W+680)-340;
+    cx.strokeStyle='#140c16';cx.lineWidth=7;
+    cx.beginPath();cx.moveTo(px,H*.72);cx.quadraticCurveTo(px+10,H*.6,px+4,H*.52);cx.stroke();
+    cx.fillStyle='#101425';
+    for(let f2=0;f2<5;f2++){
+      const a=f2/4*Math.PI-Math.PI*.1+Math.sin(t*.001+i)*(0.04);
+      cx.beginPath();cx.ellipse(px+4+Math.cos(a)*30,H*.52-6+Math.sin(a)*-16,26,7,a*.8,0,7);cx.fill();}
+  }
+  // mud-brick wall with cuneiform glow (k=1)
+  for(let hx=0;hx<this.len;hx+=560){
+    const sx=hx-cam;if(sx<-600||sx>W+40)continue;
+    cx.fillStyle='#3a2414';cx.fillRect(sx,H*.58,520,GY-H*.58);
+    cx.fillStyle='rgba(0,0,0,.18)';
+    for(let r2=0;r2<4;r2++)for(let c2=0;c2<8;c2++)
+      cx.fillRect(sx+c2*65+(r2%2)*30,H*.58+r2*26,60,3);
+    // glowing cuneiform marks
+    cx.fillStyle=`rgba(90,140,255,${.4+Math.sin(t*.003+hx)*.2})`;
+    cx.font='16px serif';
+    for(let g2=0;g2<5;g2++)cx.fillText('𒀭𒂊𒆠'[g2%3],sx+80+g2*90,H*.66);
+  }
+  // torches
+  for(const lx of [350,900,1450,2000,2350]){
+    const sx=lx-cam;if(sx<-30||sx>W+30)continue;
+    const fl=.7+Math.sin(t*.012+lx)*.3;
+    cx.strokeStyle='#1d1208';cx.lineWidth=5;
+    cx.beginPath();cx.moveTo(sx,GY);cx.lineTo(sx,GY-110);cx.stroke();
+    glow(cx,sx,GY-120,50*fl,'255,150,50',.4);
+    cx.fillStyle=`rgba(255,${150+fl*60|0},60,.95)`;
+    cx.beginPath();cx.ellipse(sx,GY-120,6,11+fl*4,0,0,7);cx.fill();
+  }
+  // clay ground + Euphrates glint far right
+  cx.fillStyle='#2a1a0e';cx.fillRect(0,GY,W,H-GY);
+  cx.strokeStyle='rgba(255,255,255,.04)';
+  for(let i=0;i<12;i++){const sx=((i*150-cam)%(W+150)+W+150)%(W+150)-75;
+    cx.strokeRect(sx,GY+8,90,20);}
+ },
+};
+</script>
+<script>
+/* ============================================================
+   WORLD 8 — Battle of Kadesh  «معركة قادش»
+   ============================================================ */
+WORLDS.kadesh={
+ id:'kadesh',wing:3,len:2400,ptype:'dust',
+ meta:{issue:'العدد ٦',title:'معركة قادش',sub:'رمسيس الثاني · مركبات الحرب · أول معاهدة سلام',
+   motif:'𓂀',bg:'linear-gradient(160deg,#8a6a14,#241a04)',glow:'rgba(230,190,60,.5)'},
+ intro:'صيف ١٢٧٤ قبل الميلاد، على ضفة العاصي. أربع فرقٍ مصرية تزحف نحو قادش… وكمينٌ حثّي ينتظر.',
+ costume:{dress:'#d4af37',dress2:'#8a6a14',accent:'#1a4a9e'},
+ objectives:[
+  'اسمعي الكاتب بنتاؤر ثم قفي أمام رمسيس الثاني في المعسكر',
+  'اصمدي بمركبتك في خط فرقة آمون حتى وصول النجدة (لغز المركبة)',
+  'قابلي الرسول الحثّي وقرّري بمَ تنصحين الملك',
+ ],
+ hints:[
+  'الكاتب يدوّن كل شيء — حتى ما لم يحدث بعد. الرايات الأربع تحفظ أسماء الفرق: آمون، رع، بتاح، ست.',
+  'في المركبة: السهم الأعلى مسارٌ أعلى، والأسفل أسفل. لا تحاولي الصمود في مسارٍ واحد — الرشاقة خيرٌ من الدرع.',
+  'التاريخ الحقيقي يقول: لم ينتصر أحد في قادش انتصارًا كاملًا. تذكري هذا حين يسألك الملك ماذا يكتب.',
+ ],
+ facts:[
+  'دارت معركة قادش نحو ١٢٧٤ ق.م على نهر العاصي بين رمسيس الثاني والحيثيين بقيادة مواتالي الثاني — أكبر معارك المركبات المعروفة.',
+  'الجيش المصري زحف بأربع فرقٍ سُمّيت بأسماء الآلهة: آمون ورع وبتاح وست.',
+  'انتهى الصراع لاحقًا بأقدم معاهدة سلامٍ مكتوبة وصلتنا نسختاها — ونسخةٌ منها معلّقة اليوم في مقر الأمم المتحدة.',
+  'نقش رمسيس روايته للمعركة كنصرٍ ساحق في أبي سمبل والرمسيوم، بينما يعدّها المؤرخون اليوم أقرب إلى التعادل.',
+ ],
+ quote:{text:'وجدتُ آمون يأتي إذ ناديته؛ مدَّ إليّ يده ففرحت',
+   src:'قصيدة بنتاؤر — السجل المصري لمعركة قادش'},
+ ents:[
+  {x:400,kind:'npc',name:'الكاتب بنتاؤر',c1:'#d5cfc0',c2:'#8a8272',skin:'#c49a6a',prop:'𓏞',dlg:'scribe'},
+  {x:800,kind:'spot',name:'رايات الفرق الأربع',icon:'🚩',h:100,dlg:'flags'},
+  {x:1250,kind:'npc',name:'رمسيس الثاني',c1:'#d4af37',c2:'#8a6a14',skin:'#c49a6a',hat:'#1a4a9e',prop:'𓆣',dlg:'ramses'},
+  {x:1700,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:2250,kind:'npc',name:'الرسول الحثّي',c1:'#4a3a5e',c2:'#281f33',skin:'#b08a6a',prop:'🕊️',dlg:'envoy'},
+ ],
+ dialogs:{
+  scribe:{sp:'الكاتب بنتاؤر',txt:'كاتبٌ ملكي يجلس القرفصاء، بردية على ركبتيه: «أدوّن المعركة قبل وقوعها — هكذا تُكتب الانتصارات الجيدة. جاسوسان بدويّان أقسما أن جيش الحيثيين بعيد في حلب… والملك صدّقهما. أنا لا أصدق أحدًا يُقسم مرتين».',ch:[
+    {t:'«إن كان الجيش قريبًا فالفرقة الأمامية في فمِ كمين»',fx:{cp:2,next:'scribe2'}},
+    {t:'«ستكتب أن الملك انتصر وحده على العالم، أليس كذلك؟»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,toast:'𓏞 خفض بنتاؤر صوته: «سأكتب ما يبقي رأسي فوق كتفَيّ. وبعد ثلاثة آلاف سنة، دعي المؤرخين يتسلّون».'}},
+  ]},
+  scribe2:{sp:'الكاتب بنتاؤر',txt:'«فمُ كمينٍ بالضبط. فرقة آمون تنصب المعسكر شمال قادش والملك معها، ورع ما تزال تعبر المخاضة. لو هاجم الحيثيون الآن…» — يبتلع بقية الجملة ويشير نحو الخيمة الملكية: «قوليها له أنتِ. الكتّاب لا يقاطعون الملوك، لكن الأحلام ربما تفعل».',ch:[
+    {t:'إلى خيمة الملك.',fx:{cp:1}},
+  ]},
+  flags:{sp:'رايات الفرق الأربع',txt:'أربع راياتٍ تلهب الريح: آمون في المقدمة، ورع عند المخاضة، وبتاح خلف الغابة، وست في المؤخرة البعيدة. جيشٌ كامل ممدود على الطريق كخيطٍ… يسهل قطعه.',ch:[
+    {t:'تحفظين مواقع الفرق (+نقطة ثقافة)',fx:{cp:2,gone:1}},
+  ]},
+  ramses:{sp:'رمسيس الثاني',txt:'الملك الشاب — ثلاثةٌ وعشرون قرنًا من الهيبة في عينين شابتين: «قارئةُ الأحلام؟ جواسيسي يقولون إن العدو بعيد، وكاتبي ينظر إليّ نظرة من ابتلع سمكة حية. والآن غبارٌ يعلو خلف التل. إن كان كمينًا فخط آمون سينهار قبل وصول بتاح… إلا إذا صمد فيه من يعرف المراوغة. هل تركبين؟»',ch:[
+    {t:'«أعطني مركبةً يا مولاي» (لغز المركبة)',tag:'لغز',fx:{stage:1,mg:1}},
+    {t:'اسأليه أولًا عن خطة الطوارئ',fx:{next:'ramses2'}},
+  ]},
+  ramses2:{sp:'رمسيس الثاني',txt:'«الخطة؟ أنا الخطة. آمون يسمعني حين أنادي — هكذا سيُكتب على كل جدار من هنا إلى النوبة. لكن بيني وبينك أيتها الزائرة: النجدة الحقيقية اسمها فرقة بتاح، وتحتاج ساعةً لتصل. اكسبي لي هذه الساعة».',ch:[
+    {t:'«ساعة واحدة. تراهنين عليها؟» (لغز المركبة)',tag:'لغز',fx:{stage:1,mg:1}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'قرب جثة مركبةٍ محطمة، ورقة تلمع بذهبٍ أنقى من رمال المساء كلها.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  envoy:{sp:'الرسول الحثّي',txt:'بعد المعركة، والغبار لم يهدأ بعد: رجلٌ بضفيرة طويلة يحمل لوحًا فضيًا وغصنًا: «مواتالي يقول: خسرنا معًا ما يكفي. مصر لا تعبر العاصي، ونحن لا نعبره إليكم. الملكان يتراسلان… فماذا تنصحين ملكك أن يكتب على جدرانه؟»',ch:[
+    {t:'«اقبل السلام يا مولاي — الحدود التي تحرسها معاهدة أبقى من التي يحرسها جيش»',tag:'نهاية',fx:{score:2,end:'peace'}},
+    {t:'«اكتب الحقيقة: صمدنا، وما انتصر أحد»',tag:'نهاية',fx:{score:2,end:'truth'}},
+    {t:'«واصل الحرب حتى تسقط قادش نفسها»',tag:'نهاية',fx:{stab:-10,end:'war'}},
+  ]},
+ },
+ /* ---- chariot lane-runner (canvas mode) ---- */
+ ST:null,
+ startMinigame(){
+   this.ST={lane:1,time:24,obs:[],spawn:.6,hits:0,flash:0,done:false,pU:false,pD:false,dust:0};
+   G.mode='stealth';
+   setObjective('اصمدي في خط آمون حتى تصل فرقة بتاح — راوغي السهام والمركبات');
+   toast('🏹 <b>الكمين!</b> بدّلي المسار بـ ▲▼ (أو المسي النصف الأعلى/الأسفل من الشاشة).');
+ },
+ stealthAction(){},
+ canvasTap(x,y){
+   const S=this.ST;if(!S||S.done)return;
+   if(y<H*.55)S.lane=Math.max(0,S.lane-1);else S.lane=Math.min(2,S.lane+1);
+   sfx.ui();
+ },
+ laneKey(dir){ // event-driven so short key taps never get lost between frames
+   const S=this.ST;if(!S||S.done)return;
+   S.lane=clamp(S.lane+dir,0,2);sfx.ui();
+ },
+ laneY(i){return GY-150+i*72;},
+ stealthUpdate(dt,t){
+   const S=this.ST;if(!S||S.done)return;
+   S.flash=Math.max(0,S.flash-dt*2);
+   S.spawn-=dt;
+   if(S.spawn<=0){
+     S.spawn=rand(.45,.85);
+     const type=Math.random()<.65?'arrow':'chariot';
+     S.obs.push({x:W+60,lane:Math.floor(rand(0,3)),type,v:type==='arrow'?540:360,hit:false});
+   }
+   for(const o of S.obs){
+     o.x-=o.v*dt;
+     if(!o.hit&&o.lane===S.lane&&o.x<210&&o.x>130){
+       o.hit=true;S.hits++;S.flash=1;
+       setStability(G.stability-8);sfx.bad();
+       toast('🏹 أصابك سهم الكمين! تماسكي.');
+       if(G.mode!=='stealth')return;
+     }
+   }
+   S.obs=S.obs.filter(o=>o.x>-80);
+   S.time-=dt;
+   if(S.time<=0){S.done=true;endMinigame(clamp(1-S.hits*.2,.15,1));}
+ },
+ stealthDraw(cx,W2,H2,t){
+   const S=this.ST;if(!S)return;
+   // desert sky + glare
+   cx.fillStyle=skyGrad(cx,H2,[[0,'#e8b45a'],[.45,'#d49a3e'],[1,'#a8641e']]);cx.fillRect(0,0,W2,H2);
+   glow(cx,W2*.8,H2*.14,150,'255,240,200',.55);
+   cx.fillStyle='#fff3d0';cx.beginPath();cx.arc(W2*.8,H2*.14,36,0,7);cx.fill();
+   // Kadesh fortress + river far
+   cx.fillStyle='#8a5a24';
+   cx.fillRect(W2*.1,H2*.3,140,H2*.12);cx.fillRect(W2*.1+20,H2*.25,30,H2*.06);cx.fillRect(W2*.1+90,H2*.25,30,H2*.06);
+   cx.fillStyle='rgba(80,140,200,.5)';
+   cx.beginPath();cx.moveTo(0,H2*.44);
+   for(let x=0;x<=W2;x+=40)cx.lineTo(x,H2*.44+Math.sin(x*.02+t*.002)*3);
+   cx.lineTo(W2,H2*.47);cx.lineTo(0,H2*.47);cx.closePath();cx.fill();
+   // three lanes
+   for(let i=0;i<3;i++){
+     const y=this.laneY(i);
+     cx.fillStyle=i===S.lane?'rgba(255,235,170,.16)':'rgba(0,0,0,.08)';
+     cx.fillRect(0,y-44,W2,64);
+     cx.strokeStyle='rgba(120,70,20,.4)';cx.setLineDash([26,18]);
+     cx.beginPath();cx.moveTo(0,y+20);cx.lineTo(W2,y+20);cx.stroke();cx.setLineDash([]);
+   }
+   // obstacles
+   for(const o of S.obs){
+     const y=this.laneY(o.lane);
+     if(o.type==='arrow'){
+       cx.strokeStyle='#3d2408';cx.lineWidth=4;
+       cx.beginPath();cx.moveTo(o.x,y-8);cx.lineTo(o.x+52,y-8);cx.stroke();
+       cx.fillStyle='#3d2408';
+       cx.beginPath();cx.moveTo(o.x-10,y-8);cx.lineTo(o.x+4,y-15);cx.lineTo(o.x+4,y-1);cx.closePath();cx.fill();
+     }else{
+       cx.fillStyle='#2e1d33';
+       cx.beginPath();cx.ellipse(o.x+34,y-30,34,16,0,0,7);cx.fill(); // horse body
+       cx.fillRect(o.x+56,y-52,10,24);
+       cx.fillRect(o.x-16,y-40,42,26); // cab
+       cx.beginPath();cx.arc(o.x,y-8,15,0,7);cx.fill();
+       cx.strokeStyle='#2e1d33';cx.lineWidth=3;
+       cx.beginPath();cx.arc(o.x,y-8,15,0,7);
+       for(let sp=0;sp<4;sp++){const a=t*.02+sp*Math.PI/2;
+         cx.moveTo(o.x,y-8);cx.lineTo(o.x+Math.cos(a)*14,y-8+Math.sin(a)*14);}
+       cx.stroke();
+     }
+   }
+   // player chariot (gold) with Abeer
+   {const y=this.laneY(S.lane);
+    cx.fillStyle='rgba(0,0,0,.25)';cx.beginPath();cx.ellipse(170,y+8,58,8,0,0,7);cx.fill();
+    // horse
+    cx.fillStyle='#6a4222';
+    cx.beginPath();cx.ellipse(222,y-30,34,15,0,0,7);cx.fill();
+    cx.fillRect(244,y-54,9,26);
+    cx.fillStyle='#4a2c14';cx.beginPath();cx.moveTo(252,y-54);cx.lineTo(262,y-60);cx.lineTo(254,y-46);cx.closePath();cx.fill();
+    cx.strokeStyle='#6a4222';cx.lineWidth=4;
+    const gallop=Math.sin(t*.02)*8;
+    cx.beginPath();cx.moveTo(206,y-18);cx.lineTo(200+gallop,y+4);cx.moveTo(238,y-18);cx.lineTo(244-gallop,y+4);cx.stroke();
+    // cab
+    cx.fillStyle='#d4af37';cx.fillRect(126,y-46,58,32);
+    cx.fillStyle='#1a4a9e';cx.fillRect(126,y-46,58,6);
+    // wheel
+    cx.strokeStyle='#3d2c08';cx.lineWidth=4;
+    cx.beginPath();cx.arc(150,y-6,17,0,7);
+    for(let sp=0;sp<4;sp++){const a=t*.02+sp*Math.PI/2;
+      cx.moveTo(150,y-6);cx.lineTo(150+Math.cos(a)*16,y-6+Math.sin(a)*16);}
+    cx.stroke();
+    drawAbeer(cx,156,y-38,t,false,1,this.costume);
+   }
+   // ground dust
+   cx.fillStyle='rgba(200,140,60,.5)';
+   for(let d2=0;d2<10;d2++){
+     const dx=(t*.3+d2*137)%W2;
+     cx.beginPath();cx.arc(W2-dx,GY+20+(d2%3)*10,rand(2,5),0,7);cx.fill();}
+   if(S.flash>0){cx.fillStyle=`rgba(255,80,40,${S.flash*.3})`;cx.fillRect(0,0,W2,H2);}
+   // HUD: time to relief
+   cx.fillStyle='rgba(20,12,4,.55)';cx.fillRect(W2/2-130,18,260,30);
+   cx.fillStyle='#ffd76a';
+   cx.fillRect(W2/2-124,24,248*clamp(S.time/24,0,1),18);
+   cx.fillStyle='#241a04';cx.font='600 13px Cairo';cx.textAlign='center';
+   cx.fillText('وصول فرقة بتاح',W2/2,37);
+ },
+ afterMinigame(s){
+   G.stage=2;setObjective(this.objectives[2]);
+   if(s>=.8)toast('🎺 وصلت فرقة بتاح ومركبتك بلا خدش — الكمين ينكسر!');
+   else if(s>=.4)toast('🎺 وصلت النجدة… ومركبتك تروي بنفسها قصة السهام.');
+   else toast('🎺 صمدتِ بالكاد — لكن الخط لم ينهر. هذا ما يهم.');
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='peace')return mg>=.6
+     ?{grade:'🌟🌟🌟',title:'نهاية اللوح الفضي',desc:'صمد خط آمون بفضل مركبتك، وبعد سنواتٍ وقّع الملكان أقدم معاهدة سلامٍ يعرفها التاريخ — نقشٌ بالفضة يقول بلغتين: «لن يعبر أحدنا إلى أرض أخيه». وبعد ثلاثة آلاف سنة ستُعلَّق نسخةٌ منها في بيت أمم الأرض كلها، وسيمرّ تحتها دبلوماسيون متعبون لا يعرفون أن قارئةً في مركبةٍ مستعارة كسبت لهم الساعة الأولى من كل هذا.'}
+     :{grade:'🌟🌟',title:'نهاية السلام المتأخر',desc:'انكسر خطك أكثر مما ينبغي، فطالت الحرب قبل أن يكتب الملكان سلامهما. جاءت المعاهدة في موعدها التاريخي على أي حال — التاريخ عنيد — لكن المرشد همس: «كان يمكن للساعة التي خسرتِها أن توفر قوافل جرحى. الأحلام تحاسب بالدقائق».'};
+   if(k==='truth')return {grade:'🌟🌟🌟',title:'نهاية الكاتب الصادق',desc:'قلتِ للملك: اكتب الحقيقة. نظر إليك رمسيس نظرةً طويلة… ثم ضحك: «الحقيقة؟ على جدران معبد؟» ونقش انتصاره الساحق كما فعل في التاريخ تمامًا. لكن بنتاؤر — الكاتب الذي لا يصدق من يُقسم مرتين — دسّ بين سطور القصيدة الرسمية جملةً صغيرة عن ملكٍ «نجا بأعجوبة». وبعد آلاف السنين، من تلك الجملة بالذات، عرف المؤرخون ما حدث فعلًا. الحقيقة تجد دائمًا كاتبًا.'};
+   return {grade:'🌟',title:'نهاية الحرب التي لا تنتهي',desc:'نصحتِ بمواصلة الحرب، فحوصرت قادش عبثًا حتى أنهك الجيشان بعضهما. حتى راية فرقة ست — التي لم تقاتل — اهترأت من طول الانتظار. قال المرشد وهو يطوي الحلم: «أول درسٍ في جناح التاريخ يا عبير: المعارك يكسبها الجنود، والحروب لا يكسبها أحد. اسألي أي جدارٍ في أبي سمبل — النقوش تبالغ، والعظام لا».'};
+ },
+ draw(cx,W,H,cam,t){
+  // golden desert afternoon
+  cx.fillStyle=skyGrad(cx,H,[[0,'#e0a84e'],[.5,'#cf8f38'],[1,'#8a5a1e']]);cx.fillRect(0,0,W,H);
+  glow(cx,W*.76,H*.16,140,'255,240,200',.5);
+  cx.fillStyle='#fff3d0';cx.beginPath();cx.arc(W*.76,H*.16,32,0,7);cx.fill();
+  // far: Kadesh on its tell + the Orontes (k=.15)
+  const kx=1500-cam*.15;
+  cx.fillStyle='#7a4a1c';
+  cx.beginPath();cx.moveTo(kx-220,H*.44);cx.quadraticCurveTo(kx,H*.3,kx+220,H*.44);cx.closePath();cx.fill();
+  cx.fillStyle='#5e3812';
+  cx.fillRect(kx-90,H*.3,180,H*.1);
+  for(const tx of [-80,-30,20,70])cx.fillRect(kx+tx,H*.26,24,H*.05);
+  cx.fillStyle='rgba(70,130,190,.45)';
+  cx.beginPath();cx.moveTo(0,H*.47);
+  for(let x=0;x<=W;x+=40)cx.lineTo(x,H*.47+Math.sin((x+cam*.15)*.01+t*.001)*4);
+  cx.lineTo(W,H*.52);cx.lineTo(0,H*.52);cx.closePath();cx.fill();
+  // mid dunes (k=.45)
+  cx.fillStyle='#b87c2e';
+  cx.beginPath();cx.moveTo(0,H*.62);
+  for(let x=0;x<=W;x+=30){const wx=x+cam*.45;
+    cx.lineTo(x,H*.62-Math.abs(Math.sin(wx*.005))*40);}
+  cx.lineTo(W,H);cx.lineTo(0,H);cx.closePath();cx.fill();
+  // camp: tents + banners (k=1)
+  for(let hx=200;hx<this.len;hx+=520){
+    const sx=hx-cam;if(sx<-140||sx>W+140)continue;
+    cx.fillStyle='#e8dcc0';
+    cx.beginPath();cx.moveTo(sx-64,GY);cx.lineTo(sx,GY-96);cx.lineTo(sx+64,GY);cx.closePath();cx.fill();
+    cx.fillStyle='#8a2f2f';cx.fillRect(sx-8,GY-70,16,70);
+    cx.fillStyle='rgba(0,0,0,.12)';
+    cx.beginPath();cx.moveTo(sx,GY-96);cx.lineTo(sx+64,GY);cx.lineTo(sx+20,GY);cx.closePath();cx.fill();
+  }
+  for(const bx of [520,1040,1560,2080]){
+    const sx=bx-cam;if(sx<-40||sx>W+40)continue;
+    cx.strokeStyle='#3d2408';cx.lineWidth=4;
+    cx.beginPath();cx.moveTo(sx,GY);cx.lineTo(sx,GY-150);cx.stroke();
+    const wave=Math.sin(t*.004+bx)*10;
+    cx.fillStyle=['#c0392b','#d4af37','#1a4a9e','#3e8a5a'][(bx/520-1)|0];
+    cx.beginPath();cx.moveTo(sx,GY-150);cx.lineTo(sx+56,GY-142+wave);cx.lineTo(sx,GY-126);cx.closePath();cx.fill();
+  }
+  // glowing hieroglyphs on a stela
+  {const sx=950-cam;if(sx>-80&&sx<W+80){
+    cx.fillStyle='#9a6a2a';cx.fillRect(sx-30,GY-120,60,120);
+    cx.fillStyle=`rgba(255,235,150,${.5+Math.sin(t*.003)*.25})`;
+    cx.font='18px serif';cx.textAlign='center';
+    ['𓂀','𓆣','𓋹'].forEach((g2,i)=>cx.fillText(g2,sx,GY-90+i*30));
+  }}
+  cx.fillStyle='#c98f3e';cx.fillRect(0,GY,W,H-GY);
+  cx.fillStyle='rgba(120,70,20,.25)';
+  for(let i=0;i<10;i++){const sx=((i*200-cam)%(W+200)+W+200)%(W+200)-100;
+    cx.beginPath();cx.ellipse(sx,GY+16,42,4,0,0,7);cx.fill();}
+ },
+};
+
+/* ============================================================
+   WORLD 9 — Cairo 1919  «القاهرة ١٩١٩»
+   ============================================================ */
+WORLDS.cairo={
+ id:'cairo',wing:3,len:2400,ptype:'dust',
+ meta:{issue:'العدد ٢٨',title:'القاهرة ١٩١٩',sub:'بيت الأمة · المنشورات السرّية · هتافات الثورة',
+   motif:'🗞️',bg:'linear-gradient(160deg,#3d2a1a,#14100a)',glow:'rgba(200,160,110,.45)'},
+ intro:'القاهرة في مارس ١٩١٩. سعد زغلول منفيٌّ في مالطة، والشوارع تغلي، وأنتِ صحفيةٌ بدفترٍ وقلبٍ يخفق.',
+ costume:{dress:'#5a4632',dress2:'#33281c',accent:'#e8e3d5'},
+ objectives:[
+  'اسمعي الشارع: الطالب، وبائع الجرائد، وسيدة بيت الأمة',
+  'رتّبي البرقية في المطبعة السرّية قبل دورية المساء',
+  'اعبري نقطة تفتيش الكوبري بالمنشورات',
+ ],
+ hints:[
+  'الصغير الذي يبيع الجرائد يعرف الأزقة أكثر من الخريطة. وبيت الأمة بابه مفتوح لمن تحمل قلمًا.',
+  'البرقية تُرتَّب كما وقعت الأحداث: التاريخ أولًا، ثم الصفوف، ثم الهتاف، ثم الحصار، ثم المطابع.',
+  'عند نقطة التفتيش: الضابط يبحث عن خائفين. الصحفية الجيدة تحمل وجهين — وأنتِ قارئة: عندك مئة.',
+ ],
+ facts:[
+  'اشتعلت ثورة ١٩١٩ بعد نفي سعد زغلول وثلاثةٍ من رفاقه إلى مالطة في ٨ مارس ١٩١٩.',
+  'في ١٦ مارس ١٩١٩ خرجت مظاهرة نسائية تاريخية تقدّمتها هدى شعراوي وصفية زغلول — علامة فارقة في الحركة الوطنية والنسوية معًا.',
+  'سُمّي «الوفد» بهذا الاسم لأنه تشكّل وفدًا للمطالبة بتمثيل مصر في مؤتمر الصلح بباريس.',
+  'رفعت مظاهرات ١٩١٩ علمًا يجمع الهلال والصليب — رمزًا لوحدة المصريين مسلمين وأقباطًا.',
+ ],
+ quote:{text:'الحق فوق القوة، والأمة فوق الحكومة',
+   src:'سعد زغلول'},
+ ents:[
+  {x:380,kind:'npc',name:'طالبٌ من الأزهر',c1:'#4a3a2a',c2:'#2a2016',hat:'#c0392b',prop:'📖',dlg:'student'},
+  {x:700,kind:'npc',name:'بائع جرائد صغير',c1:'#6a5a42',c2:'#3d3325',skin:'#c49a6a',prop:'🗞️',dlg:'boy'},
+  {x:1050,kind:'npc',name:'سيدة بيت الأمة',c1:'#26262e',c2:'#111116',hat:'#111116',prop:'🕊️',dlg:'lady'},
+  {x:1400,kind:'spot',name:'المطبعة السرّية',icon:'🖨️',h:60,dlg:'press'},
+  {x:1750,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:2250,kind:'npc',name:'ضابط نقطة التفتيش',c1:'#8a2f2f',c2:'#4a1818',hat:'#d5cfc0',prop:'🪖',dlg:'officer'},
+ ],
+ dialogs:{
+  student:{sp:'الطالب الأزهري',txt:'شابٌّ بعمامةٍ مائلة من الركض: «كنا في الأزهر حين جاء الخبر: نفوا سعد باشا! خرجنا ولم نرجع — المدارس كلها خرجت، والمحامون، وعمال الترام. اسمعي الهتاف يا آنسة… الشارع كله صار جريدةً تمشي».',ch:[
+    {t:'«وأنا سأكتب ما تقوله الجريدة الماشية» (تدوّنين)',fx:{cp:2}},
+    {t:'«خذ بالك من دورية آخر الشارع»',fx:{cp:1,stab:+4,toast:'🕊️ أومأ ممتنًا واختفى في زقاقٍ يعرفه.'}},
+  ]},
+  boy:{sp:'بائع الجرائد',txt:'صبيٌّ حافٍ يلوّح بجريدةٍ مطوية: «الوقائع بمليم! والحقيقي مش مكتوب فيها يا ستّي — الحقيقي بيتوزع بالليل ورق صغير كده من غير اسم». ثم يهمس: «إنتي منهم؟ باين من الدفتر. البسي دي» — ويدس في يدك شارةً صغيرة.',ch:[
+    {t:'تأخذين شارة الهلال والصليب',tag:'غرض · يفتح طرقًا',fx:{item:{id:'pin',icon:'☪️',name:'شارة الهلال والصليب'},cp:2}},
+    {t:'«مليم واحد؟ خذ قرشًا وقُل الحق دائمًا»',fx:{cp:1,stab:+3}},
+  ]},
+  lady:{sp:'سيدة بيت الأمة',txt:'في حديقة بيت الأمة، سيدةٌ بثوب حدادٍ أسود توزّع الهدوء على الغاضبين: «سعد في المنفى، لكن البيت لم يُغلق — صار بيت الأمة كلها. غدًا تخرج النساء يا ابنتي، بالمراوح والأعلام، أول مرة في تاريخ هذا البلد. اكتبي هذا بالبنط العريض: خرجنا ولن نعود إلى الوراء».',ch:[
+    {t:'«سأكتبه بحيث يُقرأ بعد مئة سنة»',fx:{cp:2,flag:'story'}},
+    {t:'«التاريخ سيحفظ هذه الصفحة لكنّ أكثر مما تتصورين»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,flag:'story',toast:'🪞 ابتسمت من خلف الحداد: «التاريخ؟ نحن مشغولون بصنعه عن قراءته يا ابنتي».'}},
+  ]},
+  press:{sp:'المطبعة السرّية',txt:'خلف دكان نجارة، بابٌ ضيق يقود إلى غرفة تفوح حبرًا: صفّافٌ أشيب يرتب الحروف الرصاصية على ضوء شمعة: «وصلتنا برقية المظاهرة النسائية مبعثرة السطور — الرقيب قصّها. رتّبيها لي قبل دورية المساء، فمصر كلها تنتظر نسختها».',ch:[
+    {t:'ترتّبين البرقية (لغز الترتيب)',tag:'لغز',fx:{stage:1,mg:1}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'على عتبة بيتٍ قديم، ورقة تلمع بلون البُنّ المحمَّص — ورقةٌ تعرف قيمة الكلمة في بلدٍ يطارد الكلمات.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  officer:{sp:'ضابط نقطة التفتيش',txt:'عند مدخل الكوبري، ضابطٌ إنجليزي متعب يوقف المارّة: «حقيبتك، آنسة. أوراقٌ كثيرة… ما كل هذا؟» — في الحقيبة مئتا منشورٍ ما زال حبرها دافئًا، وقلبكِ يدق بما يكفي ليسمعه هو.',ch:[
+    {t:'«وصفات طبخ يا حضرة الضابط — الملوخية تحتاج دقة» (وجه مطمئن)',tag:'نهاية',fx:{score:2,end:'smuggle'}},
+    {t:'ترفعين الشارة وتهتفين: «الاستقلال التام!»',tag:'نهاية شجاعة',req:'pin',fx:{stab:-15,score:1,end:'defy'}},
+    {t:'تسلّمين الحقيبة وتعتذرين',tag:'نهاية',fx:{stab:-10,end:'yield'}},
+  ]},
+ },
+ startMinigame(){
+   mgOrder({title:'برقية المظاهرة النسائية',
+     sub:'رتّبي سطور البرقية كما وقعت الأحداث — قبل أن تمرّ دورية المساء'+(G.flags.pin?' (الشارة تجعل الحرس يتغاضون قليلًا)':''),
+     frags:[
+       'القاهرة، ١٦ مارس ١٩١٩ — شهدت العاصمة يومًا لم تعرف مثله من قبل.',
+       'خرجت مئات السيدات تتقدّمن الصفوف، وفي الأيدي أعلامُ الهلال مع الصليب.',
+       'هتف الموكب: يحيا الوطن — وسقط الخوف قبل أن يسقط أحدٌ من الناس.',
+       'حاصرت قوات الاحتلال الموكب ساعتين تحت الشمس، فما تفرّق ولا تراجع.',
+       'وفي المساء، كانت المطابع السرّية تنسخ الخبر لمصر كلها.',
+     ],
+     total:G.flags.pin?100:80,goLbl:'اطبعي البرقية',
+     failToast:'🥁 دورية المساء! أُخفيت الحروف الرصاصية على عجل…',
+     onWrong:w=>`🖨️ هزّ الصفّاف رأسه: ${AR(w)} سطورٍ في غير موضعها.`});
+ },
+ afterMinigame(s){
+   G.stage=2;setObjective(this.objectives[2]);
+   if(s>=.7)toast('🖨️ دارت المطبعة! مئتا نسخة قبل الدورية — والحبر يجف على الطريق.');
+   else if(s>=.4)toast('🖨️ طُبعت البرقية متأخرة قليلًا… الصفّاف يحشو النسخ في حقيبتك.');
+   else toast('🖨️ نصف طبعة فقط قبل الدورية — لكن نصف الحقيقة يكفي لإشعالها.');
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='smuggle')return mg>=.6
+     ?{grade:'🌟🌟🌟',title:'نهاية وصفة الملوخية',desc:'تصفّح الضابط الورقة الأولى — التي كانت فعلًا وصفة ملوخية دسستِها فوق الرزمة — وأعادها ضجرًا: «Move along». وعبر الكوبري في حقيبتك خبرُ المظاهرة النسائية إلى مطابع الصعيد كله. بعد سنوات، حين تُكتب قصة ١٩١٩، لن يذكر أحدٌ اسمك — لكن كل نسخةٍ من الخبر كانت ابنتك. قال المرشد: «الصحافة في أزمنة الاحتلال فنّ التخفي؛ وأنتِ الليلة أستاذة».'}
+     :{grade:'🌟🌟',title:'نهاية العبور المرتجف',desc:'مرّت الحيلة، لكن يدكِ ارتجفت على الحقيبة فأمسكها الضابط لحظةً أطول من اللازم. عبرتِ بنصف الطبعة، والنصف الآخر نام في قاع ترعة قريبة — احتياطًا. الخبر وصل ناقصًا، والثورة أكملته بالهتاف.'};
+   if(k==='defy')return {grade:'🌟🌟',title:'نهاية الهتاف في وجه البندقية',desc:'رفعتِ الشارة وهتفتِ، فتجمّع الناس في ثوانٍ — والضابط المتعب قرّر أن اعتقال فتاةٍ أمام مئتي غاضبٍ أغلى من راتبه. تراجَع. عبرتِ والهتاف يحرسك بدل الحيلة. تهوّر؟ ربما. لكن المرشد سجّلها بإنصاف: «في ١٩١٩، كان التهوّر أحيانًا اسمه الآخر: الكرامة».'};
+   return {grade:'🌟',title:'نهاية الحقيبة المسلَّمة',desc:'سلّمتِ الحقيبة. أحرقوا المنشورات عند حاجز الكوبري، ووقفتِ تشاهدين الكلمات تصير رمادًا — وكل جملةٍ فيها كتبها أحدٌ خاطر بعنقه. لم يعتقلوكِ؛ لم تكوني تستحقين الاعتقال، وهذه كانت الإهانة الأدق. قال المرشد بهدوءٍ قاسٍ: «الخبر الذي لا يصل يا عبير… كأنه لم يقع. هذا أثقل درسٍ في مهنة الكلمة».'};
+ },
+ draw(cx,W,H,cam,t){
+  // sepia Cairo
+  cx.fillStyle=skyGrad(cx,H,[[0,'#c9a87a'],[.5,'#b08a5a'],[1,'#6a4a2e']]);cx.fillRect(0,0,W,H);
+  glow(cx,W*.3,H*.16,110,'255,240,210',.4);
+  // far: citadel mosque silhouette (k=.15)
+  const mx=1100-cam*.15;
+  cx.fillStyle='#4a3018';
+  cx.fillRect(mx-140,H*.36,280,H*.16);
+  cx.beginPath();cx.arc(mx,H*.36,80,Math.PI,0);cx.fill();
+  cx.fillRect(mx-190,H*.24,16,H*.28);cx.beginPath();cx.arc(mx-182,H*.24,11,Math.PI,0);cx.fill();
+  cx.fillRect(mx+174,H*.24,16,H*.28);cx.beginPath();cx.arc(mx+182,H*.24,11,Math.PI,0);cx.fill();
+  // mid: 1900s facades (k=.45)
+  for(let i=-1;i<9;i++){
+    const bx=((i*330-cam*.45)%(W+660)+W+660)%(W+660)-330;
+    cx.fillStyle='#5e4226';cx.fillRect(bx,H*.44,270,H*.36);
+    cx.fillStyle='#3d2a16';
+    for(let r2=0;r2<3;r2++)for(let c2=0;c2<3;c2++){
+      cx.fillRect(bx+30+c2*80,H*.48+r2*70,44,50);
+      cx.fillStyle='rgba(232,227,213,.25)';cx.fillRect(bx+30+c2*80,H*.48+r2*70+22,44,4);cx.fillStyle='#3d2a16';}
+    cx.fillStyle='rgba(0,0,0,.2)';cx.fillRect(bx,H*.44,270,10);
+  }
+  // crowd with banners (k=.8)
+  for(let i=0;i<14;i++){
+    const px=((i*260+130-cam*.8)%(W+520)+W+520)%(W+520)-260;
+    const bob=Math.sin(t*.004+i*3)*3;
+    cx.fillStyle='#241a10';
+    cx.beginPath();cx.arc(px,GY-58+bob,9,0,7);cx.fill();
+    cx.fillRect(px-8,GY-50+bob,16,50);
+    if(i%3===0){
+      const wave=Math.sin(t*.005+i)*8;
+      cx.strokeStyle='#241a10';cx.lineWidth=3;
+      cx.beginPath();cx.moveTo(px+8,GY-56);cx.lineTo(px+14,GY-120);cx.stroke();
+      cx.fillStyle='#3e5e3a';
+      cx.beginPath();cx.moveTo(px+14,GY-120);cx.lineTo(px+66,GY-112+wave);cx.lineTo(px+14,GY-96);cx.closePath();cx.fill();
+      cx.fillStyle='rgba(232,227,213,.9)';cx.font='10px serif';
+      cx.fillText('☪',px+26,GY-106+wave*.5);cx.fillText('✝',px+40,GY-104+wave*.5);
+    }
+  }
+  // flag shadows sweeping the street
+  cx.fillStyle='rgba(0,0,0,.1)';
+  for(let i=0;i<5;i++){
+    const sx=((i*420+t*.02)%(W+400))-200;
+    cx.beginPath();cx.ellipse(sx,GY+26,90+Math.sin(t*.003+i)*18,10,0,0,7);cx.fill();
+  }
+  cx.fillStyle='#7a5a36';cx.fillRect(0,GY,W,H-GY);
+  cx.strokeStyle='rgba(255,255,255,.05)';
+  for(let i=0;i<12;i++){const sx=((i*160-cam)%(W+160)+W+160)%(W+160)-80;
+    cx.strokeRect(sx,GY+8,100,22);}
+  // film grain
+  cx.fillStyle='rgba(40,25,10,.14)';
+  for(let g2=0;g2<26;g2++)cx.fillRect(rand(0,W),rand(0,H),1.6,1.6);
+ },
+};
+
+/* ============================================================
+   WORLD 10 — Hiroshima 1945  «حبٌّ في أغسطس»
+   (the most human world: gentle, no punishing mechanics)
+   ============================================================ */
+WORLDS.hiroshima={
+ id:'hiroshima',wing:4,len:2200,ptype:'petals',
+ meta:{issue:'العدد ٣٦',title:'حبٌّ في أغسطس',sub:'هيروشيما ١٩٤٥ · قصة تُروى بوقار',
+   motif:'🌸',bg:'linear-gradient(160deg,#7a3a4a,#1a0e12)',glow:'rgba(240,150,180,.45)'},
+ intro:'هيروشيما، مساء الخامس من أغسطس ١٩٤٥. مدينةٌ تسقي حدائقها وتغلي شايها ولا تعلم. أنتِ هنا لتحبّي، لا لتنقذي.',
+ costume:{dress:'#c46a8a',dress2:'#7a3a4a',accent:'#fff5f0'},
+ objectives:[
+  'امشي مع كينجي على ضفة النهر واسمعي المدينة',
+  'شاركي الجدة أوباتشان طقس الشاي',
+  'عند الجسر، ساعدا بعضكما على إتمام قصيدة الهايكو الأخيرة',
+ ],
+ hints:[
+  'هذا الحلم لا يُستعجل. امشي ببطء؛ فحتى المرشد يخفض صوته هنا.',
+  'الشاي يُدار ثلاث مرات قبل الرشفة الأولى — الجدة ستريكِ. لا يوجد خطأ في هذا العالم، فقط لطفٌ يتعلم.',
+  'الهايكو نَفَسٌ واحد في ثلاثة أسطر: مشهدٌ، ثم لمسة، ثم صمت. أنصتي للنهر يمليها عليك.',
+ ],
+ facts:[
+  'في الساعة ٨:١٥ من صباح ٦ أغسطس ١٩٤٥ أُلقيت القنبلة على هيروشيما — توقفت عندها ساعاتٌ كثيرة في المدينة إلى الأبد.',
+  'قبة غينباكو — المبنى الذي بقي هيكله قائمًا قرب مركز الانفجار — حُفظت كما هي، وأدرجتها اليونسكو موقعَ سلامٍ عالمي عام ١٩٩٦.',
+  'ساداكو ساساكي، الطفلة الناجية التي مرضت بعد سنوات، طوت طيور كركيٍّ ورقية إيمانًا بأمنية الألف طائر — قصتها صارت نصب أطفال السلام في هيروشيما.',
+  'زهرة الدفلى كانت أول ما أزهر في هيروشيما بعد الدمار، فاتخذتها المدينة زهرتها الرسمية — والناجون يسمّونها زهرة الأمل.',
+ ],
+ quote:{text:'أعيدوا أبي، أعيدوا أمي، أعيدوا البشر',
+   src:'سانكيتشي توغه — شاعر هيروشيما، من قصيدة «أعيدوا الإنسان»'},
+ ents:[
+  {x:420,kind:'npc',name:'كينجي',c1:'#3a4a5e',c2:'#202b38',skin:'#e8c9a0',prop:'📷',dlg:'kenji1'},
+  {x:850,kind:'spot',name:'بوابة توري الحمراء',icon:'⛩️',h:90,dlg:'torii'},
+  {x:1250,kind:'npc',name:'الجدة أوباتشان',c1:'#6a4a52',c2:'#3d2a30',skin:'#e0c0a0',hat:'#d5cfc0',prop:'🍵',dlg:'oba'},
+  {x:1600,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:2050,kind:'npc',name:'كينجي عند الجسر',c1:'#3a4a5e',c2:'#202b38',skin:'#e8c9a0',prop:'🏮',dlg:'kenji2'},
+ ],
+ dialogs:{
+  kenji1:{sp:'كينجي',txt:'شابٌّ بكاميرا قديمة يلتقط صورة للنهر لا لكِ — ثم يحمرّ وجهه: «آسف. أصوّر الأشياء التي أخاف أن أنساها. النهر، والمدينة، و…» — يتوقف. «هل تمشين معي إلى الجسر الليلة؟ جدتي تقول إن مساء الأحد هذا أجمل من أن يُمشى وحيدًا».',ch:[
+    {t:'«أمشي معك. وسيصوّرنا النهر نحن هذه المرة.»',fx:{cp:2,flag:'walk'}},
+    {t:'تسألينه عمّا يصوّر أكثر شيء',fx:{next:'kenji1b'}},
+  ]},
+  kenji1b:{sp:'كينجي',txt:'«الساعات. أصوّر ساعات المدينة — ساعة المحطة، وساعة المصرف، وساعة معصم أبي قبل أن يسافر إلى المصنع. تبدو لي… شجاعة. تعدّ الوقت ولا تخاف منه». يبتسم فجأة: «أعرف أنها هواية غريبة».',ch:[
+    {t:'«ليست غريبة. إنها أرقّ هواية سمعت بها.»',fx:{cp:2,flag:'walk'}},
+  ]},
+  torii:{sp:'بوابة التوري',txt:'بوابةٌ حمراء تقف في الماء الضحل، وظلّها يتهادى على سطح النهر. تحتها يعبر الناس منحنين قليلًا — لا خوفًا، بل أدبًا مع ما هو أكبر منهم.',ch:[
+    {t:'تنحنين قليلًا وتعبرين',fx:{cp:2,gone:1,toast:'⛩️ همس المرشد بصوتٍ خفيض: «البوابات الحمراء تفصل العادي عن المقدّس. الليلة، المدينة كلها على الجانب المقدّس».'}},
+  ]},
+  oba:{sp:'الجدة أوباتشان',txt:'في بيتٍ خشبي صغير، جدةُ كينجي تسوّي أدوات الشاي بحركاتٍ تشبه الصلاة: «اجلسي يا ابنتي. الماتشا يُدار ثلاث مراتٍ قبل الرشفة — ليس للطعم، بل لكي تتذكري أنكِ هنا». وتناولك القدح بيدين تحفظان ثمانين سنةً من المساءات.',ch:[
+    {t:'تديرين القدح ثلاثًا وترشفين (+ثبات)',fx:{stab:+10,cp:2}},
+    {t:'تسألينها عن كينجي صغيرًا',fx:{next:'oba2'}},
+  ]},
+  oba2:{sp:'الجدة أوباتشان',txt:'تضحك حتى تدمع عيناها: «كان يصوّر بعلبة كرتونٍ مثقوبة قبل أن يملك كاميرا. وكتب لكِ رسالة — لا تخبريه أنني أفشيت سرّه — رسالةً يمزقها ويعيد كتابتها منذ أسبوع». وتدسّ في يدك ورقةً غير مكتملة: «أكملاها معًا. الرسائل الجيدة تُكتب بأربع أيادٍ».',ch:[
+    {t:'تأخذين الرسالة غير المكتملة',tag:'غرض',fx:{item:{id:'letter',icon:'💌',name:'رسالة غير مكتملة'},cp:2,stab:+5}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'على درابزين الجسر الخشبي، ورقة تضيء بلون الفجر — نصٌّ لن يُكتب إلا بعد سنوات، جاء يزور الليلة التي قبل.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  kenji2:{sp:'كينجي عند الجسر',txt:'الفوانيس الورقية تشتعل واحدًا واحدًا على طول الضفة. كينجي يخرج دفترًا صغيرًا: «أحاول كتابة هايكو منذ المساء. جدتي تقول إن الهايكو الجيد نَفَسٌ واحد… ساعديني؟ النهر يملي والكلمات تتناثر مني».',ch:[
+    {t:'«هاته. نلتقط الكلمات معًا.» (قصيدة الهايكو)',tag:'اللحظة',fx:{stage:2,mg:1}},
+  ]},
+  kenji3:{sp:'كينجي',txt:'يقرأ الهايكو المكتمل مرتين، ثم يغلق الدفتر على زهرة دفلى يابسة: «غدًا سأصحو مبكرًا — عندي صورٌ أسلّمها قرب المصرف في الثامنة والربع. لكن الليلة…» — يتلعثم، ثم يقولها ببساطة من وجد الشجاعة أخيرًا: «الليلة أطول ليلةٍ عرفتها، وأتمنى ألا تنتهي».',ch:[
+    {t:'تبقين معه على الجسر حتى آخر الفوانيس',tag:'نهاية',fx:{score:2,end:'stay'}},
+    {t:'تكملان الرسالة غير المكتملة معًا قبل الوداع',tag:'نهاية',req:'letter',fx:{score:2,end:'letter'}},
+    {t:'«أوقظي الحلم الآن يا عبير» — تستيقظين قبل الصباح',tag:'نهاية',fx:{score:1,end:'wake'}},
+  ]},
+ },
+ startMinigame(){
+   mgHaiku({title:'هايكو الجسر',
+     sub:'اختاري ثلاثة أسطر بترتيبها لتكتمل القصيدة — لا عجلة، ولا خطأ يُحاسَب. النهر صبور',
+     lines:[
+       'مساءُ أغسطس —',
+       'زهرُ الدفلى يتفتّح',
+       'قبل أن نقول وداعًا',
+       'قطار الليل يصفر بعيدًا',
+       'الشاي يبرد في الفنجان',
+       'ظلّ التوري على الماء',
+     ],
+     correct:['مساءُ أغسطس —','زهرُ الدفلى يتفتّح','قبل أن نقول وداعًا']});
+ },
+ afterMinigame(s){
+   toast('🍃 اكتمل الهايكو. كينجي ينسخه مرتين: نسخة لك ونسخة للدفتر.');
+   startDialog('kenji3');
+ },
+ finale(k){
+   if(k==='stay')return {grade:'🕊️🕊️🕊️',white:true,title:'نهاية الفوانيس الأخيرة',desc:'بقيتما على الجسر حتى انطفأ آخر فانوس، وتحدثتما عن كل شيءٍ صغير: الساعات، والدفلى، وطعم الماتشا المُدار ثلاثًا. ثم جاء الصباح، صباح السادس من أغسطس، وفي الثامنة والربع صار كل شيءٍ ضوءًا أبيض — وهنا يتوقف الحلم بأدب، لأن ما بعد ذلك ليس حكاية تُروى بل صمتٌ يُحترم. احتفظ الحلم بكما هناك على الجسر: نَفَسًا واحدًا، في ثلاثة أسطر، إلى الأبد. قال المرشد، ولأول مرة بلا مزاح: «بعض القصص لا نُكملها يا عبير. نحملها».'};
+   if(k==='letter')return {grade:'🕊️🕊️🕊️',white:true,title:'نهاية الرسالة المكتملة',desc:'أكملتما الرسالة بأربع أيادٍ كما أوصت الجدة، وضحكتما على خطّه المائل وخطّك الأعوج، ووقّعها باسمه الكامل ووقّعتِها أنتِ ببصمة إبهامٍ ملوّثة بالحبر. وفي الصباح الذي تعرفينه، كانت الرسالة في جيب معطفه المعلّق في بيت الجدة البعيد عن المركز — فنجت الرسالة، كما تنجو الكلمات أحيانًا ممّا لا ينجو منه أصحابها. الحلم لا يقول أكثر. الحلم يضع الرسالة في يدك ويغلق الستارة بهدوء.'};
+   return {grade:'🕊️🕊️',title:'نهاية الاستيقاظ الرحيم',desc:'طلبتِ الاستيقاظ قبل الصباح، والمرشد لبّى فورًا — كان ينتظر الطلب بيدٍ على مفتاح الحلم من ساعة. صحوتِ والفوانيس ما تزال مشتعلة في ذاكرتك، وكينجي ما يزال يتلعثم في جملته الأخيرة، معلَّقًا في منتصف السعادة. قال المرشد: «رحمةٌ بالقلب قرارُك، ولا عيب فيه. لكن اعلمي أن العدد ٣٦ سيبقى على رفّك، مفتوحًا على صفحته قبل الأخيرة، ينتظر يومًا تكونين فيه أقوى». وبعض الكتب تنتظر طويلًا. وتُفتح.'};
+ },
+ draw(cx,W,H,cam,t){
+  // watercolor sky washes
+  cx.fillStyle=skyGrad(cx,H,[[0,'#f2d9d4'],[.4,'#e8b8b8'],[.75,'#c98a9a'],[1,'#8a5a6e']]);cx.fillRect(0,0,W,H);
+  for(let i=0;i<5;i++){ // soft wash blobs
+    const wx2=((i*430+100-cam*.08)%(W+800))-200;
+    glow(cx,wx2,H*(.14+(i%3)*.1),140,'255,235,225',.16);
+  }
+  // far hills (k=.12)
+  cx.fillStyle='rgba(150,110,140,.5)';
+  cx.beginPath();cx.moveTo(0,H*.5);
+  for(let x=0;x<=W;x+=50){const wx2=x+cam*.12;
+    cx.lineTo(x,H*.5-Math.abs(Math.sin(wx2*.003))*60);}
+  cx.lineTo(W,H*.56);cx.lineTo(0,H*.56);cx.closePath();cx.fill();
+  // river band
+  const ry=H*.62;
+  const rg=cx.createLinearGradient(0,ry,0,GY);
+  rg.addColorStop(0,'rgba(220,190,200,.7)');rg.addColorStop(1,'rgba(150,110,140,.5)');
+  cx.fillStyle=rg;cx.fillRect(0,ry,W,GY-ry);
+  cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1;
+  for(let w2=0;w2<4;w2++){cx.beginPath();
+    for(let x=0;x<=W;x+=20)cx.lineTo(x,ry+14+w2*16+Math.sin(t*.0015+x*.03+w2)*2);
+    cx.stroke();}
+  // the great torii in the water (k=.3)
+  {const tx=900-cam*.3;
+   cx.fillStyle='#b03a3a';
+   cx.fillRect(tx-70,H*.34,16,H*.34);cx.fillRect(tx+54,H*.34,16,H*.34);
+   cx.fillRect(tx-92,H*.32,184,14);cx.fillRect(tx-78,H*.38,156,10);
+   cx.fillStyle='rgba(176,58,58,.35)'; // reflection
+   cx.fillRect(tx-70,H*.68,16,H*.1);cx.fillRect(tx+54,H*.68,16,H*.1);
+  }
+  // cherry trees (k=1)
+  for(const px of [300,750,1200,1650,2000]){
+    const sx=px-cam;if(sx<-120||sx>W+120)continue;
+    cx.strokeStyle='#5e3a3a';cx.lineWidth=9;
+    cx.beginPath();cx.moveTo(sx,GY);cx.quadraticCurveTo(sx-10,GY-70,sx+8,GY-120);cx.stroke();
+    for(const [bx,by,br] of [[-30,-130,34],[15,-155,40],[45,-120,30]]){
+      cx.fillStyle='rgba(246,182,203,.85)';
+      cx.beginPath();cx.arc(sx+bx,GY+by,br,0,7);cx.fill();
+      cx.fillStyle='rgba(255,220,232,.5)';
+      cx.beginPath();cx.arc(sx+bx-8,GY+by-8,br*.55,0,7);cx.fill();
+    }
+  }
+  // paper lanterns along the bank
+  for(let lx=200;lx<this.len;lx+=380){
+    const sx=lx-cam;if(sx<-30||sx>W+30)continue;
+    const fl=.75+Math.sin(t*.003+lx)*.25;
+    cx.strokeStyle='#5e3a3a';cx.lineWidth=3;
+    cx.beginPath();cx.moveTo(sx,GY);cx.lineTo(sx,GY-90);cx.stroke();
+    glow(cx,sx,GY-100,36*fl,'255,200,150',.35);
+    cx.fillStyle=`rgba(255,225,190,${.95*fl})`;
+    cx.beginPath();cx.ellipse(sx,GY-100,10,14,0,0,7);cx.fill();
+    cx.strokeStyle='rgba(176,58,58,.6)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(sx-9,GY-100);cx.lineTo(sx+9,GY-100);cx.stroke();
+  }
+  // wooden walkway
+  cx.fillStyle='#8a6a5a';cx.fillRect(0,GY,W,H-GY);
+  cx.strokeStyle='rgba(94,58,58,.4)';cx.lineWidth=2;
+  for(let i=0;i<16;i++){const sx=((i*120-cam)%(W+120)+W+120)%(W+120)-60;
+    cx.beginPath();cx.moveTo(sx,GY);cx.lineTo(sx,H);cx.stroke();}
+ },
+};
+</script>
+<script>
+/* ============================================================
+   WORLD 11 — The Philosophers' Banquet  «مأدبة الفلاسفة»
+   ============================================================ */
+WORLDS.philo={
+ id:'philo',wing:5,len:2600,ptype:'dust',
+ meta:{issue:'العدد ٣٧',title:'مأدبة الفلاسفة',sub:'سقراط · ابن رشد · ديكارت · نيتشه',
+   motif:'🏛️',bg:'linear-gradient(160deg,#2a3a55,#0c1018)',glow:'rgba(140,170,230,.45)'},
+ intro:'أربع جزرٍ في بحر الفكر: أثينا، وقرطبة، وغرفةُ شمعةٍ هولندية، وقمةٌ جليدية. وعلى كل جزيرة سؤالٌ يحدّق فيك.',
+ costume:{dress:'#3a4a6e',dress2:'#1d2a44',accent:'#e8e3d5'},
+ objectives:[
+  'حاوري سقراط في أثينا واخرجي من كهف الظلال',
+  'أجيبي أسئلة ابن رشد وديكارت ونيتشه — إجاباتك هي أنتِ',
+  'اجلسي إلى المأدبة الأخيرة وقولي كلمتك',
+ ],
+ hints:[
+  'سقراط لا يجيب أبدًا؛ يسأل حتى تلدَ إجابتك بنفسك. لا تخافي من قول «لا أعرف» — عنده هي بداية العلم.',
+  'كل فيلسوفٍ يطرح مسألته الحقيقية: الكهف، والعقل والشرع، والكوجيتو، والعود الأبدي. أجيبي بما تعيشين، لا بما تحفظين.',
+  'في المأدبة الأخيرة لا توجد إجابة صحيحة — توجد إجابتك. لكن الإجابات المتناسقة تصنع نهايةً أهدأ.',
+ ],
+ facts:[
+  'سقراط لم يكتب حرفًا واحدًا — كل ما نعرفه عنه وصلنا عبر تلميذيه أفلاطون وكزينوفون.',
+  'ابن رشد، فيلسوف قرطبة، عُرف في أوروبا اللاتينية بلقب «الشارح» لأن شروحه أعادت أرسطو إلى الغرب.',
+  'عبارة ديكارت «أنا أفكر، إذن أنا موجود» وردت في «مقال عن المنهج» (١٦٣٧) — الذي كتبه بالفرنسية لا باللاتينية ليقرأه عامة الناس.',
+  'فكرة «العود الأبدي» طرحها نيتشه في «العلم المرح» (الفقرة ٣٤١) على هيئة سؤالٍ يهمس به شيطانٌ في أوحد لحظاتك.',
+ ],
+ quote:{text:'الحياة التي لا تُفحص لا تستحق أن يحياها الإنسان',
+   src:'سقراط — كما نقل أفلاطون في «محاورة الدفاع»'},
+ ents:[
+  {x:400,kind:'npc',name:'سقراط',c1:'#d5cfc0',c2:'#8a8272',skin:'#d8b088',dlg:'soc'},
+  {x:1000,kind:'npc',name:'ابن رشد',c1:'#3e5e3a',c2:'#20331f',hat:'#e8e3d5',prop:'📚',dlg:'rushd'},
+  {x:1350,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:1650,kind:'npc',name:'رينيه ديكارت',c1:'#26262e',c2:'#111116',skin:'#e8cba0',prop:'🕯️',dlg:'desc'},
+  {x:2250,kind:'npc',name:'فريدريش نيتشه',c1:'#3d2a2a',c2:'#241616',skin:'#d8b088',prop:'⛰️',dlg:'niet'},
+  {x:2520,kind:'spot',name:'المأدبة الأخيرة',icon:'🍷',h:60,dlg:'sym'},
+ ],
+ dialogs:{
+  soc:{sp:'سقراط',txt:'حافي القدمين، أفطس الأنف، وعيناه أذكى عينين في أثينا: «زائرةٌ من بلاد النيل؟ أهلًا. كنتُ أشرح لتلاميذي حكاية الكهف: سجناء لا يرون إلا ظلالًا على جدار، فيحسبونها العالم كله. تعالي — أريكِ الظلال، ولنرَ إن كنتِ تعرفين أصحابها».',ch:[
+    {t:'«أرني الكهف» (لغز الظلال)',tag:'لغز',fx:{mg:1}},
+    {t:'«وأنت؟ ألستَ ظلًّا في كهف أفلاطون تكتبك ريشته؟»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,next:'soc2'}},
+  ]},
+  soc2:{sp:'سقراط',txt:'*يضحك حتى تهتز لحيته* أذكى إهانةٍ سمعتُها منذ أريستوفان! نعم يا ابنتي — لم أكتب حرفًا، فكتبني تلاميذي كما شاؤوا. نصيحة من ظلٍّ عجوز: مَن لا يكتب قصته، تُكتب عنه. والآن… الكهف ينتظر.',ch:[
+    {t:'«إلى الكهف» (لغز الظلال)',tag:'لغز',fx:{mg:1}},
+  ]},
+  rushd:{sp:'ابن رشد',txt:'تحت قوسٍ قرطبي مخطط بالأحمر والأبيض، قاضٍ يفرغ من شرح صفحة: «أهلًا بالقارئة. يشغلني ما شغل عمري: أيتعارض البرهانُ مع الشرع؟ أنا أقول: الحقُّ لا يضادّ الحقَّ، والحكمةُ أختُ الشريعة بالرضاعة. لكن قولي أنتِ — حين يتصادم عقلك وما نشأتِ عليه، ماذا تفعلين؟»',ch:[
+    {t:'«أعيد قراءة الاثنين — فالتصادم غالبًا سوء فهمٍ لأحدهما»',tag:'إجابة رشدية',fx:{score:1,cp:2}},
+    {t:'«أتبع عقلي ولو وقف الجميع ضدي»',fx:{cp:1}},
+    {t:'«أغلق الكتابين وأرتاح»',fx:{stab:-5}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'بين جزيرتين، تطفو ورقةٌ كأنها جسرٌ صغير من ضوء. الكتب هنا تطير أوراقها من مأدبةٍ إلى مأدبة.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  desc:{sp:'رينيه ديكارت',txt:'غرفةٌ هولندية دافئة، وشمعةٌ تذوب أمام رجلٍ يشك في كل شيء بمنهجية مبهجة: «تخيّلي أن شيطانًا ماكرًا يزيّف لك كلَّ شيء: السماء، والأصوات، وهذا الحوار نفسه. ما الذي يستحيل أن يكون زائفًا؟» — ويشير بالشمعة نحوك.',ch:[
+    {t:'«شكّي نفسه. ما دمتُ أشك فأنا أفكر — وما دمتُ أفكر فأنا موجودة»',tag:'الكوجيتو',fx:{score:1,cp:2}},
+    {t:'«يدي. أراها وألمسها»',fx:{cp:1,toast:'🕯️ ابتسم: «والأحلام؟ ألا ترين فيها يدًا وتلمسين؟» — نقطة ديكارت.'}},
+    {t:'«طريف أنك تسأل هذا داخل حلمٍ مُدارٍ بجهاز»',tag:'كسر الجدار الرابع',fx:{wall:1,score:1,cp:2,toast:'🪞 صمت ديكارت لحظة… ثم دوّن في دفتره: «فرضية الجهاز. مقلقة. أناقشها لاحقًا».'}},
+  ]},
+  niet:{sp:'فريدريش نيتشه',txt:'على قمةٍ يلسعها الهواء النقي، رجلٌ بشاربٍ عظيم يصيح ضد الريح: «تخيّلي أن شيطانًا يهمس: هذه الحياة، كما عشتِها، ستعيشينها مرةً أخرى ومراتٍ لا تُحصى — كل ألمٍ وكل فرحٍ وكل تفصيلةٍ بالترتيب نفسه. أتنهارين لاعنةً الشيطان… أم تقولين له: ما أروعك، وما أروع ما سمعت؟»',ch:[
+    {t:'«أعيش بحيث أتمنى العودة — هذه معيارُ كل قرارٍ قادم»',tag:'العود الأبدي',fx:{score:1,cp:2}},
+    {t:'«أنهار. صراحةً أنهار»',fx:{cp:1,toast:'⛰️ أومأ باحترام: «الصدق أول الطريق. الانهيار محطة، لا وجهة».'}},
+    {t:'«حياتي فيها عوالم فانتازيا — سأوقّع على الإعادة فورًا»',tag:'كسر الجدار الرابع',fx:{wall:1,score:1,cp:1}},
+  ]},
+  sym:{sp:'المأدبة الأخيرة',txt:'مائدةٌ طويلة على جزيرةٍ بلا زمن: سقراط يسرق الزيتون، وابن رشد يصحّح لديكارت ترجمة، ونيتشه يتذوق العصير متظاهرًا أنه صاعقة. يلتفتون إليك جميعًا: «الكرسي الخامس لكِ. سؤال المأدبة: ما أثمن ما تخرجين به من الفكر كله؟»',ch:[
+    {t:'«السؤال نفسه — عشتُ أفحص، وهذا يكفيني شرفًا»',tag:'نهاية',fx:{score:1,end:'sym'}},
+    {t:'«الطمأنينة — أن أعرف حدود ما أعرف»',tag:'نهاية',fx:{end:'sym'}},
+    {t:'«لا شيء. الفلسفة أسئلة بلا أرباح»',tag:'نهاية متعجّلة',fx:{stab:-10,end:'sym'}},
+  ]},
+ },
+ startMinigame(){
+   mgDeduction({title:'كهف الظلال',
+     sub:'على جدار الكهف أربعة ظلال — انقري الظل ثم انقري حقيقته خارج الكهف. الظلال تخدع',
+     clues:[
+       {id:'sh1',t:'🌑 ظلٌّ يرفرف كجناحين'},
+       {id:'sh2',t:'🌑 ظلٌّ طويل بأسنانٍ مشطية'},
+       {id:'sh3',t:'🌑 ظلٌّ يلتوي كأفعى'},
+       {id:'sh4',t:'🌑 ظلٌّ عملاق بقرنين'},
+     ],
+     suspects:[
+       {id:'book',f:'📖',n:'كتاب مفتوح',d:'صفحتان في الريح تخفقان كجناحين'},
+       {id:'key',f:'🗝️',n:'مفتاح ضخم',d:'أسنانه في الضوء أمشاطٌ مخيفة'},
+       {id:'rope',f:'🪢',n:'حبلٌ ملقى',d:'يلتوي على الأرض التواء الأفاعي'},
+       {id:'jug',f:'🏺',n:'إبريق بمقبضين',d:'مقبضاه في الظل قرنا وحش'},
+     ],
+     correct:{sh1:'book',sh2:'key',sh3:'rope',sh4:'jug'},
+     accuse:'اخرجي إلى الشمس',
+   });
+ },
+ afterMinigame(s){
+   G.stage=1;setObjective(this.objectives[1]);
+   if(s>=.99){G.score++;toast('🏛️ قال سقراط: «خرجتِ من الكهف من أول محاولة. أفلاطون سيغار».');}
+   else if(s>=.5)toast('🏛️ «رأيتِ نصف الحقيقة — وهذا أكثر مما يرى معظم الأثينيين».');
+   else toast('🌑 «ما زالت الظلال تخدعك. لا بأس: العمر كله تمرينٌ على الخروج».');
+ },
+ finale(k){
+   const wise=G.score; // coherent answers across the islands
+   if(wise>=3)return {grade:'🌟🌟🌟',title:'نهاية الكرسي الخامس',desc:'أجبتِ الأربعة بإجاباتٍ من عندك — لا محفوظة ولا مستعارة — فقام سقراط ورفع كأس ماءٍ (ما زال يتجنب أي كؤوسٍ أخرى لأسبابٍ مفهومة): «نخب القارئة التي تفحص». ونقش ابن رشد اسمك في حاشية شرحٍ لأرسطو، حيث تسكن الأسماء التي لا تموت. قال المرشد في أذنك: «أربعة قرونٍ من الفكر جلست معهم كندٍّ يا عبير. نقاط الثقافة الليلة مجرد إجراء شكلي».'};
+   if(wise>=2)return {grade:'🌟🌟',title:'نهاية التلميذة النجيبة',desc:'أجبتِ بعض الأسئلة بقلبك وبعضها بما ظننتِه «الإجابة الصحيحة» — وسقراط يلتقط الفرق كما يلتقط الصياد رعشة الخيط. قال بلطفٍ وهو يودّعك: «نصفك خرج من الكهف، ونصفك ما زال يستأنس بالظلال. عودي — المأدبة لا تنفضّ أبدًا، وكرسيّك محفوظ».'};
+   return {grade:'🌟',title:'نهاية الكرسي الفارغ',desc:'استعجلتِ الأجوبة كمن يريد إنهاء امتحان، فبردت المأدبة قليلًا. لم يغضب أحد — الفلاسفة اعتادوا الاستعجال البشري منذ قرون — لكن نيتشه غمغم للريح: «جاءت إلى العود الأبدي ومعها ساعة إيقاف». همس المرشد: «الفكر يا عبير وليمة، والولائم لا تُلتهم واقفة. سنعود حين يجوع رأسك على مهل».'};
+ },
+ draw(cx,W,H,cam,t){
+  // four islands: Athens / Córdoba / candle study / icy peak — hue shifts by segment
+  const seg=clamp((cam+W*.5)/this.len*4,0,3.99),si=Math.floor(seg),f=seg-si;
+  const SKY=[[[210,190,150],[150,170,190]],[[220,170,110],[140,110,90]],
+             [[60,60,90],[25,25,45]],[[150,180,210],[60,80,120]]];
+  const top=lerpC(SKY[si][0],SKY[Math.min(si+1,3)][0],f),
+        bot=lerpC(SKY[si][1],SKY[Math.min(si+1,3)][1],f);
+  const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,top);g.addColorStop(1,bot);
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  // island 1: Athens — temple columns + olive
+  {const bx=350-cam;if(bx>-500&&bx<W+500){
+    cx.fillStyle='rgba(240,235,220,.9)';
+    cx.fillRect(bx-160,H*.36,320,12);
+    for(let c2=0;c2<7;c2++)cx.fillRect(bx-146+c2*46,H*.36+12,18,H*.3);
+    cx.fillRect(bx-160,H*.36+12+H*.3,320,10);
+    cx.beginPath();cx.moveTo(bx-172,H*.36);cx.lineTo(bx,H*.28);cx.lineTo(bx+172,H*.36);cx.closePath();cx.fill();
+    cx.fillStyle='#5a6e3a';cx.beginPath();cx.ellipse(bx-230,H*.62,40,26,0,0,7);cx.fill();
+    cx.strokeStyle='#4a3a2a';cx.lineWidth=6;cx.beginPath();cx.moveTo(bx-230,GY);cx.lineTo(bx-230,H*.64);cx.stroke();
+  }}
+  // island 2: Córdoba — striped double arches
+  {const bx=1000-cam;if(bx>-500&&bx<W+500){
+    cx.fillStyle='#e8dcc0';cx.fillRect(bx-220,H*.4,440,GY-H*.4);
+    for(let a2=0;a2<4;a2++){
+      const ax=bx-165+a2*110;
+      cx.fillStyle='#0c1018';
+      cx.beginPath();cx.moveTo(ax-38,GY);cx.lineTo(ax-38,H*.56);
+      cx.arc(ax,H*.56,38,Math.PI,0);cx.lineTo(ax+38,GY);cx.closePath();cx.fill();
+      for(let s2=0;s2<7;s2++){ // red/white voussoirs
+        const a=Math.PI+s2/7*Math.PI;
+        cx.strokeStyle=s2%2?'#b03a3a':'#f0e8d0';cx.lineWidth=9;
+        cx.beginPath();cx.arc(ax,H*.56,44,a,a+Math.PI/7);cx.stroke();}
+    }
+  }}
+  // island 3: candle study
+  {const bx=1650-cam;if(bx>-500&&bx<W+500){
+    cx.fillStyle='#241a12';cx.fillRect(bx-200,H*.34,400,GY-H*.34);
+    cx.fillStyle='#38281a';
+    for(let s2=0;s2<3;s2++){cx.fillRect(bx-180+s2*130,H*.4,110,14);
+      cx.fillStyle='#5e4630';
+      for(let b2=0;b2<5;b2++)cx.fillRect(bx-176+s2*130+b2*21,H*.4-26,17,26);
+      cx.fillStyle='#38281a';}
+    // window with snow outside + candle
+    cx.fillStyle='#0e1c30';cx.fillRect(bx+60,H*.44,90,110);
+    cx.fillStyle='rgba(255,255,255,.75)';
+    for(let s2=0;s2<8;s2++)cx.fillRect(bx+66+(s2*23)%80,H*.44+((s2*47+t*.04)%104),2,2);
+    const fl=.7+Math.sin(t*.02)*.3;
+    glow(cx,bx-60,H*.62,44*fl,'255,190,90',.5);
+    cx.fillStyle='#e8dcc0';cx.fillRect(bx-64,H*.62,8,26);
+    cx.fillStyle=`rgba(255,214,120,${.9*fl})`;
+    cx.beginPath();cx.ellipse(bx-60,H*.6,4,8,0,0,7);cx.fill();
+  }}
+  // island 4: icy peak + thin-air stars
+  {const bx=2250-cam;if(bx>-600&&bx<W+600){
+    cx.fillStyle='rgba(235,242,250,.95)';
+    cx.beginPath();cx.moveTo(bx-260,GY);cx.lineTo(bx-60,H*.24);cx.lineTo(bx+40,H*.44);
+    cx.lineTo(bx+120,H*.3);cx.lineTo(bx+300,GY);cx.closePath();cx.fill();
+    cx.fillStyle='rgba(150,180,210,.5)';
+    cx.beginPath();cx.moveTo(bx-60,H*.24);cx.lineTo(bx-10,H*.36);cx.lineTo(bx-90,H*.4);cx.closePath();cx.fill();
+    for(let s2=0;s2<12;s2++){
+      cx.fillStyle=`rgba(255,255,255,${.4+Math.sin(t*.002+s2)*.3})`;
+      cx.beginPath();cx.arc(bx-200+(s2*67)%400,H*.1+(s2*37)%(H*.14),1.4,0,7);cx.fill();}
+  }}
+  // floating page motes between islands
+  for(let i=0;i<5;i++){
+    const px=((i*530+t*.03)%this.len)-cam;
+    if(px>-20&&px<W+20){
+      cx.fillStyle='rgba(255,250,230,.5)';
+      cx.save();cx.translate(px,H*.3+Math.sin(t*.001+i*2)*30);
+      cx.rotate(Math.sin(t*.0012+i));cx.fillRect(-6,-8,12,16);cx.restore();
+    }
+  }
+  cx.fillStyle=lerpC([170,160,130],[80,90,110],seg/4);cx.fillRect(0,GY,W,H-GY);
+  cx.fillStyle='rgba(255,255,255,.06)';
+  for(let i=0;i<12;i++){const sx=((i*170-cam)%(W+170)+W+170)%(W+170)-85;
+    cx.fillRect(sx,GY+10,110,3);}
+ },
+};
+
+/* ============================================================
+   WORLD 12 — Dostoevsky's World  «عالم دوستويفسكي»
+   ============================================================ */
+WORLDS.dost={
+ id:'dost',wing:5,len:2400,ptype:'snow',
+ meta:{issue:'العدد ٣٠',title:'عالم دوستويفسكي',sub:'بطرسبرغ القيصرية · الجريمة والعقاب · ثلج وسماور',
+   motif:'❄️',bg:'linear-gradient(160deg,#33405a,#10141e)',glow:'rgba(150,180,240,.4)'},
+ intro:'بطرسبرغ تحت الثلج، حيث تسير الأفكار الكبيرة في معاطف رثة، وكل زقاقٍ اعترافٌ مؤجَّل.',
+ costume:{dress:'#3a4a6a',dress2:'#1d2536',accent:'#e8d98c'},
+ objectives:[
+  'كلّمي الطالب المحموم وسونيا قرب السوق',
+  'اصمدي أمام أسئلة المحقق بورفيري (لغز الضمير)',
+  'الحقي بالطالب إلى الجسر قبل أن يقرر وحده',
+ ],
+ hints:[
+  'الطالب يمشي ويحاور نفسه — لا تقاطعي المونولوج، فهو أدبٌ روسي رفيع. سونيا ترى فيه ما لا يراه هو.',
+  'بورفيري لا يريد الإجابة الذكية بل الصادقة. الفخ الوحيد في أسئلته: محاولة التفوق عليها.',
+  'على الجسر تُحسم الروايات الروسية كلها. الاعتراف عنده ليس هزيمة — إنه أول سطرٍ في فصل التعافي.',
+ ],
+ facts:[
+  'حُكم على دوستويفسكي بالإعدام عام ١٨٤٩، وأُلبس كفن التنفيذ فعلًا — ثم جاء العفو قبل الرصاص بلحظات، فأُبدل الحكم بالأشغال في سيبيريا.',
+  'كتب رواية «المقامر» في ستةٍ وعشرين يومًا ليسدّد عقدًا جائرًا — وأملاها على الكاتبة المختزلة آنّا التي صارت زوجته.',
+  'نُشرت «الجريمة والعقاب» مسلسلةً عام ١٨٦٦ في مجلة «الرسول الروسي».',
+  'عاش دوستويفسكي مصابًا بالصرع، ووصف نوباته على لسان الأمير ميشكين في «الأبله» وصفًا يعدّه الأطباء دقيقًا.',
+ ],
+ quote:{text:'ما الجحيم؟ أن يعجز المرء عن الحب',
+   src:'دوستويفسكي، «الإخوة كارامازوف» — على لسان الأب زوسيما'},
+ ents:[
+  {x:420,kind:'npc',name:'طالبٌ محموم',c1:'#3d3325',c2:'#241e14',skin:'#d8c0a0',dlg:'rodya'},
+  {x:850,kind:'npc',name:'سونيا',c1:'#4a5568',c2:'#2a3140',hat:'#8a9ab0',dlg:'sonya'},
+  {x:1200,kind:'spot',name:'سماور يغلي',icon:'🫖',dlg:'samovar'},
+  {x:1550,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:1850,kind:'npc',name:'المحقق بورفيري',c1:'#26303d',c2:'#141a24',skin:'#e0c0a0',prop:'🔎',dlg:'porfiry'},
+  {x:2300,kind:'npc',name:'الطالب على الجسر',c1:'#3d3325',c2:'#241e14',skin:'#d8c0a0',dlg:'bridge'},
+ ],
+ dialogs:{
+  rodya:{sp:'الطالب المحموم',txt:'شابٌّ بمعطفٍ أرقّ من الشتاء يذرع الثلج ويحدّث نفسه: «…فإن كان نابليون لا يُحاسَب على جيوشٍ أفناها، فلماذا يُحاسَب رجلٌ واحد على…» — يلمحك فيصمت فجأة، وعيناه محمومتان: «سمعتِ شيئًا؟ لم أقل شيئًا. الطلبة يهذون من الجوع، معروف».',ch:[
+    {t:'«سمعتُ نظرية. والنظريات تُناقش لا تُدفن»',fx:{cp:2}},
+    {t:'«اشترِ حساءً ساخنًا أولًا — الأفكار الكبيرة تكره المعدة الفارغة»',fx:{cp:1,stab:+4,toast:'🍲 أخذ القرش وهو يكره نفسه على أخذه. هذا النوع من الكرامة أثقل الأنواع.'}},
+  ]},
+  sonya:{sp:'سونيا',txt:'فتاةٌ نحيلة بعينين تتّسعان للمدينة كلها: «رأيتِه، أليس كذلك؟ الطالب. يمرّ من هنا كل مساء ويحمل شيئًا أثقل من كتبه. أنا لا أعرف ماذا فعل… لكني أعرف أن مَن يمشي هكذا يحتاج أحدًا يمشي جنبه. الرب لا يتخلى عمّن يمشي جنبه أحد».',ch:[
+    {t:'«سأمشي جنبه أنا الليلة. راقبينا من بعيد»',fx:{cp:2,flag:'sonya'}},
+    {t:'«وأنتِ؟ من يمشي جنبكِ أنتِ؟»',fx:{cp:2,next:'sonya2'}},
+  ]},
+  sonya2:{sp:'سونيا',txt:'تبتسم ابتسامةً تجعل الثلج يبدو دافئًا: «عائلتي، وكتابٌ صغير أقرأ منه قصة لعازر حين يشتد الليل. مَن خرج من القبر مرة، يعرف أن كل القبور مؤقتة يا آنسة». وتلفّ شالها وتختفي في الزحام كفكرةٍ طيبة.',ch:[
+    {t:'تحفظين جملتها في دفترك',fx:{cp:2,flag:'sonya'}},
+  ]},
+  samovar:{sp:'السماور',txt:'في مقهى ضيق، سماورٌ نحاسي يغلي كقلب المدينة. صاحب المقهى يصبّ الشاي عبر الملقط والسكّرة: «اشربي يا ابنتي. في بطرسبرغ يقولون: الفلسفة بلا شايٍ جريمة، والشاي بلا فلسفة عقاب».',ch:[
+    {t:'تشربين الشاي المعطّر (+ثبات)',fx:{stab:+8,cp:1,gone:1}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'على درج كنيسةٍ صغيرة، ورقة تشعّ بأصفر شاحبٍ دافئ — كضوء مصباحٍ في آخر زقاقٍ مثلوج.',ch:[
+    {t:'تلتقطينها (كنز أدبي)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  porfiry:{sp:'المحقق بورفيري',txt:'رجلٌ دائريٌّ لطيف يفرك يديه كمن يستقبل ضيفًا لا متهمًا: «آه، الصديقة الجديدة لطالبنا العصبي! لا لا، لا تقلقي — مجرد دردشة. أنا أحقق في السرقات بالضحك والشاي. لكن عندي ثلاثة أسئلة صغيرة… فلسفية بريئة تمامًا» — وعيناه تلمعان لمعة فخٍّ مصنوعٍ بحب.',ch:[
+    {t:'«اسأل يا حضرة المحقق» (لغز الضمير)',tag:'لغز',fx:{stage:1,mg:1}},
+    {t:'«أسلوب الاستدراج اللطيف هذا… قرأته في روايةٍ ما»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,toast:'🔎 قهقه بورفيري: «كلنا قرأناه في روايةٍ ما يا عزيزتي. بعضنا يسكنها».'}},
+  ]},
+  bridge:{sp:'الطالب على الجسر',txt:'الثلج يشتد، والطالب واقف عند منتصف الجسر ينظر إلى النيفا المتجمدة: «جئتِ. كنتُ أحسب الخطوات: إلى قسم الشرطة أربعمئة خطوة، وإلى بيتي ستمئة، وإلى قاع النهر…» — يبتلع الرقم الثالث. «قولي لي شيئًا واحدًا صادقًا، وسأمشي حيث تشيرين».',ch:[
+    {t:'«الاعتراف ليس نهايتك — إنه أول سطرٍ في فصلك الجديد. وسونيا ستمشي معك»',tag:'نهاية',req:'sonya',fx:{score:2,end:'confess'}},
+    {t:'«ناقشني في النظرية أولًا — أثبت لي أنك نادم لا خائف»',tag:'نهاية',fx:{score:1,end:'debate'}},
+    {t:'«اهرب. الثلج يمحو الآثار»',tag:'نهاية مظلمة',fx:{stab:-15,end:'flee'}},
+  ]},
+ },
+ startMinigame(){
+   mgQuiz({title:'ثلاثة أسئلة بريئة تمامًا',
+     sub:'بورفيري يسأل ويبتسم. لا توجد إجابة «ذكية» — توجد إجابة صادقة',
+     qs:[
+      {q:'«هب أن إنسانًا "عظيمًا" — نابليون مثلًا — يحتاج أن يتجاوز القانون لأجل فكرةٍ ستنفع الملايين. أيحق له؟»',a:[
+        {t:'لا أحد فوق الدم المسفوح — الفكرة التي تبدأ بجثة تنتهي بمقبرة',good:true,re:'🔎 «جميل جميل! جوابٌ يدفّئ قلب محققٍ عجوز».'},
+        {t:'يحق له إن كانت الغاية نبيلة حقًا',good:false,re:'🔎 «آها… وتُقاس النبالة بميزان مَن، يا عزيزتي؟» — وسجّل شيئًا صغيرًا.'},
+        {t:'القانون نفسه ظلم، فلا معنى للسؤال',good:false,re:'🔎 «إجابة طلبة السنة الأولى. الشاي يبرد».'},
+      ]},
+      {q:'«ما الذي يعذّب صاحب الذنب أكثر: المطاردة… أم شيءٌ آخر؟»',a:[
+        {t:'صمتُ الجميع — حين لا يتهمه أحد فيتولى ضميرُه التحقيق كله',good:true,re:'🔎 صفّق بورفيري بيديه الصغيرتين: «أنتِ تقرئين، واضح جدًا أنكِ تقرئين!»'},
+        {t:'الخوف من السجن بالتأكيد',good:false,re:'🔎 «السجن مريح يا صديقتي مقارنةً ببعض الغرف التي في الرأس».'},
+        {t:'لا شيء — الأقوياء لا يتعذبون',good:false,re:'🔎 «هذه نظرية طالبنا بالحرف. ما أضيق العالم».'},
+      ]},
+      {q:'«وأخيرًا، سؤال المساء: ما الخلاص؟»',a:[
+        {t:'اعترافٌ كامل، ثم حبٌّ يعيد بناء ما هدمه الذنب',good:true,re:'🔎 وقف بورفيري وانحنى: «لو سمعكِ صاحب الرواية لبكى. اذهبي إلى الجسر — أظنه يحتاجك الآن».'},
+        {t:'النسيان — الزمن يمحو كل شيء',good:false,re:'🔎 «الزمن يدفن يا عزيزتي، والدفن ليس محوًا. اسألي أي قبر».'},
+        {t:'الهرب إلى بلدٍ لا يعرفك',good:false,re:'🔎 «ويحمل الهارب رأسه معه في الحقيبة؟ خطة رديئة التهوية».'},
+      ]},
+     ]});
+ },
+ afterMinigame(s){
+   G.stage=2;setObjective(this.objectives[2]);
+   if(s>=.9)toast('🔎 خرجتِ من مكتب بورفيري ومعك احترامه — عملة نادرة في بطرسبرغ.');
+   else if(s>=.5)toast('🔎 دردشة متعادلة… وبورفيري لا يتعادل إلا مع من يستحق.');
+   else toast('🔎 التهمتك الأسئلة الصغيرة — لكن الجسر ما زال ينتظر.');
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='confess')return mg>=.6
+     ?{grade:'🌟🌟🌟',title:'نهاية الأربعمئة خطوة',desc:'مشى الطالب الأربعمئة خطوة إلى قسم الشرطة وأنتِ عن يمينه وسونيا عن يساره، والثلج يمسح خلفكم كل ترددٍ سابق. عند الباب قال: «غريب… أخف وزنًا من أمس بجريمة كاملة». في سيبيريا البعيدة سينتظره بردٌ طويل وكتابٌ صغير تقرأ منه سونيا — وفي آخر الرواية الحقيقية، هناك بالضبط، يبدأ الدفء. قال المرشد: «هذه أعظم خدعة عند دوستويفسكي: أقسى رواياته هي أكثرها رحمة».'}
+     :{grade:'🌟🌟',title:'نهاية الاعتراف المرتجف',desc:'اعترف — لكن لأن أسئلة بورفيري أرهقته قبل أن تنضجه، دخل القسم منهارًا لا متصالحًا. سونيا ستحتاج شهورًا إضافية لترمم ما كان يمكن أن يُبنى في ليلة. النهاية نفسها… بطريقٍ أوعر. قال المرشد: «في هذا الجناح يا عبير، "كيف" لا تقل أهمية عن "ماذا"».'};
+   if(k==='debate')return {grade:'🌟🌟',title:'نهاية المناظرة على الجسر',desc:'ناقشتِه في النظرية والثلج يتراكم على أكتافكما: نابليون، والقملة والإنسان، والحق في الخطوة الأولى. وببطءٍ — بالحجة لا بالدمعة — تفتّت اليقين المريض. عند الفجر مشى إلى القسم وحده، وهذا «وحده» كان انتصاره الشخصي الصغير. سونيا نظرت إليك من بعيد نظرة عتابٍ ممزوج بشكر: النتيجة واحدة، لكن قلبها كان يريد أن يكون هناك.'};
+   return {grade:'🌟',title:'نهاية الآثار التي لا تُمحى',desc:'قلتِ له: اهرب — فهرب. والثلج محا آثار حذائه فعلًا… أما الآثار الأخرى فحملها معه إلى كل مدينةٍ جديدة: يفزع من طرقات الأبواب، ويرى بورفيري في كل موظفٍ يبتسم. بعد سنوات سيقف على جسرٍ آخر في بلدٍ آخر ويحسب الخطوات نفسها. انهار الحلم حزنًا، والمرشد يهز رأسه: «كسرنا الليلة قلب سونيا. هذه أثقل خسائر المكتبة كلها».'};
+ },
+ draw(cx,W,H,cam,t){
+  cx.fillStyle=skyGrad(cx,H,[[0,'#1a2233'],[.5,'#2a3547'],[1,'#1d2536']]);cx.fillRect(0,0,W,H);
+  // onion domes far (k=.15)
+  const dx=1300-cam*.15;
+  cx.fillStyle='#141b28';
+  cx.fillRect(dx-30,H*.3,60,H*.2);
+  cx.beginPath();cx.moveTo(dx-34,H*.3);cx.quadraticCurveTo(dx,H*.16,dx+34,H*.3);
+  cx.quadraticCurveTo(dx+10,H*.26,dx,H*.14);cx.quadraticCurveTo(dx-10,H*.26,dx-34,H*.3);cx.fill();
+  cx.fillRect(dx-110,H*.36,44,H*.16);
+  cx.beginPath();cx.arc(dx-88,H*.36,26,Math.PI,0);cx.fill();
+  cx.fillRect(dx+70,H*.38,40,H*.14);
+  cx.beginPath();cx.arc(dx+90,H*.38,24,Math.PI,0);cx.fill();
+  // frozen Neva band with lamp reflections
+  const ny=H*.48;
+  cx.fillStyle='#26344a';cx.fillRect(0,ny,W,H*.1);
+  cx.fillStyle='rgba(220,235,255,.12)';
+  for(let i=0;i<8;i++){const sx=((i*260-cam*.3)%(W+260)+W+260)%(W+260)-130;
+    cx.fillRect(sx,ny+8,100,3);}
+  // narrow street facades (k=.6)
+  for(let i=-1;i<9;i++){
+    const bx=((i*310-cam*.6)%(W+620)+W+620)%(W+620)-310;
+    cx.fillStyle=i%2?'#232c3d':'#1d2534';
+    cx.fillRect(bx,H*.56,260,GY-H*.56);
+    cx.fillStyle='rgba(240,246,255,.9)'; // snow on cornices
+    cx.fillRect(bx,H*.56,260,6);
+    for(let r2=0;r2<2;r2++)for(let c2=0;c2<3;c2++){
+      const lit=((i+r2*3+c2)%4)===0;
+      cx.fillStyle=lit?'rgba(232,217,140,.75)':'#131a26';
+      cx.fillRect(bx+30+c2*80,H*.6+r2*66,40,48);
+      cx.fillStyle='rgba(240,246,255,.85)';cx.fillRect(bx+30+c2*80,H*.6+r2*66+48,40,4);
+    }
+  }
+  // pale yellow street lamps (k=1)
+  for(const lx of [300,750,1200,1650,2100]){
+    const sx=lx-cam;if(sx<-40||sx>W+40)continue;
+    cx.strokeStyle='#0e131d';cx.lineWidth=5;
+    cx.beginPath();cx.moveTo(sx,GY);cx.lineTo(sx,GY-140);cx.stroke();
+    cx.strokeStyle='#0e131d';cx.beginPath();cx.moveTo(sx,GY-140);cx.quadraticCurveTo(sx+22,GY-140,sx+22,GY-124);cx.stroke();
+    const fl=.8+Math.sin(t*.005+lx)*.2;
+    glow(cx,sx+22,GY-118,52*fl,'232,217,140',.3);
+    cx.fillStyle=`rgba(240,226,150,${.9*fl})`;
+    cx.beginPath();cx.arc(sx+22,GY-118,6,0,7);cx.fill();
+    cx.fillStyle='rgba(240,246,255,.9)';cx.fillRect(sx-3,GY-146,6,4); // snow cap
+  }
+  // snowy ground with footprints
+  cx.fillStyle='#c9d4e4';cx.fillRect(0,GY,W,H-GY);
+  cx.fillStyle='rgba(120,140,170,.35)';
+  for(let i=0;i<18;i++){const sx=((i*140+40-cam)%(W+140)+W+140)%(W+140)-70;
+    cx.beginPath();cx.ellipse(sx,GY+18+(i%3)*9,6,3,.3,0,7);cx.fill();}
+ },
+};
+
+/* ============================================================
+   SECRET WORLD — «ما أمام الطبيعة» (unlocks after 3 worlds)
+   ============================================================ */
+WORLDS.secret={
+ id:'secret',wing:5,len:2200,ptype:'bats',
+ meta:{issue:'العدد ٣٥',title:'ما أمام الطبيعة',sub:'مطاردة أشباح مع رفعت إسماعيل نفسه',
+   motif:'👻',bg:'linear-gradient(160deg,#1d2a1d,#0a0f0a)',glow:'rgba(120,220,140,.4)'},
+ intro:'حلمٌ تسرّب إليه ضيفٌ من سلسلةٍ مجاورة: بيتٌ مهجور في الريف، وقمرٌ ريفي، وعجوزٌ ساخر يشعل سيجارته الرابعة.',
+ costume:{dress:'#5a4a6e',dress2:'#38304d',accent:'#7de3a0'},
+ objectives:[
+  'قابلي د. رفعت إسماعيل عند بوابة البيت المهجور',
+  'التقطي صورة الطيف في القبو (لغز الكاميرا)',
+  'واجهي ساكن البيت واعرفي حكايته',
+ ],
+ hints:[
+  'رفعت لا يصدق الأشباح رسميًا — لكنه يحمل كشّافًا احتياطيًا دائمًا. خذي الكاميرا من حقيبته إن عرض.',
+  'الطيف يظهر ويخبو موجات — اضغطي زر التصوير في ذروة الظهور، خمس صورٍ تكفي لملف القضية.',
+  'الأشباح في هذه السلسلة نادرًا ما تكون شريرة… غالبًا هي حكايات لم تجد من يسمعها حتى النهاية.',
+ ],
+ facts:[
+  'رفعت إسماعيل، بطل «ما وراء الطبيعة»، أستاذ أمراض دمٍ مصري ساخر — كتبه أحمد خالد توفيق بدءًا من مطلع التسعينيات فصار أشهر أبطال أدب الرعب العربي.',
+  'أحمد خالد توفيق نفسه كان طبيبًا — أستاذًا لطب المناطق الحارة في طنطا — وكتب للشباب أكثر من مئتي كتاب.',
+  'في ٢٠٢٠ تحولت «ما وراء الطبيعة» إلى مسلسل عالمي على نتفليكس بعنوان Paranormal — أول عمل مصري من نوعه على المنصة.',
+  'سلسلتا «ما وراء الطبيعة» و«فانتازيا» توأمان من قلمٍ واحد: الأولى تطارد المجهول في الواقع، والثانية تطارده في الأحلام.',
+ ],
+ quote:{text:'هذه فانتازيا كما تعلمون',
+   src:'شعار سلسلة «فانتازيا» — أحمد خالد توفيق'},
+ ents:[
+  {x:400,kind:'npc',name:'د. رفعت إسماعيل',c1:'#4a4038',c2:'#2b2520',skin:'#d8b088',prop:'🚬',dlg:'refaat'},
+  {x:850,kind:'spot',name:'كشّاف قديم',icon:'🔦',dlg:'torch'},
+  {x:1200,kind:'spot',name:'أصوات في القبو',icon:'🕳️',h:50,dlg:'cellar'},
+  {x:1550,kind:'spot',name:'صفحة متوهّجة',icon:'📜',dlg:'sq'},
+  {x:2050,kind:'npc',name:'ساكن البيت',c1:'#2a3a2e',c2:'#141f18',skin:'#a8c4b0',dlg:'ghost'},
+ ],
+ dialogs:{
+  refaat:{sp:'د. رفعت إسماعيل',txt:'عجوزٌ نحيل يستند إلى بوابة صدئة ويشعل سيجارة بأناقة من يعرف أنها تؤذيه ويكمل عنادًا: «فتاة بنظارة داخل حلم؟ عظيم. كنتُ أظن أن كوابيسي بلغت القاع، فإذا بها تستورد شخصياتٍ من سلاسل الجيران. اسمي رفعت إسماعيل — أستاذ أمراض الدم، وجامع أسوأ حظٍّ في القارة الإفريقية».',ch:[
+    {t:'«أعرفك! أنت بطل "ما وراء الطبيعة"! كيف دخلت حلمي؟»',tag:'كسر الجدار الرابع',fx:{wall:1,cp:2,next:'refaat2'}},
+    {t:'«تشرفت يا دكتور. ما قصة هذا البيت؟»',fx:{next:'refaat3'}},
+  ]},
+  refaat2:{sp:'د. رفعت إسماعيل',txt:'*ينفث الدخان ببطء* «بطل؟ يا ابنتي أنا أقرب إلى تجربة معملية طويلة في سوء الحظ. أما كيف دخلت: الكاتب واحد، والحبر واحد، والجدران بين السلاسل أرقّ مما يظن الناشر. سمعتُ أن عندكم هنا أشباحًا فجئت أطمئن — بحكم الخبرة، أشباحكم "المستوردة" أكثر أدبًا من أشباحنا البلدية».',ch:[
+    {t:'«ما قصة هذا البيت إذن؟»',fx:{next:'refaat3'}},
+  ]},
+  refaat3:{sp:'د. رفعت إسماعيل',txt:'«بيت ناظر محطةٍ قديم، مهجور من الستينيات. أهل القرية يسمعون فيه كل ليلة صوت قلمٍ يخربش. قلم! حتى الأشباح هنا مثقفة — لا أستغرب، نحن في حلم قارئة». يفتح حقيبته الجلدية: «خذي الكاميرا. عيناي لم تعودا تلحقان بالأطياف، وضغطي يرتفع من السلالم. القبو من هناك — وأنا خلفك مباشرة… على بعد سيجارتين احتياطًا».',ch:[
+    {t:'تأخذين الكاميرا وتنزلين نحو القبو',fx:{item:{id:'camera',icon:'📷',name:'كاميرا رفعت'},cp:1}},
+  ]},
+  torch:{sp:'الكشّاف القديم',txt:'كشّاف معدني ثقيل من طراز الستينيات، ما زال يعمل — النور الأصفر الضعيف الذي أضاء نصف مغامرات القرن الماضي.',ch:[
+    {t:'تحملينه',tag:'غرض',fx:{item:{id:'torch',icon:'🔦',name:'كشّاف الستينيات'},gone:1}},
+    {t:'تتركينه',fx:{}},
+  ]},
+  cellar:{sp:'باب القبو',txt:'درجٌ حجري يهبط إلى عتمةٍ تتنفس. من الأسفل يصعد صوتٌ واضح هذه المرة: خربشة قلمٍ على ورق، وتنهيدة من لم يكمل جملته منذ ستين سنة.',ch:[
+    {t:'تنزلين بالكاميرا (لغز التصوير)',tag:'لغز',req:'camera',fx:{stage:1,mg:1}},
+    {t:'تحتاجين الكاميرا أولًا (عودي إلى رفعت)',notFlag:'camera',fx:{}},
+  ]},
+  sq:{sp:'صفحة متوهّجة',txt:'على عتبة البيت، ورقة تشعّ بأخضر لطيف — وعليها بخط اليد جملةٌ تعرفينها جيدًا، بتوقيع القلم الذي كتب السلسلتين معًا.',ch:[
+    {t:'تلتقطينها (كنز الكنوز)',fx:{quote:1,gone:1}},
+    {t:'تتركينها',fx:{}},
+  ]},
+  ghost:{sp:'ساكن البيت',txt:'في ضوء الصور الخمس يتشكل أخيرًا: شابٌّ شفيف بقميص ستينيات، وبيده قلمٌ وأوراقٌ صفراء: «أخيرًا أحدٌ يراني! كنتُ أكتب روايةً — ناظر محطةٍ يكتب ليلًا — ومتُّ قبل الفصل الأخير. لا أستطيع الرحيل وهي ناقصة. ستون سنةً وأنا عالق عند جملة: "وعندما وصل القطار الأخير…" — ولا أعرف ماذا وصل معه!»',ch:[
+    {t:'تجلسين وتكملان الفصل الأخير معًا حتى الفجر',tag:'نهاية',fx:{score:2,end:'finish'}},
+    {t:'«اسأل رفعت — الرجل خبير محترف في النهايات الغامضة»',tag:'نهاية',fx:{score:1,end:'refaat'}},
+    {t:'تعتذرين وتصعدين — بعض القصص ليست قصتك',tag:'نهاية',fx:{end:'leave'}},
+  ]},
+ },
+ startMinigame(){
+   mgRhythm({title:'صورة الطيف',
+     sub:'الطيف يظهر ويخبو موجات — اضغطي «التقطي!» (أو E / مسافة) في ذروة الظهور. خمس صورٍ واضحة لملف القضية',
+     icon:'📷',btn:'التقطي!',hitLbl:'صور واضحة',hits:5,missStab:7,speed:IS_TOUCH?.5:.66});
+ },
+ afterMinigame(s){
+   G.stage=2;setObjective(this.objectives[2]);
+   if(s>=.85)toast('📷 خمس صورٍ حادة الوضوح — رفعت من فوق الدرج: «محترفة. أعيروني إياها لعددين».');
+   else if(s>=.5)toast('📷 صورٌ مقبولة… الطيف بدأ يثق بالكاميرا.');
+   else toast('📷 صورٌ مهزوزة — لكن الطيف قرر الظهور رأفةً بك.');
+ },
+ finale(k){
+   const mg=G.mg;
+   if(k==='finish')return mg>=.5
+     ?{grade:'🌟🌟🌟',title:'نهاية الفصل الأخير',desc:'جلستما حتى الفجر تكتبان: هو يملي بصوته الشفيف وأنتِ تمسكين قلمه الذي صار فجأةً ثقيلًا ثقل الحقيقي. «وعندما وصل القطار الأخير… نزل منه ناظر المحطة الشاب الذي كانه، وصعد الذي صاره». وضع الشبح نقطة النهاية بنفسه، وابتسم، وخفت كضوء قنديلٍ اكتفى. قال رفعت من الباب وهو يدوس سيجارته: «ستون سنة من التسكع لأجل فصلٍ أخير. أتفهمه تمامًا — أنا أؤجل نهايتي منذ ثمانين عددًا». وفي المكتبة، على الرف السري، لمع غلافٌ جديد.'}
+     :{grade:'🌟🌟',title:'نهاية الفصل المتعثر',desc:'أكملتما الفصل، لكن صوركِ المهزوزة جعلت الطيف يتردد ويملي جملًا ثم يمحوها. جاءت النهاية مقبولة — «تصلح لطبعة أولى» كما قال رفعت بدبلوماسية من جرّب النقاد. رحل الساكن راضيًا نصف رضا، وهذا في عرف الأشباح إنجازٌ كامل.'};
+   if(k==='refaat')return {grade:'🌟🌟',title:'نهاية استشارة الخبير',desc:'نزل رفعت الدرج متذمرًا من ركبتيه ومن الحبكة، وجلس قبالة الشبح كطبيبٍ أمام حالة عصية: «قطارك الأخير؟ بسيطة. ينزل منه قارئ». — «قارئ؟» — «قارئ. القصص لا تريد نهاياتٍ يا صديقي، تريد من يقرؤها. جرّب». وجرّب الشبح… ونجحت. رحل الساكن مبتسمًا، وغمغم رفعت: «عدد كامل حللته بجملة. توفيق كان سيقتلني غيرةً — أو يسرقها لعددٍ قادم».'};
+   return {grade:'🌟',title:'نهاية الصفحة المتروكة',desc:'صعدتِ الدرج معتذرة، والخربشة خلفك تعود إلى إيقاعها الأزلي: جملةٌ تُكتب وتُمحى منذ الستينيات. احترم رفعت قرارك ولم يحترمه: «حكيمة… وجبانة قليلًا. لا تقلقي، أنا الاثنان معًا منذ ١٩٤٠». سيبقى العدد ٣٥ على الرف السري مفتوحًا على قصةٍ بلا فصلٍ أخير — والأرق لك بالمرصاد كلما تذكرتِ صوت القلم.'};
+ },
+ draw(cx,W,H,cam,t){
+  cx.fillStyle=skyGrad(cx,H,[[0,'#0c140e'],[.5,'#16241a'],[1,'#0a100b']]);cx.fillRect(0,0,W,H);
+  // country full moon
+  glow(cx,W*.7,H*.16,110,'220,240,200',.35);
+  cx.fillStyle='#e8f0d8';cx.beginPath();cx.arc(W*.7,H*.16,38,0,7);cx.fill();
+  cx.fillStyle='rgba(150,170,140,.4)';
+  cx.beginPath();cx.arc(W*.7-10,H*.16-8,9,0,7);cx.arc(W*.7+12,H*.16+10,6,0,7);cx.fill();
+  // marsh haze
+  const fg=cx.createLinearGradient(0,H*.55,0,GY);
+  fg.addColorStop(0,'rgba(120,180,140,0)');fg.addColorStop(1,'rgba(120,180,140,.14)');
+  cx.fillStyle=fg;cx.fillRect(0,H*.55,W,GY-H*.55);
+  // far palms + railway water tower (k=.2)
+  for(let i=0;i<6;i++){
+    const px=((i*430+120-cam*.2)%(W+860)+W+860)%(W+860)-430;
+    cx.strokeStyle='#0a120c';cx.lineWidth=6;
+    cx.beginPath();cx.moveTo(px,H*.6);cx.quadraticCurveTo(px+8,H*.5,px+3,H*.42);cx.stroke();
+    cx.fillStyle='#0c1810';
+    for(let f2=0;f2<4;f2++){const a=f2/3*Math.PI;
+      cx.beginPath();cx.ellipse(px+3+Math.cos(a)*24,H*.42+Math.sin(a)*-10,22,6,a*.7,0,7);cx.fill();}
+  }
+  {const wx2=1700-cam*.2;
+   cx.fillStyle='#0e1a12';cx.fillRect(wx2-6,H*.3,12,H*.3);cx.fillRect(wx2-34,H*.24,68,H*.08);}
+  // the abandoned house (k=.6)
+  {const hx=1100-cam*.6;
+   cx.fillStyle='#101c14';cx.fillRect(hx-190,H*.34,380,GY-H*.34);
+   cx.fillStyle='#0a140d';
+   cx.beginPath();cx.moveTo(hx-210,H*.34);cx.lineTo(hx,H*.2);cx.lineTo(hx+210,H*.34);cx.closePath();cx.fill();
+   // flickering window
+   const flick=Math.sin(t*.02)>.6||Math.sin(t*.037)>.85;
+   cx.fillStyle=flick?'rgba(150,240,170,.6)':'#050a06';
+   cx.fillRect(hx-40,H*.42,80,60);
+   if(flick)glow(cx,hx,H*.46,70,'150,240,170',.2);
+   cx.strokeStyle='#0a140d';cx.lineWidth=4;
+   cx.strokeRect(hx-40,H*.42,80,60);
+   cx.beginPath();cx.moveTo(hx,H*.42);cx.lineTo(hx,H*.42+60);cx.stroke();
+  }
+  // rusty fence with crow (k=1)
+  for(let fx2=100;fx2<this.len;fx2+=90){
+    const sx=fx2-cam;if(sx<-20||sx>W+20)continue;
+    cx.strokeStyle='#141d16';cx.lineWidth=4;
+    cx.beginPath();cx.moveTo(sx,GY);cx.lineTo(sx,GY-52-((fx2/90)%3)*6);cx.stroke();
+  }
+  cx.strokeStyle='#141d16';cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(0,GY-44);cx.lineTo(W,GY-44);cx.stroke();
+  {const crowX=760-cam;
+   if(crowX>-20&&crowX<W+20){
+     const hop=Math.abs(Math.sin(t*.003))*3;
+     cx.fillStyle='#050a06';
+     cx.beginPath();cx.ellipse(crowX,GY-58-hop,10,7,0,0,7);cx.fill();
+     cx.beginPath();cx.arc(crowX+8,GY-64-hop,4.5,0,7);cx.fill();
+     cx.beginPath();cx.moveTo(crowX+12,GY-64-hop);cx.lineTo(crowX+18,GY-62-hop);cx.lineTo(crowX+12,GY-61-hop);cx.closePath();cx.fill();
+   }}
+  cx.fillStyle='#101a12';cx.fillRect(0,GY,W,H-GY);
+  cx.fillStyle='rgba(120,180,140,.08)';
+  for(let i=0;i<10;i++){const sx=((i*220-cam)%(W+220)+W+220)%(W+220)-110;
+    cx.beginPath();cx.ellipse(sx,GY+18,50,4,0,0,7);cx.fill();}
+ },
+};
 </script>
 </body>
 </html>
