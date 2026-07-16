@@ -4,7 +4,7 @@ This repo currently holds **three things**:
 
 1. **Smart Drug Formulary** — a deployed Vite/React web app (`src/`, `public/`, `netlify/`).
 2. **Second Brain** — a personal markdown vault (`inbox/`, `daily/`, `tasks/`, …).
-3. **Standalone games** — `games/` holds self-contained single-file HTML games (currently `games/fantasia-dg2.html`, the DG-2 "Fantasia" game: Arabic RTL UI, no build step, opens by double-click; deliberately outside the Vite build and CI).
+3. **Standalone games** — self-contained single-file HTML games live in `public/` so Netlify serves them (currently `public/fantasia-dg2.html`, the DG-2 "Fantasia" game: Arabic RTL UI, deployed at `/fantasia-dg2.html`). Files in `public/` are copied verbatim — no lint/build processing — and still open by double-click. The SPA redirect in `netlify.toml` is not forced, so real files always win over the redirect.
 
 Read the section for the thing you're working on. A split into separate repos is under consideration (see `improvements.md`).
 
