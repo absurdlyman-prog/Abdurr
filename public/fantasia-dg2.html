@@ -693,7 +693,12 @@ function makeCard(meta,playable,done){
   const c=document.createElement('div');
   c.className='card'+(playable?'':' locked');
   c.style.setProperty('--cbg',meta.bg);c.style.setProperty('--cglow',meta.glow);
+  const blurb=(window.BLURBS&&BLURBS[meta.id])||meta.sub;
+  const req=(window.WING_REQ&&meta.wing!==undefined)?(WING_REQ[meta.wing]||0):0;
+  const earned=G.cpEarned||G.cp||0;
+  const okReq=earned>=req;
   c.innerHTML=`<div class="inner">
+    <div class="cface front">
       <div class="price">٣<br>جنيهات</div>
       <div class="frame"></div>
       <div class="series">فــانــتــازيــا</div>
@@ -702,21 +707,45 @@ function makeCard(meta,playable,done){
       <div class="title">${meta.title}</div>
       <div class="subttl">${meta.sub}</div>
       ${done?`<div class="done">✓ عالم مكتمل — نهاية: ${done}</div>`:''}
+      ${playable?'':`<div class="lock">⛓️🔒<small>${meta.lockNote||'مغلق — في المرحلة القادمة'}</small></div>`}
     </div>
-    ${playable?'':`<div class="lock">⛓️🔒<small>${meta.lockNote||'مغلق — في المرحلة القادمة'}</small></div>`}`;
-  if(playable){
-    // libT guard: ignore the ghost click that follows the boot-screen tap on touch devices
-    c.addEventListener('click',()=>{if(performance.now()-libT<450)return;sfx.choice();enterWorld(meta.id);});
-    if(!IS_TOUCH&&!REDUCED){
-      c.addEventListener('mousemove',e=>{
-        const r=c.getBoundingClientRect();
-        const rx=((e.clientY-r.top)/r.height-.5)*-14,ry=((e.clientX-r.left)/r.width-.5)*14;
-        c.querySelector('.inner').style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
-      });
-      c.addEventListener('mouseleave',()=>{c.querySelector('.inner').style.transform='';});
-    }
-  }else{
-    c.addEventListener('click',()=>{sfx.bad();toast('🔒 هذا الغلاف مقيَّد بالسلاسل… سيُفتح في تحديثٍ قادم. <b>هذه فانتازيا كما تعلمون.</b>');});
+    <div class="cface back">
+      <div class="frame"></div>
+      <div class="bTitle">${meta.title}</div>
+      <div class="bBlurb">${blurb}</div>
+      ${playable
+        ?`<div class="bReq">${req?`يتطلب رصيدًا معرفيًا: ${AR(req)} ${okReq?'✓':`— لديكِ ${AR(earned)}`}`:'الغلاف مفتوحٌ لكل قارئة'}</div>
+          <button class="btn enterBtn"${okReq?'':' disabled'}>الغوص في الحلم</button>`
+        :`<div class="bReq">🔒 ${meta.lockNote||'مغلق — في المرحلة القادمة'}</div>`}
+    </div>
+  </div>`;
+  // tap 1: fold to the cryptic back; tap 2 (button): dive
+  c.addEventListener('click',()=>{
+    if(performance.now()-libT<450)return; // ghost-click guard after boot tap
+    if(c.classList.contains('anim'))return;
+    sfx.ui();c.classList.add('anim');c.style.transform='';
+    const inner=c.querySelector('.inner');
+    inner.style.transform='rotateY(88deg)';
+    setTimeout(()=>{
+      c.classList.toggle('showBack');
+      inner.style.transform='rotateY(0deg)';
+      setTimeout(()=>c.classList.remove('anim'),280);
+    },260);
+  });
+  const eb=c.querySelector('.enterBtn');
+  if(eb)eb.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(!okReq){sfx.bad();toast(`🔒 هذا الجناح يطلب رصيدًا معرفيًا أكبر — اجمعي ${AR(req-earned)} نقطة ثقافة أخرى.`);return;}
+    sfx.choice();enterWorld(meta.id);
+  });
+  if(playable&&!IS_TOUCH&&!REDUCED){
+    c.addEventListener('mousemove',e=>{
+      if(c.classList.contains('showBack')||c.classList.contains('anim'))return;
+      const r=c.getBoundingClientRect();
+      const rx=((e.clientY-r.top)/r.height-.5)*-14,ry=((e.clientX-r.left)/r.width-.5)*14;
+      c.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
+    });
+    c.addEventListener('mouseleave',()=>{c.style.transform='';});
   }
   return c;
 }
@@ -731,7 +760,7 @@ function buildLibrary(){
   });
   for(const id of PLAYABLE){
     const W=WORLDS[id];
-    wings[W.wing].appendChild(makeCard({...W.meta,id},true,G.done[id]));
+    wings[W.wing].appendChild(makeCard({...W.meta,id,wing:W.wing},true,G.done[id]));
   }
   // secret shelf — unchains after 3 completed worlds
   const sec=document.createElement('section');sec.className='wing';sec.id='secretWing';
@@ -979,21 +1008,25 @@ function updateTip(){
 
 /* ---------- stability & decay ---------- */
 function setStability(v,silent){
-  const was=G.stability;G.stability=clamp(v,0,100);
-  $('#stabFill').style.width=G.stability+'%';
-  $('#stabBox').classList.toggle('low',G.stability<40);
+  const max=window.stabMaxFn?stabMaxFn():100;
+  const was=G.stability;G.stability=clamp(v,0,max);
+  const pct=G.stability/max*100;
+  $('#stabFill').style.width=pct+'%';
+  $('#stabBox').classList.toggle('low',pct<40);
   const w=$('#stageWrap');w.className='';
   if(!REDUCED){
-    if(G.stability<30)w.classList.add('decay3');
-    else if(G.stability<50)w.classList.add('decay2');
-    else if(G.stability<70)w.classList.add('decay1');
+    if(pct<30)w.classList.add('decay3');
+    else if(pct<50)w.classList.add('decay2');
+    else if(pct<70)w.classList.add('decay1');
   }
-  $('#aberration').style.opacity=clamp((70-G.stability)/70,0,1);
+  $('#aberration').style.opacity=clamp((70-pct)/70,0,1);
   if(G.stability<was&&!silent)sfx.bad();
   if(G.stability<=0)dreamCollapse();
 }
 function dreamCollapse(){
-  if(G.mode==='collapsed')return;G.mode='collapsed';
+  if(G.mode==='collapsed')return;
+  if(window.tryOverride&&tryOverride())return; // Sherif's manual rescue
+  G.mode='collapsed';
   sfx.glitch();setHum(false);
   window.mgKey=null;
   ['#minigame','#dialog','#guide','#pause'].forEach(s=>$(s).classList.remove('open'));
@@ -1103,16 +1136,31 @@ function applyFx(fx,ent,choice){
 function openGuide(){
   if(G.screen!=='game'||(G.mode!=='explore'))return;
   G.mode='guide';sfx.guide();
-  $('#guideHint').textContent=G.world.hints[Math.min(G.stage,G.world.hints.length-1)];
+  let hint=G.world.hints[Math.min(G.stage,G.world.hints.length-1)];
+  if(G.up&&G.up.antenna){ // hardware upgrade: the antenna senses undiscovered traces
+    const left=G.world.ents.filter(e=>!e.gone&&!e.bleed);
+    if(left.length){
+      const near=left.reduce((a,b)=>Math.abs(a.x-P.x)<Math.abs(b.x-P.x)?a:b);
+      hint+=` — 📡 الهوائي يرصد أثرًا عند «${near.name}» (${near.x>P.x?'شرقًا':'غربًا'}).`;
+    }
+  }
   const heard=G.factsHeard[G.world.id]||(G.factsHeard[G.world.id]=new Set());
   const unheard=G.world.facts.filter((f,i)=>!heard.has(i));
   let fact;
   if(unheard.length){const i=G.world.facts.indexOf(unheard[0]);heard.add(i);fact=unheard[0];addCp(2);}
   else fact=pick(G.world.facts)+' — أعرف أنني كررت هذا. الذاكرة تُعاد قراءتها، هذه فانتازيا كما تعلمون.';
-  $('#guideFact').textContent=fact;
   $('#guide').classList.add('open');
+  if(window.typeText){ // suspenseful subconscious intrusion
+    $('#guideHint').textContent='';$('#guideFact').textContent='';
+    typeText($('#guideHint'),hint,()=>typeText($('#guideFact'),fact));
+  }else{
+    $('#guideHint').textContent=hint;$('#guideFact').textContent=fact;
+  }
 }
-function closeGuide(){$('#guide').classList.remove('open');if(G.mode==='guide')G.mode='explore';}
+function closeGuide(){
+  if(window.cancelType)cancelType();
+  $('#guide').classList.remove('open');if(G.mode==='guide')G.mode='explore';
+}
 $('#btnGuide').addEventListener('click',openGuide);
 $('#guideClose').addEventListener('click',()=>{sfx.ui();closeGuide();});
 
@@ -1133,7 +1181,8 @@ $('#pExit').addEventListener('click',()=>{
 /* ---------- world enter / finish ---------- */
 function enterWorld(id){
   const w=WORLDS[id];if(!w)return;
-  G.world=w;G.stability=100;G.inv=[];G.flags={};G.stage=0;G.score=0;G.mg=0;
+  G.world=w;G.stability=window.stabMaxFn?stabMaxFn():100;
+  G.inv=[];G.flags={};G.stage=0;G.score=0;G.mg=0;
   G.runCp=0;G.runTreasure=0;G.mode='explore';
   for(const e of w.ents)e.gone=false;
   P.x=180;P.facing=1;cam=0;
@@ -1145,7 +1194,7 @@ function enterWorld(id){
   sfx.quote();
   setTimeout(()=>{
     showScreen('game');resize();initParticles();
-    setStability(100,true);setObjective(w.objectives[0]);refreshHUD();
+    setStability(G.stability,true);setObjective(w.objectives[0]);refreshHUD();
     setHum(true);
     setTimeout(()=>portal.classList.remove('open'),400);
     toast(`🌀 <b>${w.meta.title}</b><br><small>${w.intro}</small>`);
@@ -1212,6 +1261,7 @@ function loop(t){
   drawAbeer(ctx,P.x-cam,GY,t,!!dir,P.facing,G.world.costume);
   drawParticles(dt,t);
   updateTip();
+  if(window.bleedTick)bleedTick(dt,t); // dream-bleed glitch events
 }
 requestAnimationFrame(loop);
 </script>
@@ -3799,7 +3849,8 @@ function showCreation(then){
 
 /* ---------- dice checks in dialogue ---------- */
 function checkOdds(check){
-  const succ=clamp(7-(check.dc-G.stats[check.stat]),1,6);
+  const dm=window.diceMod?diceMod():0;
+  const succ=clamp(7-(check.dc-(G.stats[check.stat]+dm)),1,6);
   return Math.round(succ/6*100);
 }
 function checkTag(check){
@@ -3807,7 +3858,8 @@ function checkTag(check){
   return `${s.i} ${s.n} ${AR(G.stats[check.stat])} · نجاح ~${AR(checkOdds(check))}٪`;
 }
 function runCheck(c){
-  const st=c.check.stat,dc=c.check.dc,sv=G.stats[st],S=STATS[st];
+  const st=c.check.stat,dc=c.check.dc,S=STATS[st];
+  const sv=G.stats[st]+(window.diceMod?diceMod():0);
   rpgOpen(`<h3>${S.i} اختبار ${S.n}</h3>
     <div class="rSub">${S.n} ${AR(sv)} + نرد الحلم ضد صعوبة ${AR(dc)}</div>
     <div id="diceBox">🎲</div><div id="diceMath"></div><div id="diceVerdict"></div>`);
@@ -3818,7 +3870,9 @@ function runCheck(c){
   },90);
   setTimeout(()=>{
     clearInterval(spin);
-    const roll=1+Math.floor(rand(0,6));
+    let roll=1+Math.floor(rand(0,6));
+    if(G.cpAuto){G.cpAuto=false;roll=6; // «استدعاء المرجع» — a remembered book carries the roll
+      toast('📖 استدعيتِ المرجع الصحيح — الذاكرة لا تخطئ.');}
     const success=roll===6||(roll!==1&&roll+sv>=dc);
     $('#diceBox').textContent='⚀⚁⚂⚃⚄⚅'[roll-1];
     $('#diceMath').textContent=`${AR(roll)} + ${AR(sv)} = ${AR(roll+sv)} ضد ${AR(dc)}`
@@ -3895,16 +3949,30 @@ function mgEncounter(cfg){
   function log(t){$('#encLog').innerHTML=t;}
   function bars(){$('#encR').style.width=clamp(resolve/maxR*100,0,100)+'%';
     $('#encS').style.width=G.stability+'%';}
+  function finishOrNext(){
+    bars();
+    if(resolve<=0){
+      log(`✦ <b>انكسرت عزيمة ${cfg.name}!</b>`);
+      setTimeout(()=>{
+        if(G.mode!=='minigame')return;
+        const score=clamp(1-fails*.15,.25,1);
+        G.mg=G.mg?(G.mg+score)/2:score;
+        addXp(Math.round(15*score));sfx.quote();
+        closeMg();startDialog(cfg.winNode);
+      },900);
+    }else setTimeout(round,1100);
+  }
   function round(){
     if(G.mode!=='minigame')return;
     cur=pick(cfg.moves);busy=false;
+    const dm=window.diceMod?diceMod():0;
     $('#encMove').innerHTML=`⚔️ <b>${cfg.name}</b>: ${cur.t}`;
     const host=$('#encAppr');host.innerHTML='';
     cfg.appr.filter(a=>!a.req||G.flags[a.req]).forEach(a=>{
-      const adv=a.stat===cur.c?2:0;
+      const adv=(a.stat===cur.c?2:0)+dm;
       const succ=clamp(7-(a.dc-(G.stats[a.stat]+adv)),1,6);
       const b=document.createElement('button');b.className='chBtn';
-      b.innerHTML=`${a.t}<span class="tag">${STATS[a.stat].i} ${STATS[a.stat].n}${adv?' +ميزة':''} · ~${AR(Math.round(succ/6*100))}٪</span>`;
+      b.innerHTML=`${a.t}<span class="tag">${STATS[a.stat].i} ${STATS[a.stat].n}${a.stat===cur.c?' +ميزة':''} · ~${AR(Math.round(succ/6*100))}٪</span>`;
       b.addEventListener('click',()=>{
         if(busy||G.mode!=='minigame')return;busy=true;sfx.choice();
         const roll=1+Math.floor(rand(0,6));
@@ -3919,20 +3987,23 @@ function mgEncounter(cfg){
           if(G.mode!=='minigame')return; // dream collapsed
           log(`🎲 ${AR(roll)}+${AR(G.stats[a.stat]+adv)} ضد ${AR(a.dc)} — <span style="color:#e08a8a">إخفاق.</span><br>${a.ko}`);
         }
-        bars();
-        if(resolve<=0){
-          setTimeout(()=>{
-            if(G.mode!=='minigame')return;
-            const score=clamp(1-fails*.15,.25,1);
-            G.mg=G.mg?(G.mg+score)/2:score;
-            addXp(Math.round(15*score));sfx.quote();
-            closeMg();startDialog(cfg.winNode);
-          },900);
-          log(`✦ <b>انكسرت عزيمة ${cfg.name}!</b>`);
-        }else setTimeout(round,1100);
+        finishOrNext();
       });
       host.appendChild(b);
     });
+    // active culture-points play: a guaranteed literary strike
+    if(G.cp>=10){
+      const b=document.createElement('button');b.className='chBtn';
+      b.style.borderColor='rgba(212,175,55,.55)';
+      b.innerHTML='📖 استشهاد حاسم — اقتباسٌ يقصم عزيمته<span class="tag">١٠ نقاط ثقافة · نجاح مضمون</span>';
+      b.addEventListener('click',()=>{
+        if(busy||G.mode!=='minigame')return;busy=true;
+        G.cp-=10;sfx.quote();resolve-=4;
+        log('📖 استدعيتِ السطر المناسب في اللحظة المناسبة — <span style="color:#f0d98c">ضربة معرفية مباشرة!</span>');
+        finishOrNext();
+      });
+      host.appendChild(b);
+    }
   }
   round();
 }
@@ -4404,6 +4475,295 @@ makeRed('gilgamesh','siduri','gis');
 makeRed('dost','rodya','dor');
 makeRed('lovecraft','sailor2','lvs');
 makeRed('nights','sindbad2','nis');
+</script>
+<script>
+/* ============================================================
+   PREMIUM LAYER — active culture points, dream-bleed events,
+   Sherif's override, flip-card library, DG-2 upgrade shop,
+   heavier glitch pack, typewriter Guide, tactile touch controls.
+   ============================================================ */
+(function(){
+const css=document.createElement('style');css.textContent=`
+/* --- flip cards: two-stage fold (flat hit-testing, smooth look) --- */
+.card .inner{display:block;transition:transform .26s ease-in}
+.card{transition:transform .18s ease-out}
+.cface{position:absolute;inset:0;border-radius:10px;overflow:hidden;
+  display:flex;flex-direction:column}
+.cface.back{display:none;
+  background:linear-gradient(165deg,rgba(26,20,48,.98),rgba(10,8,22,.99));
+  align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
+.card.showBack .cface.front{display:none}
+.card.showBack .cface.back{display:flex}
+.bTitle{font-family:var(--f-fancy);color:var(--gold-soft);font-size:1.25rem}
+.bBlurb{font-size:.85rem;color:#d8d4e8;line-height:1.95;font-style:italic}
+.bReq{font-size:.72rem;color:#b9b2d9;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);padding:.4em 1.1em;border-radius:999px}
+/* --- danger pack: the dream visibly dying --- */
+#stageWrap.decay1 #scene{filter:blur(.5px) saturate(1.06)}
+#stageWrap.decay2 #scene{filter:blur(1.1px) saturate(.78) contrast(1.08) hue-rotate(8deg)}
+#stageWrap.decay2{animation:shiver .45s infinite}
+#stageWrap.decay3 #scene{filter:blur(1.7px) saturate(.38) contrast(1.28) hue-rotate(-18deg) brightness(.9)}
+#stageWrap.decay3{animation:shiver .15s infinite,glslice 2.2s steps(1) infinite}
+@keyframes glslice{
+  0%,84%{clip-path:none;transform:translate(0)}
+  86%{clip-path:polygon(0 0,100% 0,100% 30%,0 36%);transform:translateX(9px)}
+  88%{clip-path:polygon(0 60%,100% 54%,100% 100%,0 100%);transform:translateX(-10px)}
+  90%{clip-path:none;transform:translate(0)}
+  93%{clip-path:polygon(0 18%,100% 23%,100% 48%,0 43%);transform:translateX(7px)}
+  95%{clip-path:none}}
+#aberration{transition:opacity .5s;background:
+  radial-gradient(ellipse at center,transparent 54%,rgba(255,0,60,.22) 84%,rgba(255,0,60,.36) 100%),
+  radial-gradient(ellipse at center,transparent 58%,rgba(0,190,255,.2) 90%,rgba(0,210,255,.32) 100%)}
+/* --- subconscious intrusion: heavier Guide dim --- */
+#guide{background:rgba(3,2,9,.8);backdrop-filter:blur(8px)}
+/* --- tactile touch controls: fat invisible hitboxes + ripple --- */
+.tbtn{overflow:visible}
+.tbtn::before{content:'';position:absolute;inset:-22px;border-radius:50%}
+.tbtn::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(212,175,55,.55),transparent 70%);
+  opacity:0;transform:scale(.4);transition:opacity .35s,transform .35s}
+.tbtn:active{transform:scale(.93)}
+.tbtn:active::after{opacity:1;transform:scale(1.6);transition:none}
+/* --- shop rows --- */
+.upRow{display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px 14px;margin-bottom:10px}
+.upRow .uIcon{font-size:1.7rem}
+.upRow .uBody{flex:1;text-align:right}
+.upRow .uName{font-weight:700;color:var(--gold-soft)}
+.upRow .uDesc{font-size:.75rem;color:#b9b2d9}
+.upRow .uLvl{font-size:.7rem;color:#7de3a0}`;
+document.head.appendChild(css);
+})();
+
+/* ---------- meta currencies & hardware ---------- */
+G.cpEarned=G.cp||0;         // lifetime knowledge (gates wings; never decreases)
+G.sparks=0;                 // dream sparks: earned from quotes & endings, spent on hardware
+G.up={stab:0,antenna:0,dice:0,backup:0};
+G.overrideUsed=false;G.cpAuto=false;G.bleedArmed=0;
+window.stabMaxFn=()=>100+G.up.stab*10;
+window.diceMod=()=>G.up.dice?1:0;
+window.WING_REQ=[0,0,6,12,18,24];
+window.BLURBS={
+ sherlock:'ضبابٌ يبتلع الحقيقة، وياقوتةٌ تلمع في جيب أحدهم. عقلان عظيمان — أحدهما يقف في الظل.',
+ orient:'قطارٌ فاخر، وجثةٌ واحدة، واثنا عشر راكبًا لكلٍّ منهم سببٌ وجيه. الثلج لا يشي بأحد.',
+ dracula:'قلعةٌ تُقفل أبوابها على ضيوفها من الخارج. المرايا هنا أصدق من أهل البيت.',
+ lovecraft:'بلدةٌ ساحلية تميل بيوتها نحو ما لا يُرى. لا تسألي عمّا ينام في الحيد المرجاني.',
+ greek:'مرجٌ من نرجس فوق، ونهرٌ من أسماء تحت. ستُّ حبات رمانٍ تفصل بين فصول السنة.',
+ gilgamesh:'أقدم سؤالٍ كتبه البشر: أيموت من بنى الأسوار؟ الجواب عند حانةٍ في نهاية العالم.',
+ kadesh:'أربع فرقٍ بأسماء الآلهة، وكمينٌ خلف التل، وقصيدة نصرٍ تُكتب قبل وقوع المعركة.',
+ cairo:'مدينةٌ تغلي تحت الاحتلال، ومطبعةٌ تهمس في قبو، وبرقيةٌ تنتظر من يرتب سطورها.',
+ nights:'ألف ليلةٍ تبدأ بليلة: ملكٌ مجروح، وحكّاءةٌ تراهن برأسها أن الحكاية أقوى من السيف.',
+ hiroshima:'مساءُ أحدٍ هادئ في مدينةٍ تسقي حدائقها. أجمل عوالم المكتبة… وأثقلها على القلب.',
+ philo:'أربع جزرٍ يسكنها من غيّروا تفكير البشر. الكرسي الخامس على المأدبة شاغر — مؤقتًا.',
+ dost:'ثلجٌ على بطرسبرغ، وطالبٌ يحسب خطواته إلى ثلاث وجهات. إحداها النهر.',
+ secret:'ملفُّ قضيةٍ بلا رقم: بيتٌ مهجور، وقلمٌ يخربش منذ الستينيات، وضيفٌ من سلسلةٍ مجاورة.',
+};
+
+/* ---------- typewriter (Guide) ---------- */
+let _typeTimers=[];
+function typeText(el,str,done){
+  let i=0;
+  const tm=setInterval(()=>{
+    el.textContent=str.slice(0,++i);
+    if(i%4===0)beep(880+Math.random()*260,.012,'square',.012);
+    if(i>=str.length){clearInterval(tm);if(done)done();}
+  },17);
+  _typeTimers.push({tm,el,str});
+}
+function cancelType(){
+  _typeTimers.forEach(x=>{clearInterval(x.tm);x.el.textContent=x.str;});
+  _typeTimers=[];
+}
+$('#guideCard').addEventListener('click',e=>{if(e.target.id!=='guideClose')cancelType();});
+
+/* ---------- lifetime CP + sparks wrappers ---------- */
+{
+  const _a=addCp;addCp=function(n){_a(n);G.cpEarned+=n;};
+  const _q=collectQuote;collectQuote=function(){
+    const wid=G.world&&G.world.id,had=wid&&G.quotes[wid];
+    _q();
+    if(wid&&!had&&G.quotes[wid]){G.sparks++;
+      toast('⚡ <b>+١ شرارة حلم</b> — تُنفق في ورشة شريف عند الاستيقاظ.');}
+  };
+  const _f=finishWorld;finishWorld=function(k){
+    const wid=G.world&&G.world.id,first=wid&&!G.done[wid];
+    _f(k);
+    if(wid&&first){
+      const g=G.done[wid]||'';
+      const rank=(g.match(/🌟/g)||[]).length+(g.match(/🕊/g)||[]).length;
+      const gain=rank>=3?2:1;G.sparks+=gain;
+      toast(`⚡ <b>+${AR(gain)} شرارة حلم</b> — «ترقية الـ DG-2» متاحة من شاشة الاستيقاظ.`);
+    }
+  };
+  const _e=enterWorld;enterWorld=function(id){
+    G.overrideUsed=false;G.cpAuto=false;G.bleedArmed=0;
+    if(BL)cleanupBleed(false,true);
+    const w=WORLDS[id];
+    if(w){w.ents=w.ents.filter(x=>!x.bleed);delete w.dialogs.__bleed;}
+    _e(id);
+  };
+  const _r=refreshLibStats;refreshLibStats=function(){
+    _r();
+    const s=document.createElement('span');
+    s.innerHTML=`⚡ شرارات الحلم: ${AR(G.sparks)}`;
+    $('#libStats').appendChild(s);
+  };
+}
+
+/* ---------- Sherif's override: the last-second rescue ---------- */
+function tryOverride(){
+  if(G.overrideUsed)return false;
+  const chance=.33+(G.up.backup?.33:0);
+  if(Math.random()>chance)return false;
+  G.overrideUsed=true;
+  sfx.glitch();
+  G.stability=1;setStability(15,true);
+  const gl=$('#glitch'),txt=$('#glitchTxt');
+  const orig=txt.innerHTML;
+  txt.innerHTML='<span style="color:#39ff85">تدخل يدوي — م. شريف إبراهيم:<br>«أمسكتُ بكِ قبل الانهيار! أعدتُ ضبط الأقطاب… أكملي بسرعة!»</span>';
+  gl.classList.add('open');
+  setTimeout(()=>{gl.classList.remove('open');txt.innerHTML=orig;},1700);
+  setTimeout(()=>toast('🔧 <b>شريف:</b> «الجهاز كاد يفقدك. رمّمتُ ١٥٪ ثبات — لا تهدريها».'),1800);
+  return true;
+}
+
+/* ---------- dream bleed: genre invasion events ---------- */
+let BL=null;
+function spawnBleed(t){
+  const w=G.world;
+  const f=WORLDS[pick(PLAYABLE.filter(x=>x!==w.id))];
+  const x=clamp(P.x+(Math.random()<.5?-1:1)*rand(260,520),120,w.len-120);
+  const ent={x,kind:'spot',name:'نزيف حلم!',icon:f.meta.motif,dlg:'__bleed',bleed:1};
+  w.ents.push(ent);
+  w.dialogs.__bleed={sp:'نزيف الحلم',
+    txt:`شقٌّ يتوهّج في جدار الحلم — «${f.meta.title}» يتسرّب منه: ${f.meta.motif} يحدّق فيكِ من عالمٍ ليس عالمه، والثبات ينزف من حوافّ الشاشة.`,
+    ch:[
+     {t:'تخيطين الشقّ بإرادة قارئةٍ تعرف أين ينتهي كل كتاب',check:{stat:'wit',dc:7},
+      ok:{flag:'__bleedFixed',toast:'✨ التحم الجدار — وعاد الدخيل إلى غلافه.'},
+      ko:{stab:-8,toast:'🕳️ الشقّ يقاوم! حاولي ثانيةً قبل أن يتّسع.'}},
+     {t:'تتراجعين — وليأكل ما يشاء',fx:{toast:'🕳️ الدخيل يتغذى… والحلم يرتجف.'}},
+    ]};
+  BL={ent,started:t};
+  sfx.glitch();
+  toast(`🕳️ <b>نزيف حلم!</b> عنصرٌ من «${f.meta.title}» اخترق هذا العالم — أوقفيه قبل أن يستنزف الثبات.`);
+  setObjective('⚠ أغلقي شقّ النزيف قبل أن يستنزف ثبات الحلم!');
+}
+function cleanupBleed(fixed,silent){
+  if(!BL)return;
+  const w=G.world;
+  if(w){const i=w.ents.indexOf(BL.ent);if(i>=0)w.ents.splice(i,1);delete w.dialogs.__bleed;}
+  delete G.flags.__bleedFixed;
+  BL=null;
+  G.bleedArmed=performance.now()+rand(50000,90000);
+  if(silent)return;
+  if(fixed){addCp(3);setStability(G.stability+8,true);
+    toast('✨ <b>التحم جدار الحلم.</b> +٣ نقاط ثقافة لبراعة الترميم.');}
+  else toast('🕳️ شبع الدخيل ورحل… تاركًا الحلم أنحف مما كان.');
+  if(G.world)setObjective(G.world.objectives[Math.min(G.stage,G.world.objectives.length-1)]);
+}
+function bleedTick(dt,t){
+  if(G.screen!=='game'||!G.world)return;
+  if(BL){
+    if(G.flags.__bleedFixed){cleanupBleed(true);return;}
+    if(G.mode==='explore'||G.mode==='dialog'){
+      setStability(G.stability-4.2*dt,true);
+      if(G.mode==='collapsed'){cleanupBleed(false,true);return;}
+    }
+    const sx=BL.ent.x-cam;
+    if(sx>-120&&sx<W+120&&!REDUCED){ // glitch shards around the rift
+      ctx.save();ctx.globalAlpha=.55;
+      for(let i=0;i<4;i++){
+        ctx.fillStyle=['#39ff85','#ff4d5e','#4d9fff','#f0d98c'][i];
+        ctx.fillRect(sx+rand(-46,46),rand(H*.15,GY),rand(5,26),rand(2,5));
+      }
+      ctx.restore();
+    }
+    if(t-BL.started>16000)cleanupBleed(false);
+    return;
+  }
+  if(G.mode!=='explore')return;
+  if(!G.bleedArmed){G.bleedArmed=t+rand(30000,60000);return;}
+  if(t>G.bleedArmed)spawnBleed(t);
+}
+
+/* ---------- active culture points: the reader's memory ---------- */
+function openCpMenu(){
+  if(G.screen!=='game'||!G.world)return;
+  const items=[
+   {i:'🍵',n:'صفحة تهدئة',d:'استرجاع مشهدٍ أليف يرمّم ٣٠ نقطة ثبات',cost:8,
+    go(){setStability(G.stability+30,true);toast('🍵 صفحةٌ دافئة من كتابٍ قديم — الحلم يستقر.');}},
+   {i:'📖',n:'استدعاء المرجع',d:'اختبار النرد القادم في الحوار ينجح مضمونًا',cost:12,
+    go(){G.cpAuto=true;toast('📖 المرجع جاهزٌ في الذاكرة — رميتك القادمة محسومة.');}},
+   {i:'🗺️',n:'خريطة القارئة',d:'تكشف ما بقي في هذا العالم من آثارٍ لم تُقرأ',cost:6,
+    go(){const left=G.world.ents.filter(e=>!e.gone&&!e.bleed);
+      toast(left.length
+        ?'🗺️ '+left.slice(0,5).map(e=>`${e.name} (${e.x>P.x?'شرقًا':'غربًا'})`).join(' · ')
+        :'🗺️ لا آثار متبقية — قرأتِ هذا العالم حتى غلافه الأخير.');}},
+  ];
+  rpgOpen(`<h3>📖 ذاكرة القارئة</h3>
+   <div class="rSub">٤٨٢ كتابًا في رأس عبير — الرصيد القابل للإنفاق: <b style="color:var(--gold-soft)">${AR(G.cp)}</b> نقطة ثقافة</div>
+   <div id="cpList" style="display:flex;flex-direction:column;gap:10px"></div>
+   <button class="btn" id="rpgX" style="display:block;margin:16px auto 0">إغلاق</button>`);
+  const list=$('#cpList');
+  items.forEach(it=>{
+    const b=document.createElement('button');b.className='chBtn';
+    b.innerHTML=`${it.i} <b>${it.n}</b> — ${it.d}<span class="tag">${AR(it.cost)} نقطة</span>`;
+    if(G.cp<it.cost){b.classList.add('locked');b.disabled=true;}
+    else b.addEventListener('click',()=>{G.cp-=it.cost;sfx.quote();it.go();rpgClose();});
+    list.appendChild(b);
+  });
+  $('#rpgX').addEventListener('click',()=>{sfx.ui();rpgClose();});
+}
+(function(){
+  const b=document.createElement('button');b.className='hbtn';b.id='btnCp';
+  b.textContent='📖';b.title='ذاكرة القارئة — أنفقي نقاط الثقافة';
+  const host=$('#hudBtns');host.insertBefore(b,host.firstChild);
+  b.addEventListener('click',()=>{if(['explore','dialog'].includes(G.mode)){sfx.ui();openCpMenu();}});
+})();
+
+/* ---------- DG-2 hardware shop (spend dream sparks) ---------- */
+const UPG={
+ stab:{i:'🫙',n:'مكثّف الثبات',d:'+١٠ ثبات أساسي لكل مستوى',cost:2,max:3},
+ antenna:{i:'📡',n:'هوائي المرشد',d:'المرشد يرصد أقرب أثرٍ لم يُكتشف في همساته',cost:2,max:1},
+ dice:{i:'⚙️',n:'معايرة الأقطاب',d:'+١ إلى كل رميات النرد — حوارًا ومواجهات',cost:3,max:1},
+ backup:{i:'🔋',n:'ذاكرة شريف الاحتياطية',d:'فرصة إنقاذ اللحظة الأخيرة تتضاعف',cost:2,max:1},
+};
+function openShop(){
+  rpgOpen(`<h3>🔧 ورشة شريف — ترقية الـ DG-2</h3>
+    <div class="rSub">«كل كنزٍ أدبي يشحن الجهاز» — الرصيد: <b style="color:#7de3a0">⚡ ${AR(G.sparks)}</b> شرارة حلم</div>
+    <div id="upList"></div>
+    <button class="btn" id="rpgX" style="display:block;margin:14px auto 0">إغلاق</button>`);
+  const list=$('#upList');
+  Object.entries(UPG).forEach(([k,u])=>{
+    const lvl=G.up[k],maxed=lvl>=u.max,can=!maxed&&G.sparks>=u.cost;
+    const row=document.createElement('div');row.className='upRow';
+    row.innerHTML=`<div class="uIcon">${u.i}</div>
+      <div class="uBody"><div class="uName">${u.n}</div>
+      <div class="uDesc">${u.d}</div>
+      <div class="uLvl">المستوى ${AR(lvl)}/${AR(u.max)}</div></div>`;
+    const b=document.createElement('button');b.className='btn'+(can?'':' ghost');
+    b.textContent=maxed?'مكتمل':`⚡ ${AR(u.cost)}`;
+    b.disabled=!can;
+    if(can)b.addEventListener('click',()=>{
+      G.sparks-=u.cost;G.up[k]++;sfx.ach();
+      toast(`🔧 <b>${u.n}</b> — ${u.i} رُكّب في الجهاز.`);
+      if(k==='stab')setStability(G.stability,true);
+      openShop();
+    });
+    row.appendChild(b);list.appendChild(row);
+  });
+  $('#rpgX').addEventListener('click',()=>{sfx.ui();rpgClose();refreshLibStats&&G.screen==='library'&&buildLibrary();});
+}
+(function(){
+  const b=document.createElement('button');b.className='btn ghost';b.id='endShop';
+  b.textContent='🔧 ترقية الـ DG-2';b.style.marginInlineStart='10px';
+  $('#endBack').after(b);
+  b.addEventListener('click',()=>{sfx.ui();openShop();});
+  const lb=document.createElement('button');lb.className='btn ghost';lb.id='libShop';
+  lb.textContent='🔧 ورشة شريف';lb.style.cssText='margin-top:10px;font-size:.85rem;padding:.4em 1.2em';
+  $('#libHead').appendChild(lb);
+  lb.addEventListener('click',()=>{sfx.ui();openShop();});
+})();
 </script>
 </body>
 </html>
