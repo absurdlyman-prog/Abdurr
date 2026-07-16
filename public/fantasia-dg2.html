@@ -626,7 +626,7 @@ function unlockAch(id){
   sfx.ach(); toast(`${a.i} <b>إنجاز:</b> ${a.t}<br><small>${a.d}</small>`);
   refreshLibStats();
 }
-function addCp(n){ G.cp+=n; G.runCp+=n; }
+function addCp(n){ G.cp+=n; G.runCp+=n; if(window.addXp)addXp(n*2); }
 function fourthWall(){ G.wall++; if(G.wall>=5)unlockAch('wall'); }
 
 /* ============================================================
@@ -1053,8 +1053,10 @@ function renderDialog(n){
   if(!chs.length)chs=[{t:'متابعة…',fx:{close:1}}];
   chs.forEach(c=>{
     const b=document.createElement('button');b.className='chBtn';
-    b.innerHTML=c.t+(c.tag?`<span class="tag">${c.tag}</span>`:'');
-    b.addEventListener('click',()=>{if(performance.now()-openedAt<250)return;sfx.choice();applyFx(c.fx||{},null,c);});
+    const tag=c.check?checkTag(c.check):c.tag; // RPG layer renders stat + odds
+    b.innerHTML=c.t+(tag?`<span class="tag">${tag}</span>`:'');
+    b.addEventListener('click',()=>{if(performance.now()-openedAt<250)return;sfx.choice();
+      if(c.check)runCheck(c);else applyFx(c.fx||{},null,c);});
     host.appendChild(b);
   });
 }
@@ -1066,6 +1068,7 @@ function applyFx(fx,ent,choice){
   if(fx.stab)setStability(G.stability+fx.stab);
   if(G.mode==='collapsed')return;
   if(fx.cp)addCp(fx.cp);
+  if(fx.xp)addXp(fx.xp);
   if(fx.wall){fourthWall();}
   if(fx.flag)G.flags[fx.flag]=true;
   if(fx.item)addItem(fx.item);
@@ -1076,6 +1079,7 @@ function applyFx(fx,ent,choice){
   if(fx.gone){const tgt=ent||dlgEnt;if(tgt)tgt.gone=true;}
   if(fx.toast)toast(fx.toast);
   if(fx.end){closeDialog();finishWorld(fx.end);return;}
+  if(fx.enc){closeDialog();mgEncounter(G.world._enc);return;}
   if(fx.mg){closeDialog();G.world.startMinigame();return;}
   if(fx.next){renderDialog(G.world.dialogs[fx.next]);return;}
   closeDialog();
@@ -1135,6 +1139,7 @@ function enterWorld(id){
 }
 function finishWorld(endKey){
   const w=G.world;G.mode='ending';setHum(false);
+  if(window.addXp)addXp(15);
   const e=w.finale(endKey);
   const firstTime=!G.done[w.id];
   G.done[w.id]=e.grade;
@@ -3665,6 +3670,491 @@ WORLDS.secret={
     cx.beginPath();cx.ellipse(sx,GY+18,50,4,0,0,7);cx.fill();}
  },
 };
+</script>
+<script>
+/* ============================================================
+   RPG LAYER — Abeer's character: stats, dice checks, XP/levels,
+   quest journal, and narrative encounters (مواجهات).
+   Fully additive: patches the worlds defined above.
+   ============================================================ */
+(function(){
+const css=document.createElement('style');css.textContent=`
+#rpgModal{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;
+  background:rgba(5,4,12,.62);backdrop-filter:blur(4px);padding:12px}
+#rpgModal.open{display:flex}
+#rpgCard{width:min(600px,95vw);max-height:90vh;overflow-y:auto;background:rgba(28,22,52,.94);
+  border-radius:20px;border:1px solid rgba(212,175,55,.6);padding:24px 22px;
+  box-shadow:0 0 45px rgba(212,175,55,.2),0 24px 60px rgba(0,0,0,.7);
+  animation:guidein .4s cubic-bezier(.2,1.3,.4,1)}
+#rpgCard h3{font-family:var(--f-fancy);color:var(--gold-soft);text-align:center;font-size:1.3rem;margin-bottom:6px}
+#rpgCard .rSub{text-align:center;color:#b9b2d9;font-size:.85rem;margin-bottom:14px}
+.statRow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.statCell{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.14);border-radius:14px;
+  padding:10px;text-align:center}
+.statCell .sIcon{font-size:1.5rem}
+.statCell .sName{font-size:.8rem;color:#cfc7ee;margin:2px 0}
+.statCell .sVal{font-size:1.4rem;font-weight:800;color:var(--gold-soft)}
+.statCell.pick{cursor:pointer;transition:all .15s}
+.statCell.pick:hover{border-color:var(--gold);transform:translateY(-3px);background:rgba(212,175,55,.14)}
+#diceBox{font-size:2.6rem;text-align:center;margin:14px 0;min-height:1.4em;
+  text-shadow:0 0 22px rgba(212,175,55,.6)}
+#diceMath{text-align:center;font-size:1rem;color:#cfc7ee;min-height:1.6em}
+#diceVerdict{text-align:center;font-family:var(--f-fancy);font-size:1.3rem;min-height:1.5em;margin-top:6px}
+.xpBar{height:9px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;margin:6px 0 2px}
+.xpFill{height:100%;background:linear-gradient(90deg,#6a5acd,#d4af37);border-radius:99px}
+.ebar{height:13px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;margin:4px 0 10px}
+.ebar>div{height:100%;border-radius:99px;transition:width .45s}
+#encLog{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+  padding:10px 14px;font-size:.88rem;line-height:1.8;min-height:4.6em;margin:10px 0}
+#encMove{background:rgba(140,40,50,.16);border:1px solid rgba(220,90,100,.4);border-radius:12px;
+  padding:10px 14px;font-size:.95rem;margin-bottom:10px}
+.qRow{display:flex;justify-content:space-between;gap:10px;background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:.55em 1em;
+  font-size:.9rem;margin-bottom:8px}
+.qRow .qOK{color:#7de3a0}.qRow .qNo{color:#9f97c9}`;
+document.head.appendChild(css);
+})();
+
+const STATS={
+  wit:{n:'الفطنة',i:'🔍',d:'الملاحظة والاستنتاج وقراءة التفاصيل'},
+  courage:{n:'الشجاعة',i:'🦁',d:'الثبات أمام الخطر والوجوه المخيفة'},
+  heart:{n:'التعاطف',i:'💗',d:'قراءة القلوب ومدّ اليد في اللحظة الصحيحة'},
+  lore:{n:'المعرفة',i:'📚',d:'ذخيرة ٤٨٢ كتابًا في ذاكرة عبير'},
+};
+G.stats={wit:2,courage:2,heart:2,lore:2};
+G.xp=0;G.lvl=1;G.rpgInit=false;
+const xpNeed=()=>25*G.lvl;
+
+/* ---------- generic modal ---------- */
+const rpgHost=document.createElement('div');rpgHost.id='rpgModal';
+rpgHost.innerHTML='<div id="rpgCard"></div>';document.body.appendChild(rpgHost);
+function rpgOpen(html){$('#rpgCard').innerHTML=html;rpgHost.classList.add('open');}
+function rpgClose(){rpgHost.classList.remove('open');maybeLevelModal();}
+
+/* ---------- XP & levels ---------- */
+let pendingLevels=0;
+function addXp(n){
+  G.xp+=n;
+  while(G.xp>=xpNeed()){G.xp-=xpNeed();G.lvl++;pendingLevels++;}
+  if(pendingLevels)maybeLevelModal();
+}
+function maybeLevelModal(){
+  if(!pendingLevels||rpgHost.classList.contains('open'))return;
+  pendingLevels--;sfx.ach();
+  rpgOpen(`<h3>✨ نمَت عبير — المستوى ${AR(G.lvl)}</h3>
+    <div class="rSub">الحلم يتشكل بقارئته. اختاري ملَكةً تتعمق:</div>
+    <div class="statRow">${Object.entries(STATS).map(([k,s])=>`
+      <div class="statCell pick" data-st="${k}">
+        <div class="sIcon">${s.i}</div><div class="sName">${s.n}</div>
+        <div class="sVal">${AR(G.stats[k])} ← ${AR(G.stats[k]+1)}</div>
+        <div style="font-size:.65rem;color:#9f97c9;margin-top:4px">${s.d}</div>
+      </div>`).join('')}</div>`);
+  document.querySelectorAll('#rpgCard .pick').forEach(el=>{
+    el.addEventListener('click',()=>{
+      G.stats[el.dataset.st]++;sfx.item();
+      toast(`${STATS[el.dataset.st].i} ارتفعت ${STATS[el.dataset.st].n} إلى ${AR(G.stats[el.dataset.st])}`);
+      rpgClose();
+    });
+  });
+}
+
+/* ---------- character creation (first dive) ---------- */
+const _enterWorld=enterWorld;
+enterWorld=function(id){
+  if(!G.rpgInit){showCreation(()=>_enterWorld(id));return;}
+  _enterWorld(id);
+};
+function showCreation(then){
+  rpgOpen(`<h3>توصيف القارئة</h3>
+    <div class="rSub">قبل أول غوص، يسأل الـ DG-2: أي نوعٍ من القارئات أنتِ يا عبير؟<br>
+    (يمنح الاختيار +٢ في ملَكةٍ واحدة — والبقية تنمو باللعب)</div>
+    <div class="statRow">${Object.entries(STATS).map(([k,s])=>`
+      <div class="statCell pick" data-st="${k}">
+        <div class="sIcon">${s.i}</div><div class="sName">${s.n}</div>
+        <div style="font-size:.68rem;color:#9f97c9;margin-top:4px">${s.d}</div>
+      </div>`).join('')}</div>`);
+  document.querySelectorAll('#rpgCard .pick').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.dataset.st;G.stats[k]+=2;G.rpgInit=true;sfx.quote();
+      toast(`${STATS[k].i} <b>${STATS[k].n} ${AR(G.stats[k])}</b> — الجهاز عايَر الحلم على قارئته.`);
+      rpgHost.classList.remove('open');
+      then();
+    });
+  });
+}
+
+/* ---------- dice checks in dialogue ---------- */
+function checkOdds(check){
+  const succ=clamp(7-(check.dc-G.stats[check.stat]),1,6);
+  return Math.round(succ/6*100);
+}
+function checkTag(check){
+  const s=STATS[check.stat];
+  return `${s.i} ${s.n} ${AR(G.stats[check.stat])} · نجاح ~${AR(checkOdds(check))}٪`;
+}
+function runCheck(c){
+  const st=c.check.stat,dc=c.check.dc,sv=G.stats[st],S=STATS[st];
+  rpgOpen(`<h3>${S.i} اختبار ${S.n}</h3>
+    <div class="rSub">${S.n} ${AR(sv)} + نرد الحلم ضد صعوبة ${AR(dc)}</div>
+    <div id="diceBox">🎲</div><div id="diceMath"></div><div id="diceVerdict"></div>`);
+  let ticks=0;
+  const spin=setInterval(()=>{
+    $('#diceBox').textContent='⚀⚁⚂⚃⚄⚅'[Math.floor(rand(0,6))];
+    beep(500+ticks*40,.03,'square',.02);ticks++;
+  },90);
+  setTimeout(()=>{
+    clearInterval(spin);
+    const roll=1+Math.floor(rand(0,6));
+    const success=roll===6||(roll!==1&&roll+sv>=dc);
+    $('#diceBox').textContent='⚀⚁⚂⚃⚄⚅'[roll-1];
+    $('#diceMath').textContent=`${AR(roll)} + ${AR(sv)} = ${AR(roll+sv)} ضد ${AR(dc)}`
+      +(roll===6?' — نردٌ كامل!':roll===1?' — نردٌ خائن!':'');
+    $('#diceVerdict').innerHTML=success
+      ?'<span style="color:#7de3a0">✦ نجاح</span>':'<span style="color:#e08a8a">✦ إخفاق</span>';
+    if(success){sfx.quote();addXp(4);}else{sfx.bad();addXp(1);}
+    setTimeout(()=>{
+      rpgHost.classList.remove('open');
+      applyFx((success?c.ok:c.ko)||{},null,c);
+      maybeLevelModal();
+    },1000);
+  },950);
+}
+
+/* ---------- HUD: character sheet + quest journal ---------- */
+(function(){
+  const bQ=document.createElement('button');bQ.className='hbtn';bQ.id='btnQuest';bQ.textContent='🧭';bQ.title='دفتر المهام';
+  const bC=document.createElement('button');bC.className='hbtn';bC.id='btnChar';bC.textContent='🎒';bC.title='شخصية عبير';
+  const host=$('#hudBtns');host.insertBefore(bC,host.firstChild);host.insertBefore(bQ,host.firstChild);
+  bC.addEventListener('click',()=>{if(G.mode!=='explore')return;sfx.ui();openSheet();});
+  bQ.addEventListener('click',()=>{if(G.mode!=='explore')return;sfx.ui();openQuests();});
+})();
+function openSheet(){
+  rpgOpen(`<h3>🎒 عبير عبد الرحمن</h3>
+    <div class="rSub">قارئة نهمة · المستوى ${AR(G.lvl)} · نقاط الثقافة ${AR(G.cp)}</div>
+    <div class="xpBar"><div class="xpFill" style="width:${G.xp/xpNeed()*100}%"></div></div>
+    <div style="text-align:center;font-size:.7rem;color:#9f97c9">خبرة: ${AR(G.xp)} / ${AR(xpNeed())}</div>
+    <div class="statRow">${Object.entries(STATS).map(([k,s])=>`
+      <div class="statCell"><div class="sIcon">${s.i}</div>
+      <div class="sName">${s.n}</div><div class="sVal">${AR(G.stats[k])}</div></div>`).join('')}</div>
+    <div class="gSection"><span class="gLbl">✦ الحقيبة</span>
+      ${G.inv.length?G.inv.map(i=>`${i.icon} ${i.name}`).join(' · '):'فارغة — الحلم كريم مع من يبحث'}</div>
+    <div class="gSection"><span class="gLbl">✦ السجل</span>
+      عوالم مكتملة: ${AR(Object.keys(G.done).length)} · كنوز أدبية: ${AR(Object.keys(G.quotes).length)} · إنجازات: ${AR(Object.keys(G.ach).length)}</div>
+    <button class="btn" id="rpgX" style="display:block;margin:16px auto 0">إغلاق</button>`);
+  $('#rpgX').addEventListener('click',()=>{sfx.ui();rpgClose();});
+}
+function openQuests(){
+  const w=G.world;if(!w)return;
+  const heard=(G.factsHeard[w.id]||new Set()).size;
+  const row=(ok,txt)=>`<div class="qRow"><span>${txt}</span><span class="${ok?'qOK':'qNo'}">${ok?'✓ تم':'…'}</span></div>`;
+  rpgOpen(`<h3>🧭 دفتر المهام — ${w.meta.title}</h3>
+    <div class="rSub">ما يهمس به الحلم لقارئته</div>
+    <div class="gSection" style="margin-bottom:12px"><span class="gLbl">✦ المهمة الرئيسة</span>${$('#objTxt').textContent}</div>
+    ${row(!!G.quotes[w.id],'📜 كنز العالم الأدبي')}
+    ${row(heard>=2,`🧞 حقيقتان من المرشد (${AR(heard)}/${AR(2)})`)}
+    ${row(G.inv.length>=2,`🎒 غرضان من أغراض الحلم (${AR(G.inv.length)})`)}
+    ${row(G.wall>=5,`🪞 كسر الجدار الرابع خمس مرات (${AR(Math.min(G.wall,5))}/${AR(5)})`)}
+    <button class="btn" id="rpgX" style="display:block;margin:16px auto 0">إغلاق</button>`);
+  $('#rpgX').addEventListener('click',()=>{sfx.ui();rpgClose();});
+}
+
+/* ============================================================
+   ENCOUNTERS — multi-round narrative confrontations
+   ============================================================ */
+function mgEncounter(cfg){
+  G.mode='minigame';
+  let resolve=cfg.resolve,maxR=cfg.resolve,fails=0,busy=false,cur=null;
+  openMg(`<h3>مواجهة: ${cfg.icon} ${cfg.name}</h3>
+    <div class="mgSub">${cfg.taunt}</div>
+    <div style="font-size:.72rem;color:#cfc7ee">عزيمة الخصم</div>
+    <div class="ebar"><div id="encR" style="background:linear-gradient(90deg,#a03040,#e08a3e);width:100%"></div></div>
+    <div style="font-size:.72rem;color:#cfc7ee">ثبات الحلم (أنتِ)</div>
+    <div class="ebar"><div id="encS" style="background:linear-gradient(90deg,#3ee08a,#d4af37);width:${G.stability}%"></div></div>
+    <div id="encMove"></div>
+    <div id="encLog">تبدأ المواجهة…</div>
+    <div id="encAppr" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="mgFoot"><button class="btn ghost" id="encFlee">انسحاب مؤقت (يمكن العودة)</button></div>`);
+  $('#encFlee').addEventListener('click',()=>{
+    sfx.ui();closeMg();toast('↩️ تراجعتِ لالتقاط الأنفاس. الخصم ينتظر حيث تركتِه.');
+  });
+  function log(t){$('#encLog').innerHTML=t;}
+  function bars(){$('#encR').style.width=clamp(resolve/maxR*100,0,100)+'%';
+    $('#encS').style.width=G.stability+'%';}
+  function round(){
+    if(G.mode!=='minigame')return;
+    cur=pick(cfg.moves);busy=false;
+    $('#encMove').innerHTML=`⚔️ <b>${cfg.name}</b>: ${cur.t}`;
+    const host=$('#encAppr');host.innerHTML='';
+    cfg.appr.filter(a=>!a.req||G.flags[a.req]).forEach(a=>{
+      const adv=a.stat===cur.c?2:0;
+      const succ=clamp(7-(a.dc-(G.stats[a.stat]+adv)),1,6);
+      const b=document.createElement('button');b.className='chBtn';
+      b.innerHTML=`${a.t}<span class="tag">${STATS[a.stat].i} ${STATS[a.stat].n}${adv?' +ميزة':''} · ~${AR(Math.round(succ/6*100))}٪</span>`;
+      b.addEventListener('click',()=>{
+        if(busy||G.mode!=='minigame')return;busy=true;sfx.choice();
+        const roll=1+Math.floor(rand(0,6));
+        const total=roll+G.stats[a.stat]+adv;
+        const win=roll===6||(roll!==1&&total>=a.dc);
+        if(win){
+          const dmg=2+Math.min(Math.max(total-a.dc,0),3);
+          resolve-=dmg;sfx.item();addXp(3);
+          log(`🎲 ${AR(roll)}+${AR(G.stats[a.stat]+adv)} ضد ${AR(a.dc)} — <span style="color:#7de3a0">نجاح!</span><br>${a.ok}`);
+        }else{
+          fails++;sfx.bad();setStability(G.stability-9);
+          if(G.mode!=='minigame')return; // dream collapsed
+          log(`🎲 ${AR(roll)}+${AR(G.stats[a.stat]+adv)} ضد ${AR(a.dc)} — <span style="color:#e08a8a">إخفاق.</span><br>${a.ko}`);
+        }
+        bars();
+        if(resolve<=0){
+          setTimeout(()=>{
+            if(G.mode!=='minigame')return;
+            const score=clamp(1-fails*.15,.25,1);
+            G.mg=G.mg?(G.mg+score)/2:score;
+            addXp(Math.round(15*score));sfx.quote();
+            closeMg();startDialog(cfg.winNode);
+          },900);
+          log(`✦ <b>انكسرت عزيمة ${cfg.name}!</b>`);
+        }else setTimeout(round,1100);
+      });
+      host.appendChild(b);
+    });
+  }
+  round();
+}
+/* wrap a world's final node behind an encounter */
+function gateEncounter(wid,node,intro,enc,gateCh){
+  const w=WORLDS[wid];if(!w||!w.dialogs[node])return;
+  enc.winNode=node+'_end';w._enc=enc;
+  w.dialogs[node+'_end']=w.dialogs[node];
+  w.dialogs[node]={sp:enc.name,txt:intro,
+    ch:gateCh||[{t:'تتقدمين إلى المواجهة',tag:'مواجهة',fx:{enc:1}}]};
+}
+
+/* ============================================================
+   THE NINE CONFRONTATIONS
+   ============================================================ */
+gateEncounter('sherlock','verdict',
+ 'قبل أن تنطقي بالحكم، ينشقّ الضباب عن رجلٍ نحيل يتقدّم ورأسه يتمايل ببطءٍ زاحف: «بروفيسور جيمس موريارتي. البحّار يعمل لحسابي، والياقوتة قطعةٌ في رقعةٍ أكبر من خيالك. انصرفي أيتها القارئة… أو أثبتي أن عقلك يستحق مقعدًا على الرقعة».',
+ {name:'موريارتي',icon:'🕷️',resolve:9,
+  taunt:'«نابليون الجريمة» يلعب معك بعقله — اقرئي حركته واختاري ردّك',
+  moves:[
+   {t:'يفتل مغالطةً منطقية أنيقة عن «حتمية» الجريمة',c:'wit'},
+   {t:'يلمّح بتهديدٍ ناعم لواطسون والسيدة هدسون',c:'courage'},
+   {t:'يقتبس من كتبٍ نادرة محرّفًا معانيها',c:'lore'},
+  ],
+  appr:[
+   {t:'تفكيك المغالطة خيطًا خيطًا',stat:'wit',dc:7,ok:'انهار برهانه الزائف — وتراجع نصف خطوة.',ko:'ابتسم: «قريب. لكن الرياضيات لا ترحم التقريب».'},
+   {t:'الثبات: «أصدقائي ليسوا أوراق مساومة»',stat:'courage',dc:7,ok:'رأى في عينيك جدارًا لا بابًا.',ko:'التقط رجفة يدك وسجّلها في دفترٍ ذهني.'},
+   {t:'ردّ الاقتباس إلى نصه الصحيح',stat:'lore',dc:7,ok:'صحّحتِ له السطر والطبعة — فصمتَ صمتًا ثمينًا.',ko:'«الطبعة الثالثة يا آنسة. المعرفة الناقصة أخطر من الجهل».'},
+   {t:'سؤال إنساني: «متى قررتَ أن العقل بلا قلبٍ أوفر؟»',stat:'heart',dc:8,ok:'شيءٌ قديم جدًا تحرّك خلف نظارته الباردة.',ko:'«العاطفة؟ لطيف. سأرسل لك باقة أزهار إلى القبر الأدبي».'},
+  ]});
+
+gateEncounter('orient','cabin',
+ 'عند باب المقصورة يصطف الركاب الاثنا عشر صفًا صامتًا — الأميرة، والكونت، والمربية، وكلُّ عينٍ تسألك السؤال نفسه: «وماذا الآن؟ أتفهمين لماذا فعلناها… أم أنتِ مجرد قاضٍ آخر؟» عليكِ كسب ثقتهم قبل أن يُسمَح لكِ بالكلمة الأخيرة.',
+ {name:'عدالة الركّاب',icon:'⚖️',resolve:9,
+  taunt:'اثنتا عشرة حكاية جريح — اكسبي القلوب لا الحجّة فقط',
+  moves:[
+   {t:'المربية تروي ما فعله القتيل بعائلتها',c:'heart'},
+   {t:'الكونت يشكك: «ما الذي يضمن صمتك؟»',c:'courage'},
+   {t:'الأميرة تختبر معرفتك بقوانين الشرف القديمة',c:'lore'},
+  ],
+  appr:[
+   {t:'الإصغاء الكامل — ثم كلمة مواساة دقيقة',stat:'heart',dc:7,ok:'بكت المربية بكاء من وجد أخيرًا شاهدًا.',ko:'خرجت كلمتك جاهزةً أكثر مما ينبغي — فأغلقت وجهها.'},
+   {t:'وعدٌ مكشوف: «لا أملك صمتًا للبيع، بل فهمًا»',stat:'courage',dc:7,ok:'أوما الكونت: الصراحة عملة يحترمها.',ko:'«فهم؟» — رفع حاجبه الأرستقراطي حتى السقف.'},
+   {t:'الإجابة بشرائع الثأر من الكتب القديمة',stat:'lore',dc:7,ok:'ابتسمت الأميرة: «قارئة تعرف أن للدم قوانين أقدم من المحاكم».',ko:'خلطتِ شريعتين — والأميرات يلاحظن.'},
+   {t:'ملاحظة صغيرة تفضح تنسيقهم المسبق',stat:'wit',dc:8,ok:'اثنتا عشرة نظرة متبادلة اعترفت بما لم يُقل.',ko:'أنكروا — ببراعة اثني عشر ممثلًا.'},
+  ]},
+ [{t:'تدخلين إلى مواجهة الركّاب',tag:'مواجهة',req:'solved',fx:{enc:1}},
+  {t:'لم يكتمل استنتاجي بعد (عودي إلى بوارو)',notFlag:'solved',fx:{}}]);
+
+gateEncounter('dracula','drac',
+ 'ينهض الكونت من كرسيّه بحركة سائلٍ ينسكب عكس الجاذبية. «قبل أن نتحدث عن النهايات أيتها الضيفة… لنلعب لعبة الإرادات القديمة. عقلي ضد عقلك. قرونٌ من الظلمة ضد مكتبةِ فتاةٍ من القاهرة». وتشتعل عيناه بجمرٍ أحمر.',
+ {name:'الكونت دراكولا',icon:'🦇',resolve:10,
+  taunt:'إرادة قرونٍ من الليل ضد قارئةٍ تعرف القواعد',
+  moves:[
+   {t:'يحدّق محاولًا التنويم: «انظري في عينيّ»',c:'courage'},
+   {t:'يستدعي عاصفة خفافيش تملأ القاعة',c:'wit'},
+   {t:'يهمس بأسماء ضحاياه عبر القرون ليكسر قلبك',c:'heart'},
+  ],
+  appr:[
+   {t:'تثبيت النظر في الجمرة دون طرفة',stat:'courage',dc:7,ok:'انكسر التحديق — وللمرة الأولى منذ قرون، أشاح هو بعينيه.',ko:'دار رأسك دورةً كاملة قبل أن تمسكي بحافة الواقع.'},
+   {t:'قراءة نمط تحليق الخفافيش وإيجاد الثغرة',stat:'wit',dc:7,ok:'وقفتِ في العين الهادئة من العاصفة — فبدت العاصفة استعراضًا.',ko:'جناحٌ جلديّ لامس وجهك — والكونت يبتسم.'},
+   {t:'الرد بأسماء من أحبّوه يومًا قبل اللعنة',stat:'heart',dc:8,ok:'اسمٌ واحد — زوجته الأولى — أطفأ الجمرَ لحظةً طويلة.',ko:'«القلوب» — قال — «أعرف طعمها أكثر مما تعرفين أسماءها».'},
+   {t:'رفع الصليب الفضي وضفيرة الثوم',stat:'courage',dc:5,req:'crucifix',ok:'تقهقر إلى الظل والفضة ترسم على وجهه خريطة هزيمته.',ko:'ضحك: «الأدوات بلا إيمانٍ خردة» — لكن خطوته تراجعت رغمًا عنه.'},
+  ]});
+
+gateEncounter('greek','hades',
+ 'قبل أن يمدّ إليك الرمّانة، يرفع هاديس كفّه: «مهلًا. كلُّ من يقف أمام هذا العرش يُمتحَن أولًا — هكذا قوانين مملكتي التي لا تشيخ. أريني أن قلبك يستحق أن يختار».',
+ {name:'هاديس، الملك الصامت',icon:'🔱',resolve:9,
+  taunt:'ملك الموتى لا يرفع صوته — يرفع الأسئلة',
+  moves:[
+   {t:'يُظلم القاعة حتى لا يبقى إلا صوته',c:'courage'},
+   {t:'يسألك عن أسماء أنهاره الخمسة ومجاريها',c:'lore'},
+   {t:'يعرض عليك رؤية وجه ديميتر الباكية',c:'heart'},
+  ],
+  appr:[
+   {t:'الوقوف ثابتةً في العتمة: «الظلام مجرد غياب مصباح»',stat:'courage',dc:7,ok:'عاد الضوء — وفي عينيه شيء يشبه الاحترام.',ko:'سمعتِ قلبك يدق في الظلمة أعلى مما يليق ببيرسيفوني.'},
+   {t:'تعداد الأنهار: ستيكس، آخيرون، ليثي…',stat:'lore',dc:7,ok:'«…وكوكيتوس وفليغيثون» — أتممتِ الخمسة فأومأ التاج.',ko:'نسيتِ نهر النسيان — يا للمفارقة.'},
+   {t:'مواجهة دموع الأم دون أن تنهاري أو تتحجري',stat:'heart',dc:7,ok:'«أرى» — قال — «قلبٌ يتسع للفوق والتحت معًا».',ko:'اختنق صوتك — والملوك الصامتون يسمعون الاختناق.'},
+   {t:'ملاحظة أن العرش نفسه يميل نحو الضوء قليلًا',stat:'wit',dc:8,ok:'«حتى أنا» — اعترف — «أشتاق أحيانًا إلى فوق». انكسر شيءٌ جليدي.',ko:'«تحليل العروش وقاحة» — قال بلا غضب، وهذا أسوأ.'},
+  ]});
+
+gateEncounter('nights','night_end',
+ 'لكن قبل الكلمة الأخيرة، يعتدل شهريار وفي عينيه يستيقظ الوحش القديم: الشكّ. «امرأةٌ أخرى تريد شيئًا مني. كلهنّ أردن شيئًا. لماذا أصدق حكّاءةً تبيعني النجاة بالتقسيط؟» — هذه اللحظة التي تسبق كل فجر: ترويض الشك نفسه.',
+ {name:'شكّ شهريار',icon:'🗡️',resolve:9,
+  taunt:'ليس الملك خصمك — بل الجرح الذي يحكم الملك',
+  moves:[
+   {t:'«كلهنّ خُنّ. لماذا أنتِ استثناء؟»',c:'heart'},
+   {t:'يسألك عن تفصيلةٍ من حكاية الليلة الماضية ليختبر صدقك',c:'wit'},
+   {t:'يستشهد بحكمة ملوكٍ قدامى عن الغدر',c:'lore'},
+  ],
+  appr:[
+   {t:'«لا أطلب ثقتك. أطلب ليلةً واحدة تُنصت فيها»',stat:'heart',dc:7,ok:'ارتخت قبضته عن مقبض السيف قليلًا… قليلًا يكفي.',ko:'«الإنصات؟» — ضحك ضحكة مشروخة — «به بدأ كل شيء».'},
+   {t:'استرجاع التفصيلة بدقة القصّاصين: لون قصعة سندباد',stat:'wit',dc:7,ok:'«خشبٌ من ساجٍ هندي» — قلتِها فاتسعت عيناه: حكّاءة لا تنسى لا تكذب.',ko:'ترددتِ نصف نفَس — ونصف نفَسٍ عند الملوك اعتراف.'},
+   {t:'مجاراته: حكمة أردشير ثم نقضها بحكمةٍ أرحم',stat:'lore',dc:7,ok:'«من أين لكِ كتب جدّي؟» — سأل، ونسي أن يغضب.',ko:'خلطتِ الملوك — والمجروح يتصيد الأخطاء.'},
+   {t:'لمس الخاتم في يدك: «سيدُ هذا الخاتم وثق بغريبة»',stat:'courage',dc:6,req:'ring',ok:'عرف خاتم الرشيد — وإن وثق أميرُ المؤمنين، فمن شهريار ليشكّ؟',ko:'«خاتم» — قال — «والخواتم تُسرق». لكن عينه علقت به.'},
+  ]});
+
+gateEncounter('lovecraft','thing',
+ 'يلتفت الشيء نحوك أخيرًا — وخلفه يرتفع الماء قليلًا، كصدرٍ يتنفس. «قبل أن تختاري أيتها الصغيرة… سيريكِ البحرُ لمحةً مما يحلم به. من ثبت عقله اختار بحرّية. ومن لم يثبت… اختار البحرُ عنه».',
+ {name:'حافة اللانهاية',icon:'🌊',resolve:8,
+  taunt:'لا سيف هنا ولا درع — عقلك هو الساحة كلها',
+  moves:[
+   {t:'يريك هندسة المدينة الغارقة التي تؤلم الإدراك',c:'wit'},
+   {t:'يفتح أمامك صفحةً حية من الكتاب المحظور',c:'lore'},
+   {t:'يهمس: «وحيدة. صغيرة. عابرة» — بصوت أمواتٍ تعرفينهم',c:'heart'},
+  ],
+  appr:[
+   {t:'تثبيت الإدراك: قياس الزوايا كأرقام لا كرعب',stat:'wit',dc:7,ok:'حوّلتِ الجنون إلى مسألة هندسية — والمسائل لا تخيف.',ko:'زاويةٌ واحدة انحنت داخل عينك وبقيت هناك لحظة.'},
+   {t:'إغلاق الصفحة بالاسم العلمي: «نصٌّ متأخر منحول»',stat:'lore',dc:7,ok:'النقد الأدبي: آخر ما توقعه كائنٌ قديم. تجمّد المدّ.',ko:'قرأتِ سطرًا واحدًا أكثر من اللازم.'},
+   {t:'الرد على الهمس بأسماء من يحبونك — بصوتٍ عال',stat:'heart',dc:7,ok:'اسم أمك وحده أسكت جوقة الأعماق كلها.',ko:'خانك صوتك عند الاسم الثاني.'},
+   {t:'خطوة إلى الأمام بدل الوراء: «أرِني إذن»',stat:'courage',dc:8,ok:'تراجع الماء — ما توقع أحدٌ من قبل أن يتقدم.',ko:'رأيتِ. وتمنيتِ فورًا لو لم تري.'},
+  ]});
+
+gateEncounter('cairo','officer',
+ 'يرفع الضابط يده فيتوقف الكوبري كله. عيناه المتعبتان تمسحانك ببطء مهنة: الحقيبة، الوجه، الأصابع الملطخة بشيءٍ قد يكون حبرًا. «آنسة» — يقول بعربية مكسّرة — «الليلة الجميع مشبوه. أقنعيني أنك لست خبرًا سيئًا».',
+ {name:'ضابط الكوبري',icon:'🪖',resolve:8,
+  taunt:'أعصابٌ من حديد ووجهٌ من طمأنينة — هذه معركة الصحفية',
+  moves:[
+   {t:'يطلب فتح الحقيبة «للاطمئنان فقط»',c:'wit'},
+   {t:'يحدّق في عينيك منتظرًا رفّة جفن',c:'courage'},
+   {t:'يسأل فجأة: «إلى أين؟ ومن أي عائلة؟»',c:'heart'},
+  ],
+  appr:[
+   {t:'فتح الجيب الأمامي بنفسك — حيث الوصفات فقط',stat:'wit',dc:7,ok:'«ملوخية؟» — قلّب الورقة وضجر. الضجر حليف المهرّبين.',ko:'ارتبكت يدك على الإبزيم — والأيادي تشي.'},
+   {t:'نظرة مستقيمة هادئة: «تفضل، ولكن القطار لن ينتظرني»',stat:'courage',dc:7,ok:'العجلة الواثقة أصدق من البراءة المرتجفة — لوّح لك بالمرور جزئيًا.',ko:'ثبتت عيناك أكثر من اللازم — المحترفون وحدهم لا يرمشون.'},
+   {t:'حكاية عائلية دافئة عن خالةٍ مريضة في مصر القديمة',stat:'heart',dc:7,ok:'تنهّد — له هو الآخر خالة في مانشستر. البشر جسور.',ko:'سألك عن اسم الشارع — والكذبات تحتاج خرائط.'},
+   {t:'رفع الشارة: «هلال وصليب — نحن لا نحمل إلا بعضنا»',stat:'courage',dc:6,req:'pin',ok:'نظر إلى الشارة طويلًا… ثم إلى الحشد خلفك. وأفسح.',ko:'«رمز جميل» — قال — «الرموز لا تفتح الحقائب». لكن نبرته لانت.'},
+  ]});
+
+gateEncounter('philo','sym',
+ 'لكن قبل أن تجلسي، يقف الأربعة معًا — وهذا لا يحدث أبدًا. «تقليد المأدبة» — يقول سقراط بعينين لامعتين — «الكرسي الخامس لا يُمنح. يُنتزع في مناظرةٍ ضدنا نحن الأربعة. ابدئي».',
+ {name:'المناظرة الكبرى',icon:'🏛️',resolve:10,
+  taunt:'أربعة قرون من الفكر في جولة واحدة — لكل فيلسوف بابه',
+  moves:[
+   {t:'سقراط يسألك سؤالًا بريئًا ظاهره بسيط وباطنه هاوية',c:'wit'},
+   {t:'نيتشه يهاجم: «قيمك مستعارة! من صاغها لك؟»',c:'courage'},
+   {t:'ابن رشد يطلب التوفيق بين نصّين ظاهرهما التعارض',c:'lore'},
+  ],
+  appr:[
+   {t:'الإجابة بسؤالٍ أدق — لعبة سقراط على سقراط',stat:'wit',dc:7,ok:'ضحك حتى دمعت عيناه: «تلميذتي! أعني… زميلتي».',ko:'أمسك سؤالك من ذيله وقلبه عليك في ثلاث كلمات.'},
+   {t:'الصمود: «قيمي فحصتُها واحدةً واحدة — وهذا أكثر مما فعل معظم البشر»',stat:'courage',dc:7,ok:'قال نيتشه للريح: «أخيرًا واحدة لا تنهار من أول مطرقة».',ko:'«فحصتِها؟ أم ورثتِ فحصها؟» — وابتسم ابتسامة الديناميت.'},
+   {t:'التوفيق على طريقة فصل المقال: الحق لا يضادّ الحق',stat:'lore',dc:7,ok:'وضع ابن رشد يده على صدره — أعلى تحية عند القضاة.',ko:'خلطتِ البرهاني بالخطابي — وقاضي قرطبة دقيق.'},
+   {t:'كلمة عن الفلسفة كرحمة: «كلكم كتبتم لتخفّفوا وحشة أحد»',stat:'heart',dc:8,ok:'صمت الأربعة معًا — وديكارت مسح نظارته بانفعال مريب.',ko:'«عاطفي» — قال ديكارت — «العاطفة تحتاج برهانًا هي الأخرى».'},
+  ]});
+
+gateEncounter('dost','bridge',
+ 'يستدير الطالب نحوك وعلى كتفيه يجلس شيءٌ ثقيل لا يُرى — اليأس نفسه، بمعطفٍ أسود أكبر من الليل. أنتِ لا تواجهين الشاب… تواجهين الذي يهمس له منذ أسابيع أن النهر أقرب الأبواب.',
+ {name:'اليأس',icon:'🌑',resolve:9,
+  taunt:'أثقل خصوم هذا الجناح — لا يُهزم بالحجة وحدها',
+  moves:[
+   {t:'يهمس له: «فات الأوان. المذنب لا يعود»',c:'heart'},
+   {t:'يلوي المنطق: «الاعتراف مجرد عذابٍ إضافي بلا معنى»',c:'wit'},
+   {t:'يسخر منك: «وأنتِ من تكونين لتنقذي أحدًا؟»',c:'courage'},
+  ],
+  appr:[
+   {t:'«لعازر خرج من القبر — وسونيا تحفظ القصة عن ظهر قلب»',stat:'heart',dc:7,ok:'رفع الطالب رأسه: «سونيا… قالت لك عن لعازر؟» — وخفّ المعطف الأسود.',ko:'«قصص» — همس اليأس — وأطبق أكثر.'},
+   {t:'تفكيك المنطق: «العذاب الحالي بلا اعتراف — هذا هو بلا معنى»',stat:'wit',dc:7,ok:'استقامت الحجة كعمود نور على الجسر.',ko:'لوى اليأس قياسك في حلقةٍ مفرغة جديدة.'},
+   {t:'«أنا قارئة عابرة — لكني رأيت نهايتك الأخرى، وهي تستحق»',stat:'courage',dc:7,ok:'«نهاية أخرى؟» — ولأول مرة، فضول أقوى من الظلمة.',ko:'«عابرة» — كرر اليأس منتصرًا — «كلهم عابرون».'},
+   {t:'الوقوف بجانبه صامتةً — كتفٌ إلى كتف، والنيفا تجري',stat:'heart',dc:8,ok:'الصمت المشترك: أقدم علاج روسي. ذاب اليأس من الحافة.',ko:'طال الصمت حتى صار جزءًا من البرد.'},
+  ]},
+ [{t:'تقتربين من الطالب — ومن الجاثم على كتفيه',tag:'مواجهة',fx:{enc:1}}]);
+
+/* ============================================================
+   SKILL CHECKS woven into world dialogue (dc: 6 easy · 7 std · 8 hard)
+   ============================================================ */
+function addCheck(wid,node,choice,pos=1){
+  const n=WORLDS[wid]&&WORLDS[wid].dialogs[node];
+  if(n&&n.ch)n.ch.splice(Math.min(pos,n.ch.length),0,choice);
+}
+addCheck('sherlock','hudson',{t:'✦ تلاحظين أن يديها ترتجفان بأكثر من البرد',check:{stat:'heart',dc:7},
+  ok:{cp:3,stab:+6,toast:'💗 «منذ ثلاثين سنة لم يسألني أحد كيف حالي» — وأفشت لكِ أن البحّار طرق الباب مرتين.'},
+  ko:{stab:-5,toast:'انغلق وجهها — بعض الأبواب تحتاج مفاتيح أرقّ.'}});
+addCheck('sherlock','watson',{t:'✦ تستنتجين من مشيته موضعَ جرحه القديم',check:{stat:'wit',dc:7},
+  ok:{cp:3,toast:'🔍 «الكتف… أقصد الساق… كيف عرفتِ؟!» — كسبتِ انبهار واطسون وولاءه.'},
+  ko:{stab:-5,toast:'«جرح؟ هذا التواء تنس يا آنسة». بداية غير موفقة.'}});
+addCheck('orient','michel2',{t:'✦ تحسبين توقيت غيابَيه على جدول المحطات',check:{stat:'wit',dc:7},
+  ok:{cp:3,toast:'🔍 الغيابان يطابقان مرور النفق الطويل — حيث لا يرى أحد أحدًا. خيطٌ ثمين.'},
+  ko:{stab:-5,toast:'أرقام المحطات اختلطت — والكمساري لاحظ ارتباكك.'}});
+addCheck('orient','princess',{t:'✦ تتعرفين على شعار النبالة في تطريز المنديل',check:{stat:'lore',dc:8},
+  ok:{cp:4,toast:'📚 شعار عائلةٍ فُجعت في قضيةٍ شهيرة قبل عشر سنين — الصورة تكتمل.'},
+  ko:{stab:-5,toast:'خمّنتِ عائلةً نمساوية خاطئة — ورمقتك الأميرة بنصف ابتسامة.'}});
+addCheck('dracula','harker',{t:'✦ تمسكين يديه المرتجفتين: «انظر إليّ. أنت لست وحدك»',check:{stat:'courage',dc:7},
+  ok:{cp:3,stab:+6,toast:'🦁 هدأ هاركر لأول مرة منذ أسابيع — وأخبرك عن ممرٍّ جانبي إلى السرداب.'},
+  ko:{stab:-5,toast:'ارتجفت يدك أنتِ الأخرى — فازداد رعبه رعبًا.'}});
+addCheck('dracula','gypsy2',{t:'✦ تستذكرين طقوس الحماية من كتب الفولكلور',check:{stat:'lore',dc:7},
+  ok:{cp:3,toast:'📚 «بذور الخردل على العتبة تُلزمه بعدّها حبةً حبة» — أومأت العجوز باحترام: قارئة تعرف.'},
+  ko:{stab:-5,toast:'خلطتِ الستريغوي بالنوسفيراتو — وتنهدت العجوز تنهيدة معلّمين قدامى.'}});
+addCheck('greek','shade2',{t:'✦ تصفين لها رائحة البردي في مكتبات اليوم',check:{stat:'heart',dc:7},
+  ok:{cp:3,toast:'💗 أضاء الطيف كقنديل: «ما زالوا يقرؤون!» — ودلّتك على ممرٍ يتجنب زمجرة كِربِروس.'},
+  ko:{stab:-5,toast:'وصفك جاء باردًا كالضفة — فذبل الطيف قليلًا.'}});
+addCheck('greek','charon',{t:'✦ تسمّين قوانين العبور الخمسة قبل أن يتكلم',check:{stat:'lore',dc:7},
+  ok:{cp:3,toast:'📚 خرجت من تحت القلنسوة همهمة استحسان — نادرة كعملة ذهبية في نهر الموتى.'},
+  ko:{stab:-5,toast:'أخطأتِ في القانون الثالث — والملّاح العجوز لا ينسى.'}});
+addCheck('gilgamesh','enkidu',{t:'✦ تنحنين للظل انحناءة الأخ للأخ',check:{stat:'heart',dc:7},
+  ok:{cp:3,flag:'loyal',toast:'💗 «منذ متُّ لم ينحنِ لي أحد» — ورافقك الظل حتى البوابة حاميًا.'},
+  ko:{stab:-5,toast:'جاءت الانحناءة رسميةً — والموتى يميزون البروتوكول من المحبة.'}});
+addCheck('gilgamesh','siduri',{t:'✦ تردّين نصيحتها عليها بصياغة ألواحها الأصلية',check:{stat:'lore',dc:8},
+  ok:{cp:4,toast:'📚 وقفت سيدوري مذهولة: «تحفظين لوحي؟» — وسكبت لك من الجرّة المخبأة تحت الحانة.'},
+  ko:{stab:-5,toast:'أخطأتِ سطرًا — «قريب» قالت سيدوري «لكن الألواح لا تسامح».'}});
+addCheck('kadesh','scribe',{t:'✦ تلاحظين تناقضًا في رواية الجاسوسَين البدويين',check:{stat:'wit',dc:7},
+  ok:{cp:3,toast:'🔍 «أقسما مرتين بإلهين مختلفين» — دوّن بنتاؤر ملاحظتك، وللمرة الأولى: باسمك.'},
+  ko:{stab:-5,toast:'التناقض أفلت منك بين السطور الهيروغليفية.'}});
+addCheck('kadesh','ramses2',{t:'✦ «راهن عليّ يا مولاي — القرّاء لا يهربون من الفصول الصعبة»',check:{stat:'courage',dc:7},
+  ok:{cp:3,toast:'🦁 ضحك رمسيس ضحكته الشهيرة: «لو كان لي ألف مثلك لما احتجتُ إلى آمون». مبالغة ملكية — لكنها دافئة.'},
+  ko:{stab:-5,toast:'خانك صوتك أمام ثلاثةٍ وعشرين قرنًا من الهيبة. مفهوم.'}});
+addCheck('cairo','student',{t:'✦ تسحبينه من ياقته قبل أن تلمحه الدورية',check:{stat:'courage',dc:7},
+  ok:{cp:3,stab:+4,toast:'🦁 مرّت الدورية ولم ترَ إلا بائعة جرائد وأخاها — تمثيل بديع.'},
+  ko:{stab:-6,toast:'صرخ الشاويش «انتوا الاتنين!» — وكان ركضًا لن تنسيه أقدامكما.'}});
+addCheck('cairo','lady',{t:'✦ «صفي لي دموع أول اجتماع — القرّاء يصدقون التفاصيل لا الشعارات»',check:{stat:'heart',dc:7},
+  ok:{cp:4,toast:'💗 روت لك ما لم ترْوِه لصحفي قط — والتفاصيل الصغيرة هي التي تعبر مئة سنة.'},
+  ko:{stab:-5,toast:'«التفاصيل جراح يا ابنتي» — واكتفت بالبيان الرسمي.'}});
+addCheck('nights','seller2',{t:'✦ تسألينه عن أسعار الرمان قبل الحكايات — السوق يثق بمن يساوم',check:{stat:'wit',dc:6},
+  ok:{cp:2,toast:'🔍 ساومتِ كبنت بلد — ففتح لك البائع دفتر أسرار السوق كله.'},
+  ko:{stab:-4,toast:'دفعتِ الثمن الأول المطلوب — فعرف أنك غريبة، وحفظ الحكايات لنفسه.'}});
+addCheck('nights','sindbad2',{t:'✦ تسألينه عن الفرق بين هول الرحلة الثالثة والخامسة',check:{stat:'lore',dc:7},
+  ok:{cp:3,toast:'📚 «تعرفين رحلاتي أكثر من بحّارتي!» — وزادك تفصيلةً لا يرويها إلا للعارفين.'},
+  ko:{stab:-5,toast:'خلطتِ الرخّ بالقرد العملاق — وضحك سندباد ضحكة سبعة بحار.'}});
+addCheck('hiroshima','kenji1b',{t:'✦ تفهمين ما لم يقله عن والده في المصنع',check:{stat:'heart',dc:6},
+  ok:{cp:3,toast:'💗 نظر إليك نظرة من وجد أخيرًا من يقرأ ما بين سطوره — وصار الطريق إلى الجسر أقصر.'},
+  ko:{toast:'🍃 ابتسم بأدبٍ وغيّر الموضوع — بعض الأبواب تُفتح لاحقًا، ولا بأس.'}});
+addCheck('hiroshima','oba',{t:'✦ تعرفين لماذا يُدار القدح ثلاث مرات بالضبط',check:{stat:'lore',dc:6},
+  ok:{cp:3,toast:'📚 «لتواجه الزخرفة الضيفَ لا الشارب» — صفّقت الجدة: «من علّمك؟» — «الكتب» — «الكتب معلّمة طيبة».'},
+  ko:{toast:'🍵 «لا بأس» — قالت الجدة بلطف — «الشاي يسامح الجهل ولا يسامح العجلة».'}});
+addCheck('philo','soc2',{t:'✦ تذكرين له ما قاله عنه أريستوفان في «السحب» بالنص',check:{stat:'lore',dc:7},
+  ok:{cp:3,toast:'📚 «حتى الإهانات تحفظينها بمراجعها!» — سقراط الآن معجب رسميًا.'},
+  ko:{stab:-4,toast:'نسبتِ المسرحية ليوربيديس — وسقراط لا يفوّت زلة.'}});
+addCheck('dost','rodya',{t:'✦ «النظرية التي تحتاج جثةً لإثباتها… ليست نظرية بل جرح»',check:{stat:'heart',dc:8},
+  ok:{cp:4,flag:'sonya',toast:'💗 توقف عن الذرع. «جرح» — كرر الكلمة كمن يجرب مفتاحًا في قفل قديم. ونظر إليك فعلًا لأول مرة.'},
+  ko:{stab:-6,toast:'«وأنتِ طبيبة الجروح؟» — وأغلق معطفه الرث على صدره كدرع.'}});
+addCheck('dost','sonya2',{t:'✦ تكملين معها قصة لعازر من حيث توقفت',check:{stat:'lore',dc:6},
+  ok:{cp:3,toast:'📚 قرأتما السطر الأخير معًا بصوتٍ واحد — وصارت سونيا حليفتك إلى آخر الجسر.'},
+  ko:{toast:'🕯️ ابتسمت وأكملت وحدها — بعض النصوص تحفظها القلوب لا الذاكرة.'}});
+addCheck('secret','refaat2',{t:'✦ تعدّدين له أساطيره: أوزيريس، النداهة، آنوسا…',check:{stat:'lore',dc:7},
+  ok:{cp:4,toast:'📚 رفع حاجبه ببطءٍ تاريخي: «قارئة من النوع الخطير. لو قابلتك في الأربعينيات لتزوجتك — أو هربت منك. غالبًا الاثنان».'},
+  ko:{stab:-4,toast:'«آنوسا في العدد التاسع لا الحادي عشر» — صحّح لك وهو ينفث الدخان بانتصار.'}});
+
+/* Hiroshima stays gentle: its checks never bite (no ko.stab) — enforced above. */
 </script>
 </body>
 </html>
