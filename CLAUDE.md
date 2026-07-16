@@ -1,9 +1,10 @@
 # Abdurr — Conventions & Rules
 
-This repo currently holds **two things**:
+This repo currently holds **three things**:
 
 1. **Smart Drug Formulary** — a deployed Vite/React web app (`src/`, `public/`, `netlify/`).
 2. **Second Brain** — a personal markdown vault (`inbox/`, `daily/`, `tasks/`, …).
+3. **Standalone games** — `games/` holds self-contained single-file HTML games (currently `games/fantasia-dg2.html`, the DG-2 "Fantasia" game: Arabic RTL UI, no build step, opens by double-click; deliberately outside the Vite build and CI).
 
 Read the section for the thing you're working on. A split into separate repos is under consideration (see `improvements.md`).
 
