@@ -5,6 +5,8 @@ This repo currently holds **two things**:
 1. **Smart Drug Formulary** — a deployed Vite/React web app (`src/`, `public/`, `netlify/`).
 2. **Second Brain** — a personal markdown vault (`inbox/`, `daily/`, `tasks/`, …).
 
+(Plus `games/` — standalone single-file HTML games, e.g. `games/safari-cameroon.html`. Not part of the Vite build or the Netlify deploy; open directly in a browser. Three.js comes from the jsdelivr CDN at runtime.)
+
 Read the section for the thing you're working on. A split into separate repos is under consideration (see `improvements.md`).
 
 ## Working Rules (every session)
