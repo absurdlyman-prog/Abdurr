@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safari: The Cameroon Chronicles</title>
+<style>
+  :root{
+    --gold:#e8b34b; --gold-hi:#ffd98a; --panel:rgba(8,12,8,.62); --line:rgba(255,255,255,.14);
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:var(--sans);color:#eee}
+  canvas#game{display:block;width:100%;height:100%}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.42) 100%)}
+
+  /* ---------- Main menu ---------- */
+  #menu{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:18px;text-align:center;
+    background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,.05) 35%,rgba(0,0,0,.55) 100%);
+    transition:opacity 1.4s ease;padding:24px}
+  #menu.hidden{opacity:0;pointer-events:none}
+  #menu .kicker{font-size:13px;letter-spacing:.55em;text-transform:uppercase;color:var(--gold-hi);opacity:.9}
+  #menu h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,7vw,84px);line-height:1.02;
+    background:linear-gradient(180deg,#fff3d6 0%,var(--gold) 55%,#a8752a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 2px 30px rgba(232,179,75,.18)}
+  #menu h1 small{display:block;font-size:clamp(16px,2.2vw,26px);letter-spacing:.35em;color:#f4e3bd;
+    -webkit-text-fill-color:#f4e3bd;margin-top:6px}
+  #menu .lore{max-width:640px;font-size:14.5px;line-height:1.65;color:#e8dfc9;text-shadow:0 1px 4px #000}
+  #startBtn{margin-top:8px;padding:15px 58px;font-size:17px;letter-spacing:.28em;text-transform:uppercase;
+    font-family:var(--serif);color:#1c1409;background:linear-gradient(180deg,#ffe1a0,var(--gold) 60%,#c98f34);
+    border:1px solid #ffedc4;border-radius:3px;cursor:pointer;
+    box-shadow:0 0 0 4px rgba(232,179,75,.15),0 8px 30px rgba(0,0,0,.6);transition:transform .15s,box-shadow .15s}
+  #startBtn:hover{transform:translateY(-2px);box-shadow:0 0 0 4px rgba(232,179,75,.3),0 12px 34px rgba(0,0,0,.7)}
+  #menu .controls{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:12.5px;color:#cfc6ad}
+  kbd{display:inline-block;min-width:22px;padding:2px 7px;border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;background:rgba(255,255,255,.08);font-family:var(--sans);font-size:12px;color:#fff;text-align:center}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;z-index:20;pointer-events:none;opacity:0;transition:opacity 1s ease}
+  #hud.on{opacity:1}
+  #vitals{position:absolute;top:18px;left:18px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;backdrop-filter:blur(6px);min-width:220px}
+  #vitals .who{font-family:var(--serif);font-size:13px;color:var(--gold-hi);letter-spacing:.12em;margin-bottom:8px}
+  .bar{height:9px;border-radius:5px;background:rgba(255,255,255,.09);overflow:hidden;margin:5px 0 8px}
+  .bar>i{display:block;height:100%;border-radius:5px;transition:width .2s}
+  #hpFill{width:100%;background:linear-gradient(90deg,#c0392b,#e74c3c)}
+  #stFill{width:100%;background:linear-gradient(90deg,#b8860b,#f1c40f)}
+  .bl{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.2em;color:#bbb;text-transform:uppercase}
+  #clock{margin-top:4px;font-size:11px;color:#cfc6ad;letter-spacing:.1em}
+  #objective{position:absolute;top:18px;left:50%;transform:translateX(-50%);max-width:520px;text-align:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 22px;backdrop-filter:blur(6px)}
+  #objective .t{font-size:10px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold-hi)}
+  #objective .o{font-size:14px;margin-top:4px;color:#f4eeda;font-family:var(--serif)}
+  #speedo{position:absolute;bottom:24px;left:22px;display:none;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:10px 18px;backdrop-filter:blur(6px);text-align:center}
+  #speedo b{font-family:var(--serif);font-size:26px;color:#fff}
+  #speedo span{display:block;font-size:9px;letter-spacing:.3em;color:#bbb;text-transform:uppercase}
+  #hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:#9a927d;letter-spacing:.06em}
+  #prompt{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--gold);border-radius:8px;padding:10px 18px;backdrop-filter:blur(6px);
+    font-size:14px;color:#fff;box-shadow:0 0 24px rgba(232,179,75,.25)}
+  #toast{position:absolute;top:88px;left:50%;transform:translateX(-50%);background:rgba(20,26,16,.85);
+    border:1px solid var(--gold);border-radius:8px;padding:9px 20px;font-size:13px;color:var(--gold-hi);
+    opacity:0;transition:opacity .4s;pointer-events:none}
+  #zone{position:absolute;top:26%;left:0;right:0;text-align:center;font-family:var(--serif);
+    font-size:clamp(22px,3.4vw,36px);letter-spacing:.45em;text-transform:uppercase;color:#f4e3bd;
+    text-shadow:0 2px 20px #000;opacity:0;transition:opacity .9s}
+  /* minimap */
+  #mapWrap{position:absolute;bottom:22px;right:22px;width:190px;height:190px}
+  #minimap{width:100%;height:100%;border-radius:50%;border:2px solid rgba(232,179,75,.55);
+    box-shadow:0 0 0 4px rgba(0,0,0,.45),inset 0 0 30px rgba(0,0,0,.6)}
+  #mapWrap .n{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--gold-hi);
+    background:#141a10;border:1px solid var(--gold);border-radius:50%;width:18px;height:18px;line-height:16px;text-align:center}
+
+  /* ---------- dialogue ---------- */
+  .cine{position:fixed;left:0;right:0;height:0;background:#000;z-index:25;transition:height .5s ease}
+  #cineTop{top:0}#cineBot{bottom:0}
+  body.talking #cineTop,body.talking #cineBot{height:9vh}
+  #dialogue{position:fixed;bottom:12vh;left:50%;transform:translateX(-50%) translateY(20px);width:min(720px,92vw);
+    background:rgba(10,13,8,.88);border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:10px;padding:18px 24px;z-index:30;opacity:0;pointer-events:none;transition:all .3s}
+  body.talking #dialogue{opacity:1;transform:translateX(-50%) translateY(0)}
+  #dlgName{font-family:var(--serif);color:var(--gold-hi);font-size:15px;letter-spacing:.1em;margin-bottom:6px}
+  #dlgText{font-size:15.5px;line-height:1.6;color:#f0ead8;min-height:52px}
+  #dlgMore{text-align:right;font-size:11px;color:#8b846f;margin-top:6px;letter-spacing:.15em}
+
+  /* ---------- overlays ---------- */
+  .overlay{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;background:rgba(0,0,0,.72);text-align:center;padding:24px}
+  .overlay.on{display:flex}
+  .overlay h2{font-family:var(--serif);font-size:clamp(26px,4vw,44px);color:var(--gold-hi);letter-spacing:.2em}
+  .overlay p{max-width:560px;line-height:1.7;color:#ddd5c0;font-size:15px}
+  .overlay button{padding:12px 40px;font-size:14px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
+    background:transparent;color:var(--gold-hi);border:1px solid var(--gold);border-radius:4px;transition:background .2s}
+  .overlay button:hover{background:rgba(232,179,75,.15)}
+  #fade{position:fixed;inset:0;background:#000;z-index:60;pointer-events:none;opacity:0;transition:opacity .8s ease}
+  #err{position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;color:#f88;padding:30px;text-align:center}
+</style>
+<script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div class="vignette"></div>
+
+<div id="menu">
+  <div class="kicker">A medical thriller in the heart of Africa</div>
+  <h1>SAFARI<small>The Cameroon Chronicles</small></h1>
+  <p class="lore">Cameroon, the edge of the map. You are <b>Dr.&nbsp;Alaa&nbsp;Abdel&nbsp;Azim</b>, a young Egyptian
+    doctor newly posted to the <b>Safari</b> medical unit. Drums have been beating in the northern village since dawn —
+    the elders whisper of <i>Dawa</i>, black magic sent up the river. But fevers are not cast by witches.
+    Find the truth before the jungle goes dark.</p>
+  <button id="startBtn">Start Game</button>
+  <div class="controls">
+    <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</span>
+    <span><kbd>Shift</kbd> Sprint</span>
+    <span><kbd>Space</kbd> Jump</span>
+    <span><kbd>E</kbd> Interact / Diagnose</span>
+    <span><kbd>F</kbd> Enter / Exit Jeep</span>
+    <span><kbd>Mouse</kbd> Camera</span>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="vitals">
+    <div class="who">DR. ALAA ABDEL AZIM — SAFARI UNIT</div>
+    <div class="bl"><span>Health</span><span id="hpNum">100</span></div>
+    <div class="bar"><i id="hpFill"></i></div>
+    <div class="bl"><span>Stamina</span><span id="stNum">100</span></div>
+    <div class="bar"><i id="stFill"></i></div>
+    <div id="clock">Day 1 — 17:00</div>
+  </div>
+  <div id="objective"><div class="t">Current Objective</div><div class="o" id="objText">—</div></div>
+  <div id="speedo"><b id="speedNum">0</b><span>km/h</span></div>
+  <div id="prompt"><kbd id="promptKey">E</kbd><span id="promptText"></span></div>
+  <div id="toast"></div>
+  <div id="zone"></div>
+  <div id="mapWrap"><canvas id="minimap"></canvas><div class="n">N</div></div>
+  <div id="hint">WASD move &nbsp;·&nbsp; Shift sprint &nbsp;·&nbsp; Space jump &nbsp;·&nbsp; E interact &nbsp;·&nbsp; F vehicle &nbsp;·&nbsp; Esc pause</div>
+</div>
+
+<div class="cine" id="cineTop"></div><div class="cine" id="cineBot"></div>
+<div id="dialogue"><div id="dlgName"></div><div id="dlgText"></div><div id="dlgMore">E ▸ continue</div></div>
+
+<div class="overlay" id="pause">
+  <h2>PAUSED</h2>
+  <p>WASD move · Shift sprint · Space jump · E interact / diagnose · F enter or exit Jeep · Mouse camera</p>
+  <button id="resumeBtn">Resume</button>
+</div>
+<div class="overlay" id="complete">
+  <h2>CASE ONE CLOSED</h2>
+  <p>The <i>Dawa</i> of the northern village was <b>trypanosomiasis</b> — sleeping sickness, carried by the tsetse fly
+    breeding along the river bend. The outbreak has an answer; the jungle has a thousand more.</p>
+  <p style="color:var(--gold-hi);letter-spacing:.25em">DR. ALAA'S STORY IS ONLY BEGINNING…<br><b>TO BE CONTINUED</b></p>
+  <button id="roamBtn">Continue Exploring</button>
+</div>
+<div id="fade"></div>
+<div id="err"><div>This game needs WebGL and a connection to load Three.js.<br>Please try a modern desktop browser.</div></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================== helpers ============================== */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a),0,1);return t*t*(3-2*t);};
+function lerpAngle(a,b,t){let d=(b-a)%(Math.PI*2);if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;return a+d*t;}
+function mulberry32(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const rng=mulberry32(20260716);
+function hash2(x,y){const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n);}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,s=t=>t*t*(3-2*t);
+  return lerp(lerp(hash2(xi,yi),hash2(xi+1,yi),s(xf)),lerp(hash2(xi,yi+1),hash2(xi+1,yi+1),s(xf)),s(yf));}
+const $=id=>document.getElementById(id);
+
+/* ============================== renderer ============================== */
+let renderer;
+try{
+  renderer=new THREE.WebGLRenderer({canvas:$('game'),antialias:true});
+}catch(e){ $('err').style.display='flex'; throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,4000);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+/* ============================== world constants ============================== */
+const WORLD_R=780;
+const DAY_LEN=600;                                  // seconds per full day
+const roadX=z=>18*Math.sin(z*0.006);                // dirt road centerline, z in [-575, 25]
+const VILLAGE=new THREE.Vector3(roadX(-560),0,-560);
+const colliders=[];                                 // {type:'c',x,z,r} | {type:'b',x,z,hx,hz}
+const addC=(x,z,r)=>colliders.push({type:'c',x,z,r});
+const addB=(x,z,hx,hz)=>colliders.push({type:'b',x,z,hx,hz});
+const interactables=[];                             // {pos,radius,label(),run()}
+const npcs=[];                                      // {group,parts,phase,lookAt}
+const jeeps=[];
+const nightLights=[];                               // {light,base} scaled by darkness
+const flags={boderja:false,bernadette:false,jeep:false,village:false,diagnosed:0,reported:false};
+
+/* ============================== materials ============================== */
+const MAT={
+  wood:new THREE.MeshStandardMaterial({color:0x77522e,roughness:.9}),
+  woodDark:new THREE.MeshStandardMaterial({color:0x5a3d22,roughness:.9}),
+  canvas:new THREE.MeshStandardMaterial({color:0xcfc4a0,roughness:.95}),
+  canvasDark:new THREE.MeshStandardMaterial({color:0xa89a72,roughness:.95}),
+  red:new THREE.MeshStandardMaterial({color:0xc0392b,roughness:.6}),
+  white:new THREE.MeshStandardMaterial({color:0xf2f2ee,roughness:.7}),
+  olive:new THREE.MeshStandardMaterial({color:0x5a6b3c,roughness:.7,metalness:.15}),
+  tire:new THREE.MeshStandardMaterial({color:0x1b1b1e,roughness:.95}),
+  metal:new THREE.MeshStandardMaterial({color:0x8b8f94,roughness:.4,metalness:.6}),
+  glass:new THREE.MeshStandardMaterial({color:0xa8c8e0,roughness:.1,metalness:.3,transparent:true,opacity:.35}),
+  trunk:new THREE.MeshStandardMaterial({color:0x7a5a38,roughness:1}),
+  baobab:new THREE.MeshStandardMaterial({color:0x9a7d5a,roughness:1}),
+  leafDark:new THREE.MeshStandardMaterial({color:0x2d5426,roughness:1}),
+  leaf:new THREE.MeshStandardMaterial({color:0x3f6b2c,roughness:1}),
+  leafDry:new THREE.MeshStandardMaterial({color:0x6f7d33,roughness:1}),
+  rock:new THREE.MeshStandardMaterial({color:0x8a8578,roughness:1,flatShading:true}),
+  clay:new THREE.MeshStandardMaterial({color:0x9a6b45,roughness:1,side:THREE.DoubleSide}),
+  thatch:new THREE.MeshStandardMaterial({color:0x8a7a3e,roughness:1}),
+  mat:new THREE.MeshStandardMaterial({color:0x8f7448,roughness:1}),
+  dark:new THREE.MeshStandardMaterial({color:0x2f2f33,roughness:.8}),
+};
+function box(w,h,d,m){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.castShadow=mesh.receiveShadow=true;return mesh;}
+function cyl(rt,rb,h,m,seg=10){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),m);mesh.castShadow=mesh.receiveShadow=true;return mesh;}
+
+/* ============================== sky, sun, stars ============================== */
+const skyUni={
+  topColor:{value:new THREE.Color(0x3d73b8)},
+  horizonColor:{value:new THREE.Color(0xbdd7e8)},
+  sunColor:{value:new THREE.Color(0xffe8b0)},
+  sunDir:{value:new THREE.Vector3(0,1,0)},
+  sunGlow:{value:1},
+};
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),new THREE.ShaderMaterial({
+  uniforms:skyUni,side:THREE.BackSide,depthWrite:false,
+  vertexShader:`varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform vec3 topColor,horizonColor,sunColor,sunDir;uniform float sunGlow;varying vec3 vDir;
+    void main(){float h=max(vDir.y,0.);vec3 col=mix(horizonColor,topColor,pow(h,.55));
+    float d=clamp(dot(normalize(vDir),normalize(sunDir)),0.,1.);
+    col+=sunColor*(pow(d,300.)*2.2+pow(d,40.)*.9+pow(d,6.)*.28)*sunGlow;
+    gl_FragColor=vec4(col,1.);}`
+}));
+skyDome.renderOrder=-2;
+scene.add(skyDome);
+scene.fog=new THREE.Fog(0xbdd7e8,80,1400);
+
+const sunLight=new THREE.DirectionalLight(0xfff2d8,2.4);
+sunLight.castShadow=true;
+sunLight.shadow.mapSize.set(2048,2048);
+sunLight.shadow.camera.near=10;sunLight.shadow.camera.far=450;
+sunLight.shadow.camera.left=-80;sunLight.shadow.camera.right=80;
+sunLight.shadow.camera.top=80;sunLight.shadow.camera.bottom=-80;
+sunLight.shadow.bias=-0.0004;sunLight.shadow.normalBias=0.5;
+scene.add(sunLight);scene.add(sunLight.target);
+const moonLight=new THREE.DirectionalLight(0x8aa2c8,0);
+scene.add(moonLight);scene.add(moonLight.target);
+const hemi=new THREE.HemisphereLight(0xbdd7e8,0x3a3325,.55);
+scene.add(hemi);
+
+const starGeo=new THREE.BufferGeometry();
+{
+  const N=900,p=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const a=rng()*Math.PI*2,e=Math.acos(rng()*0.98);   // hemisphere
+    p[i*3]=Math.cos(a)*Math.sin(e)*900;p[i*3+1]=Math.cos(e)*900+20;p[i*3+2]=Math.sin(a)*Math.sin(e)*900;
+  }
+  starGeo.setAttribute('position',new THREE.BufferAttribute(p,3));
+}
+const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xcfe0ff,size:1.5,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false}));
+scene.add(stars);
+const moonMesh=new THREE.Mesh(new THREE.SphereGeometry(16,16,12),new THREE.MeshBasicMaterial({color:0xdfe6f0,fog:false,transparent:true,opacity:0}));
+scene.add(moonMesh);
+
+/* ============================== ground / road / river ============================== */
+{
+  const g=new THREE.PlaneGeometry(1700,1700,110,110);
+  g.rotateX(-Math.PI/2);
+  const pos=g.attributes.position,cols=new Float32Array(pos.count*3);
+  const cSav=new THREE.Color(0xb5a468),cJun=new THREE.Color(0x33582a),cJun2=new THREE.Color(0x27431f),cClr=new THREE.Color(0xa08a58);
+  const c=new THREE.Color();
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i),z=pos.getZ(i);
+    const n=vnoise(x*0.012+7,z*0.012+3);
+    c.copy(cJun).lerp(cJun2,vnoise(x*0.05,z*0.05));
+    const savanna=smooth(190,70,Math.hypot(x,z))+ (1-smooth(-40,-120,z))*0.55; // near base & south = dry grass
+    c.lerp(cSav,clamp(savanna,0,1)*(0.6+n*0.4));
+    c.lerp(cClr,smooth(60,25,Math.hypot(x-VILLAGE.x,z-VILLAGE.z)));            // village clearing
+    c.offsetHSL(0,(n-0.5)*0.06,(n-0.5)*0.05);
+    cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  const ground=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}));
+  ground.receiveShadow=true;
+  scene.add(ground);
+}
+function ribbon(pathFn,z0,z1,step,halfW,color,y){
+  const pts=[];for(let z=z0;z>=z1;z-=step)pts.push([pathFn(z),z]);
+  const v=[],idx=[];
+  for(let i=0;i<pts.length;i++){const[x,z]=pts[i];v.push(x-halfW,y,z,x+halfW,y,z);
+    if(i>0){const k=i*2;idx.push(k-2,k-1,k,k-1,k+1,k);}}
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
+  g.setIndex(idx);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,roughness:1}));
+  m.receiveShadow=true;return m;
+}
+scene.add(ribbon(roadX,30,-580,10,3.6,0x8f7a55,0.04));                       // dirt road
+scene.add(ribbon(z=>-150+34*Math.sin(z*0.004+1.2),120,-700,14,9,0x2e5464,0.03)); // the river (west)
+const roadPts=[];for(let z=30;z>=-580;z-=25)roadPts.push({x:roadX(z),z});
+
+/* ============================== flora / rocks ============================== */
+const world=new THREE.Group();scene.add(world);
+function baobab(x,z,s){
+  const t=new THREE.Group();
+  const trunk=cyl(0.9*s,1.7*s,7*s,MAT.baobab,9);trunk.position.y=3.5*s;t.add(trunk);
+  for(let i=0;i<5;i++){
+    const a=i/5*Math.PI*2+rng();
+    const br=cyl(0.12*s,0.35*s,2.4*s,MAT.baobab,6);
+    br.position.set(Math.cos(a)*1.1*s,7.4*s,Math.sin(a)*1.1*s);
+    br.rotation.set(Math.cos(a)*0.8,0,-Math.sin(a)*0.8);t.add(br);
+    const lf=new THREE.Mesh(new THREE.SphereGeometry(1.05*s,7,5),MAT.leafDry);
+    lf.castShadow=true;lf.position.set(Math.cos(a)*2.1*s,8.3*s,Math.sin(a)*2.1*s);t.add(lf);
+  }
+  t.position.set(x,0,z);t.rotation.y=rng()*7;world.add(t);addC(x,z,1.8*s);
+}
+function acacia(x,z,s){
+  const t=new THREE.Group();
+  const trunk=cyl(0.14*s,0.3*s,4.4*s,MAT.trunk,7);trunk.position.y=2.2*s;trunk.rotation.z=(rng()-.5)*0.25;t.add(trunk);
+  const can=new THREE.Mesh(new THREE.SphereGeometry(2.9*s,9,6),rng()<.5?MAT.leaf:MAT.leafDark);
+  can.scale.y=0.32;can.position.y=4.6*s;can.castShadow=true;t.add(can);
+  const can2=new THREE.Mesh(new THREE.SphereGeometry(1.7*s,8,5),MAT.leafDark);
+  can2.scale.y=0.3;can2.position.set(1.2*s,4.1*s,0.6*s);can2.castShadow=true;t.add(can2);
+  t.position.set(x,0,z);t.rotation.y=rng()*7;world.add(t);addC(x,z,0.55*s);
+}
+function bush(x,z,s){
+  const b=new THREE.Group();
+  for(let i=0;i<3;i++){
+    const m=new THREE.Mesh(new THREE.SphereGeometry((0.5+rng()*0.4)*s,7,5),rng()<.6?MAT.leaf:MAT.leafDry);
+    m.position.set((rng()-.5)*s,0.4*s,(rng()-.5)*s);m.castShadow=true;b.add(m);
+  }
+  b.position.set(x,0,z);world.add(b);
+}
+function rock(x,z,s){
+  const r=new THREE.Mesh(new THREE.IcosahedronGeometry(s,0),MAT.rock);
+  r.position.set(x,s*0.4,z);r.rotation.set(rng()*3,rng()*3,rng()*3);r.scale.y=0.7;
+  r.castShadow=r.receiveShadow=true;world.add(r);if(s>0.8)addC(x,z,s*0.9);
+}
+function placeClear(x,z){
+  if(Math.hypot(x,z)<62)return false;                                   // base camp
+  if(Math.hypot(x-VILLAGE.x,z-VILLAGE.z)<46)return false;               // village
+  if(z<32&&z>-582&&Math.abs(x-roadX(z))<13)return false;                // road
+  if(Math.abs(x-(-150+34*Math.sin(z*0.004+1.2)))<26&&z<125)return false;// river
+  return Math.hypot(x,z)<WORLD_R-30;
+}
+for(let i=0;i<520;i++){
+  const x=(rng()-.5)*1440,z=(rng()-.5)*1440;
+  if(!placeClear(x,z))continue;
+  const jungle=z<-70&&z>-540?0.85:0.3;                                  // dense band between base & village
+  const roll=rng();
+  if(roll<0.05*jungle+0.02)baobab(x,z,0.8+rng()*0.7);
+  else if(roll<jungle*0.55)acacia(x,z,0.7+rng()*0.9);
+  else if(roll<jungle*0.55+0.25)bush(x,z,0.8+rng()*1.2);
+  else rock(x,z,0.4+rng()*1.4);
+}
+{ // instanced grass tufts
+  const g=new THREE.ConeGeometry(0.07,0.55,4);g.translate(0,0.27,0);
+  const im=new THREE.InstancedMesh(g,new THREE.MeshLambertMaterial({color:0x9aa050}),1400);
+  const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),S=new THREE.Vector3(),P=new THREE.Vector3(),c=new THREE.Color();
+  let n=0;
+  while(n<1400){
+    const x=(rng()-.5)*1300,z=(rng()-.5)*1300;
+    if(!placeClear(x,z))continue;
+    P.set(x,0,z);Q.setFromEuler(new THREE.Euler(0.1*(rng()-.5),rng()*6,0.1*(rng()-.5)));
+    const s=0.7+rng()*1.6;S.set(s,s*(0.7+rng()*0.9),s);
+    im.setMatrixAt(n,M.compose(P,Q,S));
+    im.setColorAt(n,c.setHSL(0.18+rng()*0.08,0.42,0.3+rng()*0.14));
+    n++;
+  }
+  im.receiveShadow=true;world.add(im);
+}
+{ // distant hills — low, wide ridges on the horizon
+  const hillMat=new THREE.MeshStandardMaterial({color:0x39442f,roughness:1,flatShading:true});
+  for(let i=0;i<14;i++){
+    const a=i/14*Math.PI*2+rng()*0.4,r=1020+rng()*280;
+    const m=new THREE.Mesh(new THREE.ConeGeometry(230+rng()*180,45+rng()*65,7),hillMat);
+    m.scale.x=1.6+rng();
+    m.position.set(Math.cos(a)*r,0,Math.sin(a)*r);m.rotation.y=rng()*7;world.add(m);
+  }
+}
+
+/* ============================== text sprites ============================== */
+function nameSprite(text,color='#ffd98a',h=2.15){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=128;
+  const x=cv.getContext('2d');
+  x.font='600 44px Georgia,serif';x.textAlign='center';x.textBaseline='middle';
+  x.shadowColor='rgba(0,0,0,.9)';x.shadowBlur=14;
+  x.fillStyle=color;x.fillText(text,256,64);
+  const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+  sp.scale.set(2.6,0.65,1);sp.position.y=h;return sp;
+}
+
+/* ============================== humans ============================== */
+function buildHuman({coat=0xf2f2ec,pants=0x37424e,skin=0xb5825f,hair=0x1d1d20,lab=true,hat=false}={}){
+  const g=new THREE.Group();
+  const S=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85});
+  const mCoat=S(coat),mPants=S(pants),mSkin=S(skin),mHair=S(hair);
+  const legL=new THREE.Group(),legR=new THREE.Group();
+  for(const[leg,sx]of[[legL,-1],[legR,1]]){
+    leg.position.set(sx*0.11,0.86,0);
+    const th=cyl(0.075,0.09,0.8,mPants,7);th.position.y=-0.41;leg.add(th);
+    const ft=box(0.13,0.09,0.26,MAT.dark);ft.position.set(0,-0.83,0.05);leg.add(ft);
+    g.add(leg);
+  }
+  const torso=box(0.46,0.62,0.26,mCoat);torso.position.y=1.18;g.add(torso);
+  if(lab){const flap=box(0.5,0.34,0.3,mCoat);flap.position.y=0.92;g.add(flap);
+    const shirt=box(0.2,0.2,0.02,S(0x4d7ea8));shirt.position.set(0,1.36,0.135);g.add(shirt);}
+  const armL=new THREE.Group(),armR=new THREE.Group();
+  for(const[arm,sx]of[[armL,-1],[armR,1]]){
+    arm.position.set(sx*0.3,1.42,0);
+    const a=cyl(0.055,0.07,0.62,mCoat,7);a.position.y=-0.31;arm.add(a);
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(0.06,7,6),mSkin);hand.castShadow=true;hand.position.y=-0.65;arm.add(hand);
+    g.add(arm);
+  }
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.17,12,10),mSkin);
+  head.castShadow=true;head.position.y=1.66;g.add(head);
+  const hairM=new THREE.Mesh(new THREE.SphereGeometry(0.175,10,8),mHair);
+  hairM.scale.set(1,0.72,1);hairM.position.set(0,1.73,-0.025);g.add(hairM);
+  for(const sx of[-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(0.018,6,5),MAT.dark);
+    eye.position.set(sx*0.06,1.68,0.155);g.add(eye);}
+  if(hat){const brim=cyl(0.3,0.3,0.03,S(0x8a6f42),12);brim.position.y=1.78;g.add(brim);
+    const top=cyl(0.16,0.18,0.14,S(0x8a6f42),10);top.position.y=1.85;g.add(top);}
+  return{group:g,legL,legR,armL,armR,head};
+}
+function addNPC(opts,x,z,rotY,name,nameColor){
+  const h=buildHuman(opts);
+  h.group.position.set(x,0,z);h.group.rotation.y=rotY;
+  if(name)h.group.add(nameSprite(name,nameColor));
+  scene.add(h.group);addC(x,z,0.42);
+  const npc={...h,phase:rng()*7,home:rotY};npcs.push(npc);
+  return npc;
+}
+
+/* ============================== base camp ============================== */
+function medTent(x,z){
+  const t=new THREE.Group();
+  const body=box(6,2.4,4.6,MAT.canvas);body.position.y=1.2;t.add(body);
+  const roof=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,6.2,3,1),MAT.canvasDark);
+  roof.rotation.z=Math.PI/2;roof.rotation.x=Math.PI;roof.position.y=2.6;roof.scale.set(1,1,0.72);
+  roof.castShadow=true;t.add(roof);
+  const cV=box(0.28,1.1,0.06,MAT.red),cH=box(1.1,0.28,0.06,MAT.red);
+  cV.position.set(0,1.4,2.34);cH.position.set(0,1.4,2.34);t.add(cV,cH);
+  t.position.set(x,0,z);world.add(t);addB(x,z,3.1,2.4);
+}
+{
+  // clinic building
+  const c=new THREE.Group();
+  const walls=box(10,3.4,7,MAT.wood);walls.position.y=1.7;c.add(walls);
+  const roofL=box(6.4,0.25,8.2,MAT.woodDark),roofR=box(6.4,0.25,8.2,MAT.woodDark);
+  roofL.position.set(-2.6,4.35,0);roofL.rotation.z=0.42;
+  roofR.position.set(2.6,4.35,0);roofR.rotation.z=-0.42;c.add(roofL,roofR);
+  const door=box(1.3,2.3,0.15,MAT.woodDark);door.position.set(5.02,1.15,0);door.rotation.y=Math.PI/2;c.add(door);
+  for(const dz of[-2.2,2.2]){const win=box(0.12,1,1.4,MAT.glass);win.position.set(5.02,2,dz);c.add(win);}
+  const sV=box(0.5,1.6,0.1,MAT.red),sH=box(1.6,0.5,0.1,MAT.red);
+  const sBg=box(2,2,0.06,MAT.white);
+  sBg.position.set(5.1,3.2,0);sBg.rotation.y=Math.PI/2;
+  sV.position.set(5.16,3.2,0);sV.rotation.y=Math.PI/2;sH.position.set(5.16,3.2,0);sH.rotation.y=Math.PI/2;
+  c.add(sBg,sV,sH);
+  for(const dz of[-3,3]){const post=cyl(0.09,0.09,2.6,MAT.woodDark,7);post.position.set(6.4,1.3,dz);c.add(post);}
+  const porch=box(3,0.12,7,MAT.woodDark);porch.position.set(6.2,0.1,0);c.add(porch);
+  c.position.set(-16,0,-2);world.add(c);addB(-16,-2,5.2,3.7);
+  // tents
+  medTent(11,-11);medTent(16,-3);medTent(11,5.5);
+  // flag pole
+  const pole=cyl(0.05,0.07,7,MAT.metal,8);pole.position.set(-6,3.5,9);world.add(pole);addC(-6,9,0.25);
+  const flag=box(1.7,1,0.04,MAT.white);flag.position.set(-5.1,6.4,9);world.add(flag);
+  const fV=box(0.3,0.8,0.06,MAT.red),fH=box(0.8,0.3,0.06,MAT.red);
+  fV.position.set(-5.1,6.4,9.01);fH.position.set(-5.1,6.4,9.01);world.add(fV,fH);
+  // crates & barrels
+  for(const[x,z,s]of[[7.5,10.5,1],[8.7,10.2,0.8],[8,11.6,0.9],[-10,7.5,1.1],[-9,6.2,0.7]]){
+    const cr=box(s,s,s,MAT.wood);cr.position.set(x,s/2,z);cr.rotation.y=rng();world.add(cr);addC(x,z,s*0.75);
+  }
+  for(const[x,z]of[[14,2],[14.9,2.3]]){
+    const b=cyl(0.45,0.45,1.1,new THREE.MeshStandardMaterial({color:0x3f6079,roughness:.5,metalness:.3}),12);
+    b.position.set(x,0.55,z);world.add(b);addC(x,z,0.5);
+  }
+  // camp lights
+  for(const[x,z]of[[-8,4],[6,-7]]){
+    const p=cyl(0.06,0.08,4.6,MAT.metal,7);p.position.set(x,2.3,z);world.add(p);addC(x,z,0.2);
+    const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,6),new THREE.MeshBasicMaterial({color:0xffdf9e}));
+    bulb.position.set(x,4.65,z);world.add(bulb);
+    const li=new THREE.PointLight(0xffca7a,0,26,1.7);li.position.set(x,4.4,z);scene.add(li);
+    nightLights.push({light:li,base:26,bulb});
+  }
+}
+
+/* ============================== village ============================== */
+const patientSpots=[];
+{
+  const V=VILLAGE;
+  for(let i=0;i<6;i++){
+    const a=i/6*Math.PI*2+0.35,hx=V.x+Math.cos(a)*19,hz=V.z+Math.sin(a)*19;
+    const toC=Math.atan2(V.x-hx,V.z-hz);              // door faces village center
+    const hut=new THREE.Group();
+    const wall=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.7,2.3,14,1,true,toC+0.62,Math.PI*2-1.24),MAT.clay);
+    wall.position.y=1.15;wall.castShadow=wall.receiveShadow=true;hut.add(wall);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(3.5,2.1,12),MAT.thatch);
+    roof.position.y=3.2;roof.castShadow=true;hut.add(roof);
+    hut.position.set(hx,0,hz);world.add(hut);
+    const arc=Math.PI*2-1.24;
+    for(let k=0;k<13;k++){                             // wall colliders, gap at the door
+      const wa=toC+0.62+(k+0.5)*arc/13;
+      addC(hx+Math.sin(wa)*2.65,hz+Math.cos(wa)*2.65,0.42);
+    }
+    if(i%2===0&&patientSpots.length<3){
+      patientSpots.push({x:hx+Math.sin(toC)*0.4,z:hz+Math.cos(toC)*0.4,rot:toC});
+    }
+  }
+  // campfire
+  const fire=new THREE.Group();
+  for(let i=0;i<4;i++){const log=cyl(0.09,0.11,1.3,MAT.woodDark,6);
+    log.rotation.z=Math.PI/2.3;log.rotation.y=i*Math.PI/4;log.position.y=0.18;fire.add(log);}
+  const flames=[];
+  for(let i=0;i<3;i++){
+    const fl=new THREE.Mesh(new THREE.ConeGeometry(0.28-i*0.06,0.9-i*0.15,7),
+      new THREE.MeshBasicMaterial({color:[0xff6a00,0xffa200,0xffe08a][i],transparent:true,opacity:0.85,blending:THREE.AdditiveBlending,depthWrite:false}));
+    fl.position.y=0.55+i*0.16;fire.add(fl);flames.push(fl);
+  }
+  fire.position.set(V.x,0,V.z);world.add(fire);addC(V.x,V.z,0.8);
+  const fireLight=new THREE.PointLight(0xff9a3c,0,30,1.8);
+  fireLight.position.set(V.x,1.4,V.z);scene.add(fireLight);
+  nightLights.push({light:fireLight,base:30,flicker:true,flames});
+}
+
+/* ============================== jeeps ============================== */
+function buildJeep(x,z,heading){
+  const j=new THREE.Group();
+  const chassis=box(2.0,0.5,3.7,MAT.olive);chassis.position.y=0.62;j.add(chassis);
+  const tubL=box(0.18,0.5,2.1,MAT.olive),tubR=box(0.18,0.5,2.1,MAT.olive),tubB=box(2,0.5,0.2,MAT.olive);
+  tubL.position.set(-0.91,1.05,-0.7);tubR.position.set(0.91,1.05,-0.7);tubB.position.set(0,1.05,-1.75);
+  j.add(tubL,tubR,tubB);
+  const hood=box(1.8,0.34,1.3,MAT.olive);hood.position.set(0,0.98,1.05);j.add(hood);
+  const crossBg=box(0.62,0.02,0.62,MAT.white);crossBg.position.set(0,1.16,1.05);j.add(crossBg);
+  const cr1=box(0.14,0.02,0.5,MAT.red),cr2=box(0.5,0.02,0.14,MAT.red);
+  cr1.position.set(0,1.175,1.05);cr2.position.set(0,1.175,1.05);j.add(cr1,cr2);
+  const ws=box(1.7,0.6,0.07,MAT.glass);ws.position.set(0,1.5,0.42);ws.rotation.x=-0.22;j.add(ws);
+  const wsBar=box(1.74,0.06,0.09,MAT.dark);wsBar.position.set(0,1.78,0.36);j.add(wsBar);
+  for(const dx of[-0.45,0.45]){const seat=box(0.62,0.5,0.5,MAT.dark);seat.position.set(dx,1.05,-0.35);j.add(seat);
+    const back=box(0.62,0.55,0.14,MAT.dark);back.position.set(dx,1.35,-0.62);j.add(back);}
+  const wheel=new THREE.Mesh(new THREE.TorusGeometry(0.17,0.05,6,12),MAT.dark);
+  wheel.position.set(-0.45,1.32,0.12);wheel.rotation.x=1.1;j.add(wheel);
+  const roll=new THREE.Group();
+  for(const dx of[-0.85,0.85]){const bar=cyl(0.05,0.05,1.25,MAT.metal,8);bar.position.set(dx,1.6,-1.1);roll.add(bar);}
+  const barTop=cyl(0.05,0.05,1.75,MAT.metal,8);barTop.rotation.z=Math.PI/2;barTop.position.set(0,2.2,-1.1);roll.add(barTop);
+  j.add(roll);
+  const spare=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.24,14),MAT.tire);
+  spare.rotation.x=Math.PI/2;spare.position.set(0,1.1,-1.95);spare.castShadow=true;j.add(spare);
+  const wheels=[],frontPivots=[];
+  for(const[dx,dz,front]of[[-0.95,1.22,true],[0.95,1.22,true],[-0.95,-1.22,false],[0.95,-1.22,false]]){
+    const piv=new THREE.Group();piv.position.set(dx,0.44,dz);
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.32,14),MAT.tire);
+    w.rotation.z=Math.PI/2;w.castShadow=true;piv.add(w);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.34,8),MAT.metal);
+    hub.rotation.z=Math.PI/2;piv.add(hub);
+    j.add(piv);wheels.push(w);if(front)frontPivots.push(piv);
+  }
+  // headlights
+  const beams=[],spots=[];
+  for(const dx of[-0.62,0.62]){
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6),new THREE.MeshBasicMaterial({color:0xfff3c8}));
+    lamp.position.set(dx,0.92,1.72);j.add(lamp);
+    const sp=new THREE.SpotLight(0xffeeb8,0,80,0.48,0.45,1.4);
+    sp.position.set(dx,0.95,1.75);j.add(sp);
+    const tg=new THREE.Object3D();tg.position.set(dx*0.6,0,16);j.add(tg);sp.target=tg;spots.push(sp);
+    const coneG=new THREE.ConeGeometry(1.7,8,20,1,true);
+    coneG.rotateX(-Math.PI/2);coneG.translate(0,0,4);
+    const beam=new THREE.Mesh(coneG,new THREE.MeshBasicMaterial({color:0xffe9ad,transparent:true,opacity:0,
+      blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+    beam.position.set(dx,0.9,1.78);j.add(beam);beams.push(beam);
+  }
+  j.position.set(x,0,z);j.rotation.y=heading;
+  j.userData={speed:0,heading,steer:0,wheels,frontPivots,beams,spots,lamps:true};
+  scene.add(j);jeeps.push(j);
+  return j;
+}
+buildJeep(3,15,Math.PI+0.12);
+buildJeep(-2.5,18.5,Math.PI-0.08);
+
+/* ============================== player & NPCs ============================== */
+const playerH=buildHuman({coat:0xf5f5f0,pants:0x37424e,skin:0xc08a5e,hair:0x17151a,lab:true});
+{ const steth=new THREE.Mesh(new THREE.TorusGeometry(0.13,0.02,6,14,Math.PI*1.4),MAT.dark);
+  steth.position.set(0,1.5,0.1);steth.rotation.x=Math.PI/2-0.4;steth.rotation.z=Math.PI/1.05;playerH.group.add(steth);}
+playerH.group.position.set(5,0,7);
+scene.add(playerH.group);
+const player={h:playerH,pos:playerH.group.position,vy:0,onGround:true,heading:Math.PI,
+  health:100,stamina:100,walkPhase:0,driving:null};
+
+const boderjaN=addNPC({coat:0xc9772b,pants:0x4a3b2a,skin:0x6e4a30,hair:0x111114,lab:false,hat:true},7.5,12.5,2.9,'Boderja');
+const bernadetteN=addNPC({coat:0xf5f5f0,pants:0x5a4a5e,skin:0xd8a77e,hair:0x7a4a26,lab:true},-8.5,-0.5,Math.PI/2,'Dr. Bernadette');
+const elderN=addNPC({coat:0x8a2f2b,pants:0x33281c,skin:0x5e3f28,hair:0xa9a9a9,lab:false},VILLAGE.x+2.2,VILLAGE.z+2.5,-2.2,'Elder','#ff9a7a');
+
+const patients=[];
+const patientNames=['Essomba, 8','Mbarga, farmer','Amina'];
+patientSpots.forEach((s,i)=>{
+  const ph=buildHuman({coat:[0xb0563c,0x4a6b52,0x7a5a8a][i],pants:0x4a3b2a,skin:0x6e4a30,hair:0x111114,lab:false});
+  const g=new THREE.Group();
+  const mat=box(1.1,0.06,2.3,MAT.mat);mat.position.y=0.03;g.add(mat);
+  ph.group.rotation.x=-Math.PI/2;ph.group.position.set(0,0.28,-0.85);
+  ph.armL.rotation.x=0.3;ph.armR.rotation.x=-0.2;ph.legL.rotation.x=0.15;
+  g.add(ph.group);
+  const blanket=box(0.9,0.14,1.1,new THREE.MeshStandardMaterial({color:0x71503a,roughness:1}));
+  blanket.position.set(0,0.32,0.35);g.add(blanket);
+  g.add(nameSprite(patientNames[i],'#ffb3a0',1.5));
+  g.position.set(s.x,0,s.z);g.rotation.y=s.rot;
+  scene.add(g);
+  patients.push({group:g,pos:g.position,diagnosed:false,i});
+});
+
+/* ============================== dialogue data ============================== */
+const D={
+  boderjaIntro:[
+    ['Boderja','Docteur Alaa! You hear the drums? Since dawn they beat in the north village. Three more fell sick in the night.'],
+    ['Boderja','The elders say it is Dawa — black magic sent up the river. They will not let white coats near… but you, they will watch. You are new. Maybe you are lucky.'],
+    ['Dr. Alaa','Magic doesn\'t cause fever, Boderja. Something in that village does. I\'ll speak with Dr. Bernadette.'],
+    ['Boderja','As you say, docteur. But in Cameroon, even doctors carry a charm. Just in case.'],
+  ],
+  boderjaAgain:[['Boderja','The road north is the only road, docteur. Keep the wheel steady and the lights on.']],
+  boderjaDone:[['Boderja','The drums are quieter tonight, docteur. That is your doing.']],
+  bernaWait:[['Dr. Bernadette','Find Boderja first — he hears everything that moves in this camp before I do.']],
+  bernaIntro:[
+    ['Dr. Bernadette','Alaa. Good. Three children in the northern village this week — high fever, and the glands behind the neck swell like river stones.'],
+    ['Dr. Bernadette','And they sleep, Alaa. In the middle of speaking, of eating — they simply… sleep. The mothers cannot wake them.'],
+    ['Dr. Alaa','Posterior cervical nodes… Winterbottom\'s sign. If this is what I think it is, we don\'t have long.'],
+    ['Dr. Bernadette','Take one of the Jeeps and follow the road north. And Alaa — the jungle is not kind after dark. Keep your headlights burning.'],
+  ],
+  bernaMid:[['Dr. Bernadette','Go — the village needs eyes and hands, not conversation. Examine the sick and come back to me.']],
+  bernaFinal:[
+    ['Dr. Alaa','Bernadette — Winterbottom\'s sign in all three. Daytime somnolence, tremor in the farmer, a bite mark on the child. It\'s trypanosomiasis. The tsetse breeds along the river bend by the village.'],
+    ['Dr. Bernadette','Sleeping sickness… Then we move the unit at first light. Pentamidine for the early cases — and pray the others are not past it.'],
+    ['Dr. Bernadette','You did well today, docteur. Whatever the drums say — tonight, Safari answered. Welcome to Africa.'],
+  ],
+  bernaDone:[['Dr. Bernadette','Rest while you can, Alaa. The jungle always finds new work for us.']],
+  elder:[
+    ['Elder','You waste your needles, Egyptian. The river witch sent the Dawa. Drums and fire will answer her — not your white coats.'],
+    ['Dr. Alaa','Keep your drums, elder. But let me keep the children. We will see whose medicine wakes them.'],
+  ],
+  patients:[
+    [['Dr. Alaa','Easy, little one… Fever 39.8. The glands at the back of the neck are swollen hard — Winterbottom\'s sign, unmistakable.'],
+     ['Dr. Alaa','And there — a red chancre on the forearm. A bite. Something with wings gave you this, Essomba. Not any curse.']],
+    [['Dr. Alaa','His hands tremble and he argues with people who are not here. His wife says he was strong as a buffalo last month.'],
+     ['Dr. Alaa','Confusion, tremor, broken sleep… the parasite is crossing into the brain. Second stage. He needs treatment now, not drums.']],
+    [['Dr. Alaa','She has not truly woken in two days. Pulse slow, eyes half open… she only drifts deeper.'],
+     ['Dr. Alaa','Sleeping sickness. It was never magic — the killer here drinks blood by the river and is smaller than my thumbnail.']],
+  ],
+};
+
+/* ============================== interactables ============================== */
+interactables.push({
+  pos:boderjaN.group.position,radius:3,
+  label:()=>'Talk to Boderja',
+  run(){openDialogue(flags.reported?D.boderjaDone:flags.boderja?D.boderjaAgain:D.boderjaIntro,()=>{flags.boderja=true;});},
+});
+interactables.push({
+  pos:bernadetteN.group.position,radius:3,
+  label:()=>flags.diagnosed>=3&&!flags.reported?'Report to Dr. Bernadette':'Talk to Dr. Bernadette',
+  run(){
+    if(!flags.boderja)openDialogue(D.bernaWait);
+    else if(!flags.bernadette)openDialogue(D.bernaIntro,()=>{flags.bernadette=true;});
+    else if(flags.diagnosed>=3&&!flags.reported)openDialogue(D.bernaFinal,()=>{flags.reported=true;setTimeout(()=>$('complete').classList.add('on'),900);});
+    else if(flags.reported)openDialogue(D.bernaDone);
+    else openDialogue(D.bernaMid);
+  },
+});
+interactables.push({pos:elderN.group.position,radius:3,label:()=>'Speak with the Elder',run(){openDialogue(D.elder);}});
+patients.forEach(p=>{
+  interactables.push({
+    pos:p.pos,radius:2.6,
+    label:()=>p.diagnosed?'Re-examine patient':'Diagnose patient',
+    run(){openDialogue(D.patients[p.i],()=>{
+      if(!p.diagnosed){p.diagnosed=true;flags.diagnosed++;
+        toast(flags.diagnosed<3?`Diagnosis recorded (${flags.diagnosed}/3)`:'All patients examined — report to Dr. Bernadette');}
+    });},
+  });
+});
+
+/* ============================== objective / beacon ============================== */
+const beacon=new THREE.Group();
+const bMat=new THREE.MeshStandardMaterial({color:0xffc94d,emissive:0xcc8a1a,emissiveIntensity:1.4,transparent:true,opacity:0.92});
+const bGem=new THREE.Mesh(new THREE.OctahedronGeometry(0.42),bMat);bGem.position.y=3.4;beacon.add(bGem);
+const bRing=new THREE.Mesh(new THREE.TorusGeometry(1.15,0.05,6,32),bMat);
+bRing.rotation.x=Math.PI/2;bRing.position.y=0.08;beacon.add(bRing);
+scene.add(beacon);
+function objectiveInfo(){
+  if(!flags.boderja)return{text:'Report to Boderja, your guide',target:boderjaN.group.position};
+  if(!flags.bernadette)return{text:'Consult Dr. Bernadette at the clinic',target:bernadetteN.group.position};
+  if(!flags.jeep)return{text:'Take a Safari Jeep — walk up and press F',target:jeeps[0].position};
+  if(!flags.village)return{text:'Drive north along the road to the tribal village',target:VILLAGE};
+  if(flags.diagnosed<3){
+    let best=null,bd=1e9;
+    for(const p of patients)if(!p.diagnosed){const d=p.pos.distanceToSquared(player.pos);if(d<bd){bd=d;best=p;}}
+    return{text:`Diagnose the sick villagers (${flags.diagnosed}/3)`,target:best?best.pos:VILLAGE};
+  }
+  if(!flags.reported)return{text:'Drive back to base — report to Dr. Bernadette',target:bernadetteN.group.position};
+  return{text:'Free roam — the Chronicles continue…',target:null};
+}
+
+/* ============================== collision ============================== */
+function resolveCircle(px,pz,r,skipJeep){
+  for(let pass=0;pass<2;pass++){
+    for(const c of colliders){
+      if(c.type==='c'){
+        const dx=px-c.x,dz=pz-c.z,rr=r+c.r,d2=dx*dx+dz*dz;
+        if(d2<rr*rr){const d=Math.sqrt(d2)||0.001;px=c.x+dx/d*rr;pz=c.z+dz/d*rr;}
+      }else{
+        const nx=clamp(px,c.x-c.hx,c.x+c.hx),nz=clamp(pz,c.z-c.hz,c.z+c.hz);
+        const dx=px-nx,dz=pz-nz,d2=dx*dx+dz*dz;
+        if(d2<r*r){
+          if(d2>1e-9){const d=Math.sqrt(d2);px=nx+dx/d*r;pz=nz+dz/d*r;}
+          else{const ex=c.hx-Math.abs(px-c.x),ez=c.hz-Math.abs(pz-c.z);
+            if(ex<ez)px=c.x+Math.sign(px-c.x||1)*(c.hx+r);else pz=c.z+Math.sign(pz-c.z||1)*(c.hz+r);}
+        }
+      }
+    }
+    for(const j of jeeps){
+      if(j===skipJeep)continue;
+      const dx=px-j.position.x,dz=pz-j.position.z,rr=r+2.0,d2=dx*dx+dz*dz;
+      if(d2<rr*rr){const d=Math.sqrt(d2)||0.001;px=j.position.x+dx/d*rr;pz=j.position.z+dz/d*rr;}
+    }
+  }
+  const dd=Math.hypot(px,pz);
+  if(dd>WORLD_R){px*=WORLD_R/dd;pz*=WORLD_R/dd;}
+  return{x:px,z:pz};
+}
+
+/* ============================== input ============================== */
+const keys={};
+let pointerWasLocked=false;
+addEventListener('keydown',e=>{
+  if(e.code==='Tab')e.preventDefault();
+  keys[e.code]=true;
+  if(state!=='game')return;
+  if(e.code==='KeyE'){ if(dialogue)advanceDialogue(); else tryInteract(); }
+  if(e.code==='KeyF'&&!dialogue)toggleJeep();
+});
+addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;});
+addEventListener('mousedown',()=>{if(state==='game'&&dialogue)advanceDialogue();});
+const cam={yaw:Math.PI*0.9,pitch:0.34,dist:5.4};
+addEventListener('mousemove',e=>{
+  if(document.pointerLockElement!==document.body||state!=='game')return;
+  cam.yaw-=e.movementX*0.0023;
+  cam.pitch=clamp(cam.pitch+e.movementY*0.0018,-0.18,1.15);
+});
+document.addEventListener('pointerlockchange',()=>{
+  const locked=document.pointerLockElement===document.body;
+  if(!locked&&pointerWasLocked&&state==='game'&&!$('complete').classList.contains('on'))$('pause').classList.add('on');
+  pointerWasLocked=locked;
+});
+function lockPointer(){try{document.body.requestPointerLock?.();}catch(e){/* headless / unsupported */}}
+$('resumeBtn').onclick=()=>{$('pause').classList.remove('on');lockPointer();};
+$('roamBtn').onclick=()=>{$('complete').classList.remove('on');lockPointer();};
+
+/* ============================== dialogue engine ============================== */
+let dialogue=null,dlgChars=0;
+function openDialogue(lines,onEnd){
+  dialogue={lines,idx:0,onEnd};dlgChars=0;
+  document.body.classList.add('talking');
+  showLine();
+}
+function showLine(){
+  const[who]=dialogue.lines[dialogue.idx];
+  $('dlgName').textContent=who;dlgChars=0;
+}
+function advanceDialogue(){
+  const[,text]=dialogue.lines[dialogue.idx];
+  if(dlgChars<text.length){dlgChars=text.length;return;}
+  dialogue.idx++;
+  if(dialogue.idx>=dialogue.lines.length){
+    const cb=dialogue.onEnd;dialogue=null;
+    document.body.classList.remove('talking');
+    if(cb)cb();
+  } else showLine();
+}
+function updateDialogue(dt){
+  if(!dialogue)return;
+  const[,text]=dialogue.lines[dialogue.idx];
+  if(dlgChars<text.length)dlgChars=Math.min(text.length,dlgChars+dt*55);
+  $('dlgText').textContent=text.slice(0,Math.floor(dlgChars));
+  $('dlgMore').textContent=dialogue.idx>=dialogue.lines.length-1&&dlgChars>=text.length?'E ▸ close':'E ▸ continue';
+}
+
+/* ============================== interaction / vehicle ============================== */
+let nearInteract=null,nearJeep=null;
+function tryInteract(){if(nearInteract&&!player.driving)nearInteract.run();}
+function toggleJeep(){
+  if(player.driving){
+    const j=player.driving,h=j.userData.heading;
+    j.userData.speed=0;
+    const cands=[[Math.cos(h)*2.4,-Math.sin(h)*2.4],[-Math.cos(h)*2.4,Math.sin(h)*2.4],[-Math.sin(h)*3.4,-Math.cos(h)*3.4]];
+    let ex=j.position.x-Math.cos(h)*2.4,ez=j.position.z+Math.sin(h)*2.4;
+    for(const[dx,dz]of cands){
+      const r=resolveCircle(j.position.x+dx,j.position.z+dz,0.45,j);
+      if(Math.hypot(r.x-(j.position.x+dx),r.z-(j.position.z+dz))<0.05){ex=r.x;ez=r.z;break;}
+    }
+    player.pos.set(ex,0,ez);player.vy=0;
+    playerH.group.visible=true;player.driving=null;
+    $('speedo').style.display='none';
+  }else if(nearJeep&&!dialogue){
+    player.driving=nearJeep;flags.jeep=true;
+    playerH.group.visible=false;
+    $('speedo').style.display='block';
+    toast('Engine running — W/S drive · A/D steer · F exit');
+  }
+}
+function updateVehicle(dt){
+  const j=player.driving,u=j.userData;
+  let acc=0;
+  if(keys.KeyW||keys.ArrowUp)acc=u.speed<0?18:11;
+  if(keys.KeyS||keys.ArrowDown)acc=u.speed>0?-20:-7;
+  u.speed+=acc*dt;
+  u.speed*=Math.max(0,1-(acc===0?1.1:0.18)*dt);
+  u.speed=clamp(u.speed,-8,26);
+  const sIn=(keys.KeyA||keys.ArrowLeft?1:0)-(keys.KeyD||keys.ArrowRight?1:0);
+  u.steer=lerp(u.steer,sIn*0.5,Math.min(1,dt*7));
+  u.heading+=u.steer*Math.min(Math.abs(u.speed)/7,1)*1.45*Math.sign(u.speed)*dt;
+  const fx=Math.sin(u.heading),fz=Math.cos(u.heading);
+  const tx=j.position.x+fx*u.speed*dt,tz=j.position.z+fz*u.speed*dt;
+  const res=resolveCircle(tx,tz,2.0,j);
+  const push=Math.hypot(res.x-tx,res.z-tz);
+  if(push>Math.max(0.02,Math.abs(u.speed)*dt*0.35)){
+    if(Math.abs(u.speed)>11){
+      player.health=Math.max(0,player.health-(Math.abs(u.speed)-10)*2.2);
+      toast('You hit something — careful, docteur!');
+    }
+    u.speed*=-0.25;
+  }
+  j.position.set(res.x,0,res.z);
+  j.rotation.y=u.heading;
+  for(const w of u.wheels)w.rotation.x+=u.speed*dt/0.44;
+  for(const p of u.frontPivots)p.rotation.y=u.steer*0.9;
+  $('speedNum').textContent=Math.round(Math.abs(u.speed)*3.6);
+  cam.yaw=lerpAngle(cam.yaw,u.heading+Math.PI,Math.min(1,dt*2.2));
+}
+function updatePlayer(dt){
+  const sprint=(keys.ShiftLeft||keys.ShiftRight)&&player.stamina>2;
+  let ix=0,iz=0;
+  if(keys.KeyW||keys.ArrowUp)iz+=1;
+  if(keys.KeyS||keys.ArrowDown)iz-=1;
+  if(keys.KeyA||keys.ArrowLeft)ix-=1;
+  if(keys.KeyD||keys.ArrowRight)ix+=1;
+  const moving=(ix||iz)&&!dialogue;
+  let vx=0,vz=0;
+  if(moving){
+    const len=Math.hypot(ix,iz);ix/=len;iz/=len;
+    const s=sprint?7.2:4.4;
+    const fX=-Math.sin(cam.yaw),fZ=-Math.cos(cam.yaw);
+    const rX=-fZ,rZ=fX;
+    vx=(fX*iz+rX*ix)*s;vz=(fZ*iz+rZ*ix)*s;
+    player.heading=lerpAngle(player.heading,Math.atan2(vx,vz),Math.min(1,dt*10));
+    if(sprint)player.stamina=Math.max(0,player.stamina-22*dt);
+  }
+  if(!sprint||!moving)player.stamina=Math.min(100,player.stamina+14*dt);
+  if((keys.Space)&&player.onGround&&!dialogue){player.vy=6.4;player.onGround=false;}
+  player.vy-=16.5*dt;
+  let y=player.pos.y+player.vy*dt;
+  if(y<=0){y=0;player.vy=0;player.onGround=true;}
+  const res=resolveCircle(player.pos.x+vx*dt,player.pos.z+vz*dt,0.45,null);
+  player.pos.set(res.x,y,res.z);
+  playerH.group.rotation.y=player.heading;
+  // limb animation
+  const P=playerH;
+  if(moving&&player.onGround){
+    player.walkPhase+=dt*(sprint?11.5:8);
+    const amp=sprint?0.85:0.6,s2=Math.sin(player.walkPhase);
+    P.legL.rotation.x=s2*amp;P.legR.rotation.x=-s2*amp;
+    P.armL.rotation.x=-s2*amp*0.75;P.armR.rotation.x=s2*amp*0.75;
+  }else if(!player.onGround){
+    P.legL.rotation.x=lerp(P.legL.rotation.x,0.4,dt*8);P.legR.rotation.x=lerp(P.legR.rotation.x,-0.3,dt*8);
+    P.armL.rotation.x=lerp(P.armL.rotation.x,-0.5,dt*8);P.armR.rotation.x=lerp(P.armR.rotation.x,-0.5,dt*8);
+  }else{
+    for(const part of[P.legL,P.legR,P.armL,P.armR])part.rotation.x=lerp(part.rotation.x,0,dt*9);
+  }
+  player.health=Math.min(100,player.health+1.2*dt);
+  if(player.health<=0)respawn();
+}
+function respawn(){
+  $('fade').style.opacity=1;
+  setTimeout(()=>{
+    player.health=100;player.stamina=100;
+    if(player.driving){playerH.group.visible=true;player.driving=null;$('speedo').style.display='none';}
+    player.pos.set(5,0,7);player.vy=0;
+    toast('You black out… and wake at the base clinic.');
+    $('fade').style.opacity=0;
+  },850);
+}
+
+/* ============================== camera ============================== */
+const camTarget=new THREE.Vector3();
+function updateCamera(dt,instant){
+  const driving=!!player.driving;
+  const focus=driving?player.driving.position:player.pos;
+  camTarget.set(focus.x,focus.y+(driving?2.1:1.65),focus.z);
+  const dDist=driving?9.8:5.4;
+  cam.dist=lerp(cam.dist,dDist,Math.min(1,dt*4));
+  const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  const px=camTarget.x+Math.sin(cam.yaw)*cp*cam.dist;
+  const py=Math.max(0.4,camTarget.y+sp*cam.dist);
+  const pz=camTarget.z+Math.cos(cam.yaw)*cp*cam.dist;
+  if(instant)camera.position.set(px,py,pz);
+  else camera.position.lerp(new THREE.Vector3(px,py,pz),Math.min(1,dt*14));
+  camera.lookAt(camTarget);
+}
+
+/* ============================== day/night ============================== */
+let gameTime=0.715;   // fraction of day; 0=midnight — golden hour at start
+const cTopDay=new THREE.Color(0x3d73b8),cTopNight=new THREE.Color(0x070b1c),cTopDusk=new THREE.Color(0x3a3f6e);
+const cHorDay=new THREE.Color(0xbdd7e8),cHorNight=new THREE.Color(0x0d1226),cHorDusk=new THREE.Color(0xf28a3c);
+const cSunDay=new THREE.Color(0xfff2d8),cSunDusk=new THREE.Color(0xff6a22);
+const _c1=new THREE.Color(),_c2=new THREE.Color();
+const sunDirV=new THREE.Vector3();
+let darkness=0;
+function updateSky(t,focus){
+  const ang=(t%1-0.25)*Math.PI*2;
+  const sunH=Math.sin(ang);
+  sunDirV.set(Math.cos(ang),Math.sin(ang),0.33).normalize();
+  const day=smooth(-0.06,0.28,sunH);
+  const dusk=clamp(1-Math.abs(sunH-0.04)/0.24,0,1);
+  darkness=1-smooth(-0.14,0.06,sunH);
+  _c1.copy(cTopNight).lerp(cTopDay,day).lerp(cTopDusk,dusk*0.45);
+  skyUni.topColor.value.copy(_c1);
+  _c2.copy(cHorNight).lerp(cHorDay,day).lerp(cHorDusk,dusk*0.8);
+  skyUni.horizonColor.value.copy(_c2);
+  skyUni.sunColor.value.copy(_c1.copy(cSunDay).lerp(cSunDusk,dusk));
+  skyUni.sunDir.value.copy(sunDirV);
+  skyUni.sunGlow.value=smooth(-0.22,0.0,sunH);
+  scene.fog.color.copy(_c2);
+  scene.fog.near=lerp(35,110,day);
+  scene.fog.far=lerp(360,1400,day);
+  sunLight.intensity=2.5*smooth(0.0,0.2,sunH);
+  sunLight.color.copy(cSunDay).lerp(cSunDusk,dusk);
+  sunLight.castShadow=sunH>0.02;
+  sunLight.position.copy(focus).addScaledVector(sunDirV,190);
+  sunLight.target.position.copy(focus);
+  const moonDir=sunDirV.clone().multiplyScalar(-1);moonDir.y=Math.abs(moonDir.y)*0.8+0.25;moonDir.normalize();
+  moonLight.intensity=0.22*darkness;
+  moonLight.position.copy(focus).addScaledVector(moonDir,180);
+  moonLight.target.position.copy(focus);
+  moonMesh.position.copy(focus).addScaledVector(moonDir,1200);
+  moonMesh.material.opacity=darkness;
+  hemi.intensity=lerp(0.09,0.55,day);
+  stars.material.opacity=darkness*0.95;
+  stars.position.set(focus.x,0,focus.z);
+  skyDome.position.set(focus.x,0,focus.z);
+  // artificial lights
+  for(const nl of nightLights){
+    let k=darkness;
+    if(nl.flicker){k*= (0.82+Math.sin(perf*13.7)*0.09+Math.sin(perf*29.3)*0.06);
+      if(nl.flames)nl.flames.forEach((f,i)=>{f.scale.setScalar(0.85+Math.sin(perf*(9+i*3)+i)*0.14);f.material.opacity=0.55+darkness*0.35;});}
+    nl.light.intensity=k*(nl.flicker?26:22);
+    if(nl.bulb)nl.bulb.material.color.setScalar(0.35+k*0.65);
+  }
+  // headlights auto at night
+  const on=sunH<0.06;
+  for(const j of jeeps){
+    const u=j.userData,want=on?1:0;
+    for(const sp of u.spots)sp.intensity=lerp(sp.intensity,want*95,0.08);
+    for(const b of u.beams)b.material.opacity=lerp(b.material.opacity,want*0.085,0.08);
+  }
+}
+function clockStr(t){
+  const mins=Math.floor((t%1)*1440),h=Math.floor(mins/60),m=mins%60;
+  return `Day ${1+Math.floor(t)} — ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+/* ============================== fireflies ============================== */
+const ffGeo=new THREE.BufferGeometry();
+const ffBase=[];
+{
+  const N=130,p=new Float32Array(N*3);
+  let n=0;
+  while(n<N){
+    const x=(rng()-.5)*500,z=-100-rng()*420;
+    if(Math.abs(x)>260)continue;
+    p[n*3]=x;p[n*3+1]=0.6+rng()*2;p[n*3+2]=z;
+    ffBase.push(x,p[n*3+1],z,rng()*7);n++;
+  }
+  ffGeo.setAttribute('position',new THREE.BufferAttribute(p,3));
+}
+const fireflies=new THREE.Points(ffGeo,new THREE.PointsMaterial({color:0xc8ff7a,size:0.14,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+scene.add(fireflies);
+function updateFireflies(){
+  fireflies.material.opacity=darkness*0.9;
+  if(darkness<0.05)return;
+  const p=ffGeo.attributes.position;
+  for(let i=0;i<p.count;i++){
+    const bx=ffBase[i*4],by=ffBase[i*4+1],bz=ffBase[i*4+2],ph=ffBase[i*4+3];
+    p.setXYZ(i,bx+Math.sin(perf*0.7+ph)*1.6,by+Math.sin(perf*1.1+ph*2)*0.5,bz+Math.cos(perf*0.5+ph)*1.6);
+  }
+  p.needsUpdate=true;
+}
+
+/* ============================== minimap ============================== */
+const mapCv=$('minimap'),mapCx=mapCv.getContext('2d');
+const MAP_S=190*(devicePixelRatio||1);mapCv.width=MAP_S;mapCv.height=MAP_S;
+function drawMinimap(){
+  const x=mapCx,S=MAP_S,C=S/2,scale=S/2/230;   // ~230 m radius shown
+  const focus=player.driving?player.driving.position:player.pos;
+  x.clearRect(0,0,S,S);
+  x.save();
+  x.beginPath();x.arc(C,C,C-2,0,7);x.clip();
+  x.fillStyle='#1b2416';x.fillRect(0,0,S,S);
+  const W=(wx,wz)=>[C+(wx-focus.x)*scale,C+(wz-focus.z)*scale];
+  // road
+  x.strokeStyle='#8f7a55';x.lineWidth=4*scale/0.4;x.beginPath();
+  roadPts.forEach((p,i)=>{const[a,b]=W(p.x,p.z);i?x.lineTo(a,b):x.moveTo(a,b);});
+  x.stroke();
+  // base & village
+  const drawSpot=(wx,wz,color,r)=>{const[a,b]=W(wx,wz);x.fillStyle=color;x.beginPath();x.arc(a,b,r,0,7);x.fill();};
+  {const[a,b]=W(0,0);x.fillStyle='#e8e2d2';x.fillRect(a-7,b-7,14,14);
+   x.fillStyle='#c0392b';x.fillRect(a-1.8,b-5,3.6,10);x.fillRect(a-5,b-1.8,10,3.6);}
+  for(let i=0;i<6;i++){const a2=i/6*Math.PI*2+0.35;
+    drawSpot(VILLAGE.x+Math.cos(a2)*19,VILLAGE.z+Math.sin(a2)*19,'#a67b4f',3);}
+  // jeeps
+  for(const j of jeeps)if(j!==player.driving)drawSpot(j.position.x,j.position.z,'#6fc2ff',4);
+  // npcs
+  drawSpot(boderjaN.group.position.x,boderjaN.group.position.z,'#7fe28a',3);
+  drawSpot(bernadetteN.group.position.x,bernadetteN.group.position.z,'#7fe28a',3);
+  for(const p of patients)if(!p.diagnosed)drawSpot(p.pos.x,p.pos.z,'#ff8a7a',3);
+  // objective (clamped to rim)
+  const obj=objectiveInfo();
+  if(obj.target){
+    let[a,b]=W(obj.target.x,obj.target.z);
+    const dx=a-C,dy=b-C,d=Math.hypot(dx,dy),max=C-14;
+    if(d>max){a=C+dx/d*max;b=C+dy/d*max;}
+    x.save();x.translate(a,b);x.rotate(perf*2);
+    x.fillStyle='#ffd257';x.strokeStyle='#3a2f14';x.lineWidth=2;
+    x.beginPath();x.moveTo(0,-7);x.lineTo(7,0);x.lineTo(0,7);x.lineTo(-7,0);x.closePath();x.fill();x.stroke();
+    x.restore();
+  }
+  // player arrow
+  const hd=player.driving?player.driving.userData.heading:player.heading;
+  x.save();x.translate(C,C);x.rotate(Math.atan2(Math.sin(hd),-Math.cos(hd))+Math.PI);
+  x.fillStyle='#fff';x.strokeStyle='#000';x.lineWidth=2;
+  x.beginPath();x.moveTo(0,-9);x.lineTo(6,7);x.lineTo(0,3.5);x.lineTo(-6,7);x.closePath();x.fill();x.stroke();
+  x.restore();
+  x.restore();
+}
+
+/* ============================== HUD misc ============================== */
+let toastTimer=null;
+function toast(msg){
+  const t=$('toast');t.textContent=msg;t.style.opacity=1;
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity=0,3000);
+}
+let zoneCur='',zoneTimer=null;
+function updateZone(focus){
+  let z='THE JUNGLE';
+  if(Math.hypot(focus.x,focus.z)<62)z='SAFARI MEDICAL BASE';
+  else if(Math.hypot(focus.x-VILLAGE.x,focus.z-VILLAGE.z)<52)z='NORTHERN VILLAGE';
+  if(z!==zoneCur){
+    zoneCur=z;const el=$('zone');el.textContent=z;el.style.opacity=0.95;
+    clearTimeout(zoneTimer);zoneTimer=setTimeout(()=>el.style.opacity=0,2600);
+  }
+}
+function updatePrompt(){
+  nearInteract=null;nearJeep=null;
+  const pr=$('prompt');
+  if(dialogue){pr.style.display='none';return;}
+  if(player.driving){
+    $('promptKey').textContent='F';$('promptText').textContent='Exit Jeep';pr.style.display='flex';return;
+  }
+  let bd=1e9;
+  for(const it of interactables){
+    const d=it.pos.distanceTo(player.pos);
+    if(d<it.radius&&d<bd){bd=d;nearInteract=it;}
+  }
+  let jd=3.4;
+  for(const j of jeeps){const d=j.position.distanceTo(player.pos);if(d<jd){jd=d;nearJeep=j;}}
+  if(nearInteract&&(!nearJeep||bd<jd)){
+    nearJeep=null;
+    $('promptKey').textContent='E';$('promptText').textContent=nearInteract.label();pr.style.display='flex';
+  }else if(nearJeep){
+    nearInteract=null;
+    $('promptKey').textContent='F';$('promptText').textContent='Drive Jeep';pr.style.display='flex';
+  }else pr.style.display='none';
+}
+function updateNPCs(dt){
+  for(const n of npcs){
+    const d=n.group.position.distanceTo(player.pos);
+    if(d<7&&!player.driving){
+      const want=Math.atan2(player.pos.x-n.group.position.x,player.pos.z-n.group.position.z);
+      n.group.rotation.y=lerpAngle(n.group.rotation.y,want,Math.min(1,dt*4));
+    }else n.group.rotation.y=lerpAngle(n.group.rotation.y,n.home,Math.min(1,dt*1.5));
+    n.armL.rotation.x=Math.sin(perf*1.6+n.phase)*0.06;
+    n.armR.rotation.x=-Math.sin(perf*1.6+n.phase)*0.06;
+    n.head.position.y=1.66+Math.sin(perf*2+n.phase)*0.012;
+  }
+}
+function updateBeacon(){
+  const obj=objectiveInfo();
+  beacon.visible=!!obj.target;
+  if(obj.target){
+    beacon.position.set(obj.target.x,0,obj.target.z);
+    bGem.position.y=3.3+Math.sin(perf*2.4)*0.25;
+    bGem.rotation.y=perf*1.8;
+    bMat.opacity=0.75+Math.sin(perf*3)*0.2;
+  }
+  $('objText').textContent=obj.text;
+}
+
+/* ============================== game flow ============================== */
+let state='menu';           // 'menu' | 'transition' | 'game'
+let transT=0;
+const cineStart=new THREE.Vector3(),cineLook=new THREE.Vector3(0,3,0);
+$('startBtn').onclick=()=>{
+  if(state!=='menu')return;
+  state='transition';transT=0;
+  cineStart.copy(camera.position);
+  $('menu').classList.add('hidden');
+  lockPointer();
+};
+function finishTransition(){
+  state='game';
+  $('hud').classList.add('on');
+  toast('The drums have been beating since dawn…');
+}
+
+/* ============================== main loop ============================== */
+const clock=new THREE.Clock();
+let perf=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  perf+=dt;
+  const focus=player.driving?player.driving.position:player.pos;
+
+  if(state==='menu'){
+    const a=perf*0.06+2.2;
+    camera.position.set(Math.cos(a)*58,26+Math.sin(perf*0.18)*3,Math.sin(a)*58);
+    camera.lookAt(cineLook);
+    updateSky(0.732,focus);            // frozen golden hour
+  }else if(state==='transition'){
+    transT+=dt/2.6;
+    gameTime+=dt/DAY_LEN;
+    updateSky(gameTime,focus);
+    updateCamera(dt,true);
+    const t=smooth(0,1,clamp(transT,0,1));
+    const goal=camera.position.clone();
+    camera.position.lerpVectors(cineStart,goal,t);
+    camera.lookAt(camTarget.clone().lerp(cineLook,1-t));
+    if(transT>=1)finishTransition();
+  }else{
+    gameTime+=dt/DAY_LEN;
+    updateSky(gameTime,focus);
+    updateDialogue(dt);
+    if(player.driving)updateVehicle(dt);else updatePlayer(dt);
+    if(!flags.village&&Math.hypot(focus.x-VILLAGE.x,focus.z-VILLAGE.z)<48){
+      flags.village=true;toast('You have reached the northern village');
+    }
+    updateNPCs(dt);
+    updatePrompt();
+    updateBeacon();
+    updateZone(focus);
+    updateCamera(dt,false);
+    drawMinimap();
+    $('hpFill').style.width=player.health+'%';$('hpNum').textContent=Math.round(player.health);
+    $('stFill').style.width=player.stamina+'%';$('stNum').textContent=Math.round(player.stamina);
+    $('clock').textContent=clockStr(gameTime);
+  }
+  updateFireflies();
+  renderer.render(scene,camera);
+}
+updateSky(0.732,player.pos);
+animate();
+</script>
+</body>
+</html>
