@@ -7,6 +7,12 @@ This repo currently holds **two things**:
 
 (Plus `public/games/` — standalone single-file HTML games, e.g. `public/games/safari-cameroon.html`. No build step: Vite copies `public/` verbatim, so each game is served as-is at `/games/<name>.html` on the Netlify site (and on deploy previews). Also playable by opening the file directly in a browser. Three.js comes from the jsdelivr CDN at runtime.)
 
+**Testing the games (facts learned 2026-09-25):**
+- `safari-cameroon.html` pins Three.js **r170** via an importmap. r170 is the last release whose `three.module.js` is a single file; r171+ splits it into `three.core.js` + `three.module.js`. Keep that in mind before bumping.
+- jsdelivr is **blocked** from remote Claude Code containers (proxy 403). To test, `npm i three@<same version> playwright-core` in the scratchpad and use `page.route('https://cdn.jsdelivr.net/**', …)` to serve the local `three.module.js`. Launch Chromium from `/opt/pw-browsers/chromium-*/chrome-linux/chrome` with `--use-angle=swiftshader --enable-unsafe-swiftshader`.
+- SwiftShader (software WebGL) runs the game at ~2–4 fps and the loop caps each frame's time step at 50 ms, so gameplay runs slowly in real time. Wait on rendered frames (`requestAnimationFrame`), not on wall-clock timeouts. Treat SwiftShader fps only as a *relative* measure; the old game ran at 6.5 fps there.
+- The game exposes a test hook `window.__game` (flags, player, patients, `stage()`, `teleport()`, `setTime()`, `handleKey()`, `save()`). Headless Chromium grants pointer lock, so the "Esc exits lock → pause" path can be tested with `document.exitPointerLock()`.
+
 Read the section for the thing you're working on. A split into separate repos is under consideration (see `improvements.md`).
 
 ## Working Rules (every session)
